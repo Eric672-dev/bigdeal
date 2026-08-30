@@ -213,7 +213,7 @@
     <div class="mark"></div>
     <h1>BIG DEAL</h1>
     <div class="sub">Trailing&nbsp;Stop</div>
-    <div class="ver" id="appVersion" title="Version de cette page">v30/08 16:55</div>
+    <div class="ver" id="appVersion" title="Version de cette page">v30/08 17:48</div>
   </div>
   <nav class="tabs">
     <button data-view="preparation" class="active">Préparation</button>
@@ -260,6 +260,7 @@
         </div>
         <button class="btn primary" id="anAddBtn" style="width:auto;margin-top:0;">Analyser</button>
       </div>
+      <p class="small" id="anChipsLabel" style="margin-top:8px;color:var(--dim);"></p>
       <div class="an-chips" id="anChips"></div>
     </div>
     <div id="anResults">
@@ -936,6 +937,7 @@ function pickStock(nom, tk){
   // On ne garde que la valeur retenue pour la transaction — les autres valeurs
   // analysées dans cette même session sont effacées de la section Analyse.
   anWatch = anWatch.filter(w=> w.ticker === tk);
+  pushRecentTicker(tk);
   updateSelStockLabel();
   updateAchatHeader();
 }
@@ -1399,6 +1401,41 @@ async function renderSuivi(){
 // ================= ANALYSE — Chartiste CAC 40 (fusionné) ==============
 // =====================================================================
 const AN_SUGGEST = ["LVMH","BNP Paribas","L'Oréal","Airbus","TotalEnergies","Sanofi"];
+// ---------- Valeurs récemment utilisées (remplacent la liste par défaut dès qu'il y en a) ----------
+// Propre à cet appareil (localStorage direct, hors du flux artifact/publish — pas de rechargement
+// de page pour un simple confort d'affichage).
+const AN_RECENT_KEY = 'bigdeal-recent-tickers';
+function loadRecentTickers(){
+  try{
+    const raw = localStorage.getItem(AN_RECENT_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter(t=>UNIVERSE[t]) : [];
+  }catch(e){ return []; }
+}
+function pushRecentTicker(tk){
+  if(!UNIVERSE[tk]) return;
+  let arr = loadRecentTickers();
+  arr = [tk, ...arr.filter(t=>t!==tk)].slice(0,6);
+  try{ localStorage.setItem(AN_RECENT_KEY, JSON.stringify(arr)); }catch(e){}
+  renderAnChips();
+}
+function renderAnChips(){
+  const box = $('anChips');
+  const label = $('anChipsLabel');
+  if(!box) return;
+  const recent = loadRecentTickers();
+  const usingRecent = recent.length > 0;
+  const list = usingRecent ? recent.map(tk=>({label:UNIVERSE[tk], value:UNIVERSE[tk]})) : AN_SUGGEST.map(n=>({label:n, value:n}));
+  if(label) label.textContent = usingRecent ? 'Récemment utilisées :' : 'Suggestions :';
+  box.innerHTML = '';
+  list.forEach(({label:lab, value})=>{
+    const c = document.createElement('div');
+    c.className = 'an-chip';
+    c.textContent = lab;
+    c.onclick = () => anAddTickers(value);
+    box.appendChild(c);
+  });
+}
 // Enlève accents, casse, apostrophes pour comparer noms et codes
 function norm(str){
   return str.normalize('NFD').replace(/[̀-ͯ]/g,'')
@@ -1831,8 +1868,7 @@ async function anAddTickers(raw){
   $('anTickerInput').value='';
 }
 $('anAddBtn').addEventListener('click', ()=>{ $('anAutocomplete').classList.remove('show'); anAddTickers($('anTickerInput').value); });
-const anChipBox=$('anChips');
-AN_SUGGEST.forEach(t=>{ const c=document.createElement('div'); c.className='an-chip'; c.textContent=t; c.onclick=()=>anAddTickers(t); anChipBox.appendChild(c); });
+renderAnChips();
 // ---------- autocomplétion de la section Analyse (Préparation) ----------
 const anAcBox = $('anAutocomplete');
 const anTInput = $('anTickerInput');
