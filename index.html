@@ -30,6 +30,7 @@
     box-shadow:0 0 0 3px rgba(232,166,61,.15);}
   .brand h1{font-size:19px;margin:0;letter-spacing:.5px;}
   .brand .sub{color:var(--dim);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-left:auto;}
+  .brand .ver{color:var(--dim);font-size:9px;opacity:.55;font-family:'IBM Plex Mono',ui-monospace,monospace;}
   nav.tabs{display:flex;gap:4px;margin:12px 0 4px;background:var(--panel);border:1px solid var(--line);
     border-radius:10px;padding:3px;}
   nav.tabs button{flex:1;padding:9px 4px;background:transparent;border:none;color:var(--dim);
@@ -80,6 +81,7 @@
   table.sel td.tk{color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-align:right;}
   .pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;letter-spacing:.4px;
     text-transform:uppercase;font-weight:700;}
+  .pill.person{background:rgba(91,141,239,.15);color:var(--blue);margin-left:8px;}
   .pill.gain{background:rgba(43,179,154,.15);color:var(--green);}
   .pill.perte{background:rgba(232,93,93,.15);color:var(--red);}
   .pill.warn{background:rgba(232,166,61,.15);color:var(--amber);}
@@ -211,6 +213,7 @@
     <div class="mark"></div>
     <h1>BIG DEAL</h1>
     <div class="sub">Trailing&nbsp;Stop</div>
+    <div class="ver" id="appVersion" title="Version de cette page">v30/08 16:25</div>
   </div>
   <nav class="tabs">
     <button data-view="preparation" class="active">Préparation</button>
@@ -1283,7 +1286,7 @@ async function renderSuivi(){
     return `
     <div class="card" data-id="${p.id}">
       <div class="posHead">
-        <div><span class="nom">${p.nom}</span><span class="tk">${p.ticker}</span></div>
+        <div><span class="nom">${p.nom}</span><span class="tk">${p.ticker}</span>${p.personne ? `<span class="pill person">${p.personne}</span>` : ''}</div>
         <span class="pill ${cas===2?'gain':'perte'}">Cas ${cas} ${cas===2?'· Cours Valeur ≥ Coût de Revient':'· Cours Valeur ≤ Coût de Revient'}</span>
       </div>
       <div class="kpi"><span>Valeur</span><span class="v">${p.nom} (${p.ticker})</span></div>
