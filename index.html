@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BIG DEAL</title>
+<style>
+  :root{
+    --bg:#0B0E14;
+    --panel:#12161F;
+    --panel2:#191F2C;
+    --line:#232B3A;
+    --text:#E6E9EF;
+    --dim:#8A93A6;
+    --green:#2BB39A;
+    --red:#E85D5D;
+    --amber:#E8A63D;
+    --blue:#5B8DEF;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  h1,h2,h3,.disp{font-family:'Space Grotesk',sans-serif;}
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0B0E14 80%,transparent);
+    padding:14px 16px 8px;}
+  .brand{display:flex;align-items:baseline;gap:8px;}
+  .brand .mark{width:10px;height:10px;background:var(--amber);border-radius:2px;
+    box-shadow:0 0 0 3px rgba(232,166,61,.15);}
+  .brand h1{font-size:19px;margin:0;letter-spacing:.5px;}
+  .brand .sub{color:var(--dim);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-left:auto;}
+  nav.tabs{display:flex;gap:4px;margin:12px 0 4px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:3px;}
+  nav.tabs button{flex:1;padding:9px 4px;background:transparent;border:none;color:var(--dim);
+    font-size:11px;font-weight:600;border-radius:7px;letter-spacing:.1px;}
+  nav.tabs button.active{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line);}
+  main{padding:8px 16px 100px;max-width:520px;margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;animation:fade .18s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .card h3{margin:0 0 10px;font-size:13px;letter-spacing:.6px;text-transform:uppercase;color:var(--dim);
+    display:flex;align-items:center;gap:6px;}
+  label{display:block;font-size:11.5px;color:var(--dim);margin:10px 0 4px;letter-spacing:.2px;}
+  input[type=text],input[type=number],input[type=password],select{
+    width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);
+    padding:10px 11px;border-radius:8px;font-size:15px;font-family:'IBM Plex Mono',monospace;}
+  input:focus,select:focus{outline:none;border-color:var(--blue);}
+  input::placeholder{color:#4d5568;}
+  .row{display:flex;gap:8px;}
+  .row > *{flex:1;}
+  button.btn{padding:11px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--text);font-size:13.5px;font-weight:600;width:100%;margin-top:10px;}
+  button.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;}
+  button.btn.ghost{background:transparent;}
+  button.btn:active{transform:scale(.98);}
+  .stopOptions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;}
+  .stopOpt{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 6px;text-align:center;}
+  .stopOpt.selected{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber);}
+  .stopOpt .lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;}
+  .stopOpt .val{font-family:'IBM Plex Mono',monospace;font-size:14.5px;margin-top:3px;}
+  .kpi{display:flex;justify-content:space-between;align-items:center;padding:7px 0;
+    border-bottom:1px dashed var(--line);font-size:13.5px;}
+  .kpi:last-child{border:none;}
+  .kpi .v{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .checklist label.chk{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text);
+    padding:8px 0;border-bottom:1px solid var(--line);margin:0;}
+  .checklist label.chk:last-child{border:none;}
+  .checklist input[type=checkbox]{width:19px;height:19px;accent-color:var(--green);}
+  .autocomplete{position:relative;}
+  .ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--panel2);
+    border:1px solid var(--line);border-radius:9px;max-height:220px;overflow:auto;z-index:30;display:none;}
+  .ac-list.show{display:block;}
+  .ac-item{padding:9px 12px;font-size:14px;border-bottom:1px solid var(--line);}
+  .ac-item .tk{color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11.5px;}
+  .ac-item:last-child{border:none;}
+  table.sel{width:100%;border-collapse:collapse;font-size:13.5px;}
+  table.sel td{padding:9px 4px;border-bottom:1px solid var(--line);}
+  table.sel td.tk{color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-align:right;}
+  .pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;letter-spacing:.4px;
+    text-transform:uppercase;font-weight:700;}
+  .pill.gain{background:rgba(43,179,154,.15);color:var(--green);}
+  .pill.perte{background:rgba(232,93,93,.15);color:var(--red);}
+  .pill.warn{background:rgba(232,166,61,.15);color:var(--amber);}
+  /* Cliquet gauge — signature element: a ratchet that only ever clicks upward */
+  .ladder{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px;}
+  .ladderRow{display:grid;grid-template-columns:44px 1fr 72px;align-items:center;gap:8px;}
+  .ladderRow .ladderLabel{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px;}
+  .ladderRow .ladderBar{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden;position:relative;}
+  .ladderRow .ladderFill{height:100%;border-radius:4px;}
+  .ladderRow .ladderVal{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;text-align:right;}
+  .priceBar{position:relative;height:100px;margin:30px 8px 40px;}
+  .priceBar .track{position:absolute;top:34px;left:0;right:0;height:6px;background:var(--panel2);border-radius:4px;}
+  .priceBar .zone{position:absolute;top:34px;height:6px;border-radius:4px;}
+  .priceBar .pmarker{position:absolute;top:20px;width:2px;height:34px;transform:translateX(-50%);opacity:.7;}
+  .priceBar .pdot{position:absolute;top:37px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--bg);}
+  .priceBar .plabel{position:absolute;transform:translateX(-50%);text-align:center;line-height:1.25;white-space:nowrap;}
+  .priceBar .plabel .lname{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px;}
+  .priceBar .plabel .lval{display:block;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12px;}
+  .priceBar .pArrowLine{position:absolute;top:76px;height:2px;background:var(--amber);}
+  .priceBar .pArrowLine::before,.priceBar .pArrowLine::after{content:'';position:absolute;top:-4px;width:0;height:0;border:5px solid transparent;}
+  .priceBar .pArrowLine::before{left:-3px;border-right-color:var(--amber);}
+  .priceBar .pArrowLine::after{right:-3px;border-left-color:var(--amber);}
+  .priceBar .pArrowLabel{position:absolute;top:82px;transform:translateX(-50%);font-size:11px;font-family:'IBM Plex Mono',monospace;
+    font-weight:700;color:var(--bg);background:var(--amber);padding:2px 7px;border-radius:8px;white-space:nowrap;}
+  .empty{text-align:center;color:var(--dim);padding:36px 10px;font-size:13.5px;line-height:1.6;}
+  .toast{position:fixed;left:16px;right:16px;bottom:18px;background:var(--panel2);border:1px solid var(--line);
+    padding:12px 14px;border-radius:10px;font-size:13px;z-index:50;display:none;box-shadow:0 8px 30px rgba(0,0,0,.4);}
+  .toast.show{display:block;animation:up .2s ease;}
+  @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .small{font-size:11.5px;color:var(--dim);line-height:1.5;}
+  hr.dash{border:none;border-top:1px dashed var(--line);margin:10px 0;}
+  .posHead{display:flex;justify-content:space-between;align-items:baseline;}
+  .posHead .nom{font-size:15px;font-weight:700;}
+  .posHead .tk{color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11.5px;margin-left:6px;}
+
+  /* ============ Analyse (Chartiste) ============ */
+  .an-summary{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);cursor:pointer;}
+  .an-input-row{display:flex;gap:8px;align-items:flex-start;}
+  .an-input-row > input{flex:1;min-width:0;}
+  .an-autocomplete{position:relative;margin-top:-2px;}
+  .an-ac-list{display:none;margin-top:4px;border-radius:9px;overflow:hidden;}
+  .an-ac-list.show{display:block;}
+  .an-ac-item{display:flex;justify-content:space-between;align-items:baseline;padding:11px 14px;
+    background:var(--panel2);border:1px solid var(--line);border-top:none;cursor:pointer;}
+  .an-ac-item:first-child{border-top:1px solid var(--line);border-radius:9px 9px 0 0;}
+  .an-ac-item:last-child{border-radius:0 0 9px 9px;}
+  .an-ac-item:only-child{border-radius:9px;}
+  .an-ac-item.active,.an-ac-item:active{background:rgba(91,141,239,.10);border-color:var(--blue);}
+  .an-ac-name{font-size:14.5px;font-weight:500;color:var(--text);}
+  .an-ac-code{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--dim);}
+  .an-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px;}
+  .an-chip{font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:5px 10px;border:1px solid var(--line);
+    border-radius:20px;background:var(--panel2);cursor:pointer;color:var(--blue);}
+  .an-chip:active{background:var(--panel);}
+  .an-card-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--line);}
+  .an-ticker{font-weight:700;font-size:16.5px;letter-spacing:-.01em;line-height:1.15;color:var(--text);}
+  .an-name{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);margin-top:2px;}
+  .an-price{font-family:'IBM Plex Mono',monospace;font-size:14.5px;font-weight:600;text-align:right;color:var(--text);}
+  .an-chg{font-size:11.5px;font-family:'IBM Plex Mono',monospace;}
+  .an-chg.up{color:var(--green);} .an-chg.down{color:var(--red);}
+  .an-metrics{border-bottom:1px solid var(--line);margin-bottom:2px;}
+  .an-metric{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);}
+  .an-metric:first-child{border-top:none;}
+  .an-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+  .an-dot.green{background:var(--green);} .an-dot.amber{background:var(--amber);}
+  .an-dot.red{background:var(--red);} .an-dot.grey{background:var(--dim);}
+  .an-m-body{flex:1;}
+  .an-m-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .an-m-lab{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);}
+  .an-m-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);}
+  .an-m-txt{font-size:12px;color:var(--dim);margin-top:2px;line-height:1.4;}
+  .an-m-help{font-family:inherit;font-size:10px;font-weight:700;line-height:1;width:15px;height:15px;padding:0;
+    border-radius:50%;border:1px solid var(--line);background:var(--panel2);color:var(--dim);cursor:pointer;
+    vertical-align:middle;margin-left:2px;}
+  .an-m-def{display:none;font-size:11.5px;color:var(--blue);line-height:1.45;margin-top:6px;padding:8px 10px;
+    background:rgba(91,141,239,.10);border-radius:8px;border-left:2px solid var(--blue);}
+  .an-m-def.show{display:block;}
+  .an-bars{padding:10px 0;border-bottom:1px solid var(--line);}
+  .an-bars-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+  .an-bars-title{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);}
+  .an-bars-count{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+  .an-bars-count .up{color:var(--green);} .an-bars-count .down{color:var(--red);margin-left:4px;}
+  .an-bars svg{width:100%;height:auto;display:block;}
+  .an-dates{display:flex;border-bottom:1px solid var(--line);}
+  .an-date-cell{flex:1;padding:10px 0;}
+  .an-date-cell+.an-date-cell{padding-left:14px;margin-left:14px;border-left:1px solid var(--line);}
+  .an-date-lab{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:3px;}
+  .an-date-val{font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:500;color:var(--text);}
+  .an-date-val.none{color:var(--dim);font-weight:400;font-size:12px;}
+  .an-patterns{padding-top:6px;}
+  .an-plabel{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:8px 0 10px;}
+  .an-backtest{border-bottom:1px solid var(--line);}
+  .an-backtest summary{padding:10px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--blue);cursor:pointer;}
+  .an-bt-warn{margin:0 0 10px;font-size:11.5px;color:var(--amber);background:rgba(232,166,61,.12);
+    border-radius:8px;padding:8px 10px;line-height:1.4;}
+  .an-bt-empty{margin:0 0 14px;font-size:12px;color:var(--dim);line-height:1.5;}
+  .an-bt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .an-bt-cell{background:var(--panel2);padding:10px 8px;text-align:center;}
+  .an-bt-lab{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px;}
+  .an-bt-val{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:var(--text);}
+  .an-bt-val.up{color:var(--green);} .an-bt-val.down{color:var(--red);}
+  .an-bt-note{margin:10px 0 4px;font-size:11px;color:var(--dim);line-height:1.5;}
+  .an-pattern{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);}
+  .an-pattern:first-of-type{border-top:none;}
+  .an-pnum{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--blue);width:20px;flex-shrink:0;padding-top:1px;}
+  .an-pbody{flex:1;}
+  .an-pname{font-weight:600;font-size:14px;margin-bottom:2px;color:var(--text);}
+  .an-pdesc{font-size:12.5px;color:var(--dim);}
+  .an-pmeta{display:flex;gap:10px;margin-top:5px;align-items:center;}
+  .an-tag{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;}
+  .an-tag.bull{background:rgba(43,179,154,.15);color:var(--green);}
+  .an-tag.bear{background:rgba(232,93,93,.15);color:var(--red);}
+  .an-tag.neut{background:rgba(138,147,166,.15);color:var(--dim);}
+  .an-conf{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);}
+  .an-loading{text-align:center;color:var(--blue);font-family:'IBM Plex Mono',monospace;font-size:13px;padding:20px 10px;}
+  .an-error{color:var(--red);font-size:12.5px;background:rgba(232,93,93,.10);border:1px solid rgba(232,93,93,.35);
+    border-radius:10px;padding:12px 14px;text-align:left;line-height:1.5;}
+</style>
+</head>
+<body>
+<!-- État applicatif embarqué : positions, checklist du jour, clé API EODHD.
+     Régénéré et republié (capacité "artifact") à chaque sauvegarde — voir le bloc
+     "État applicatif" dans le <script> ci-dessous. Ne pas éditer à la main. -->
+<script id="app-state" type="application/json">{}</script>
+<header>
+  <div class="brand">
+    <div class="mark"></div>
+    <h1>BIG DEAL</h1>
+    <div class="sub">Trailing&nbsp;Stop</div>
+  </div>
+  <nav class="tabs">
+    <button data-view="preparation" class="active">Préparation</button>
+    <button data-view="achat">Achat</button>
+    <button data-view="suivi">Suivi</button>
+  </nav>
+</header>
+<main>
+  <!-- ================= PRÉPARATION ================= -->
+  <section id="view-preparation" class="view active">
+    <div class="card">
+      <h3>Que veux-tu faire ?</h3>
+      <div class="stopOptions" id="prepModeOptions" style="grid-template-columns:1fr 1fr;">
+        <div class="stopOpt prepModeOpt selected" data-mode="nouvelle"><div class="lbl">Nouvelle position</div></div>
+        <div class="stopOpt prepModeOpt" data-mode="existante"><div class="lbl">Position existante</div></div>
+      </div>
+      <button class="btn ghost" id="btnImportCSV" style="margin-top:10px;">⬆ Importer un CSV</button>
+      <input type="file" id="importCSVFile" accept=".csv,text/csv" style="display:none;">
+    </div>
+    <div class="card">
+      <h3>Qui effectue la transaction ?</h3>
+      <div class="stopOptions" id="personOptions" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stopOpt personOpt" data-person="Manu"><div class="lbl">Manu</div></div>
+        <div class="stopOpt personOpt" data-person="Julien"><div class="lbl">Julien</div></div>
+        <div class="stopOpt personOpt" data-person="Antoine"><div class="lbl">Antoine</div></div>
+      </div>
+    </div>
+    <!-- ================= ANALYSE (Chartiste CAC 40) — fusionné dans Préparation ================= -->
+    <div class="card">
+      <details id="anSetup">
+        <summary class="an-summary">Données EODHD — comment c'est configuré</summary>
+        <div style="margin-top:12px;">
+          <p class="small">La clé API EODHD n'est plus saisie ici : elle est configurée une seule fois côté serveur (Netlify → Site configuration → Environment variables → <span class="mono">EODHD_API_KEY</span>), pour que le navigateur n'ait jamais à y accéder directement. Si les données ne se chargent pas, vérifie cette variable d'environnement.</p>
+          <p class="small" style="margin-top:8px;">Pas encore de clé ? Crée un compte sur <a href="https://eodhd.com/pricing" target="_blank" rel="noopener" style="color:var(--blue);">eodhd.com</a> — abonnement « EOD Historical Data » à partir de 19,99 $/mois (cours de clôture réels, historique, dividendes ; pas de temps réel à ce palier).</p>
+        </div>
+      </details>
+    </div>
+    <div class="card">
+      <h3>Analyser une valeur</h3>
+      <div class="an-input-row">
+        <div class="an-autocomplete" style="flex:1;">
+          <input type="text" id="anTickerInput" placeholder="Nom(s), ex. LVMH ou LVMH, Air Liquide" autocomplete="off">
+          <div class="an-ac-list" id="anAutocomplete"></div>
+        </div>
+        <button class="btn primary" id="anAddBtn" style="width:auto;margin-top:0;">Analyser</button>
+      </div>
+      <div class="an-chips" id="anChips"></div>
+    </div>
+    <div id="anResults">
+      <div class="empty">Entre une ou plusieurs valeurs (ex. LVMH).</div>
+    </div>
+    <div id="existingPositionsWrap" style="display:none;"></div>
+    <div id="nouvellePositionWrap">
+    <input type="hidden" id="achCA">
+    <input type="hidden" id="achQte" value="1">
+    <input type="hidden" id="achFraisA" value="0.50">
+    <input type="hidden" id="achFraisV" value="0.50">
+    <div class="card">
+      <h3>Données historiques — ATR14, MA20 &amp; Bêta</h3>
+      <p class="small">Valeur retenue pour cette transaction : <b id="selStockLabel" style="color:var(--text);">Aucune — choisis-la dans la section Analyse ci-dessus.</b></p>
+      <p class="small">Récupère l'ATR14, la MA20, le Bêta (vs CAC 40) et les plus hauts 1 an / 3 mois à partir des cours quotidiens réels (EODHD — même clé API que la section Analyse ci-dessus). <b>À recouper avec Boursorama avant de valider un stop.</b> Tu peux aussi saisir les valeurs toi-même.</p>
+      <button class="btn" id="btnFetchATR">Récupérer ATR14, MA20, Bêta &amp; plus hauts (données réelles)</button>
+      <div id="atrStatus" class="small" style="margin-top:8px;"></div>
+      <div class="row" style="margin-top:6px;">
+        <div>
+          <label>ATR14 €</label>
+          <input type="number" step="0.01" id="achATR">
+        </div>
+        <div>
+          <label>MA20 €</label>
+          <input type="number" step="0.01" id="achMA20">
+        </div>
+      </div>
+      <label>Bêta (vs CAC 40)</label>
+      <input type="number" step="0.01" id="achBeta" placeholder="ex: 1.20">
+    </div>
+    <div class="card">
+      <h3>Type d'achat</h3>
+      <p class="small">Choisis un type — l'écran correspondant s'affiche en dessous.</p>
+      <div class="stopOptions" id="typeAchatOptions" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stopOpt typeOpt selected" data-type="1"><div class="lbl">Standard</div></div>
+        <div class="stopOpt typeOpt" data-type="2"><div class="lbl">Publication Résultat</div></div>
+        <div class="stopOpt typeOpt" data-type="3"><div class="lbl">Big Deal</div></div>
+        <div class="stopOpt typeOpt" data-type="4"><div class="lbl">Option 4</div></div>
+      </div>
+    </div>
+    <div class="card typeScreen" id="typeScreen1">
+      <h3>Standard</h3>
+      <p class="small">Objectif : très bonne valeur, sous-cotée temporairement.</p>
+      <p class="small">Remplis automatiquement par le bouton de récupération de données réelles de la carte « Données historiques » ci-dessus — ajustables à la main si besoin.</p>
+      <label>Plus haut depuis 1 an (€)</label>
+      <input type="number" step="0.01" id="opt1High1An">
+      <label>Plus haut depuis 3 mois (€)</label>
+      <input type="number" step="0.01" id="opt1High3M">
+    </div>
+    <div class="card typeScreen" id="typeScreen2" style="display:none;">
+      <h3>Publication Résultat</h3>
+      <p class="small">Objectif : profiter du mouvement de cours autour d'une publication de résultats, sans subir la volatilité de l'annonce elle-même.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);">
+          <span style="color:var(--red);font-weight:700;margin-right:8px;">✕</span>
+          <span class="small"><b style="color:var(--text);">La veille de l'annonce : ne pas acheter.</b> Trop risqué — le cours peut faire un gap dans n'importe quel sens à la publication. À la place, placer un <b style="color:var(--text);">ordre avec un seuil de déclenchement à la hausse</b> : l'achat ne s'exécute que si le cours dépasse ce seuil après l'annonce.</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;padding:8px 0;">
+          <span style="color:var(--green);font-weight:700;margin-right:8px;">✓</span>
+          <span class="small"><b style="color:var(--text);">Le lendemain de l'annonce : acheter.</b> Une fois la réaction du marché connue et le seuil franchi, on entre en position — jamais avant.</span>
+        </div>
+      </div>
+      <hr class="dash">
+      <label>Date de l'annonce</label>
+      <input type="text" id="opt2DatePublication" placeholder="jj/mm/aaaa">
+      <label>Seuil de déclenchement (ordre à la hausse) €</label>
+      <input type="number" step="0.01" id="opt2SeuilDeclenchement">
+    </div>
+    <div class="card typeScreen" id="typeScreen3" style="display:none;">
+      <h3>Big Deal</h3>
+      <p class="small">Contenu à définir pour cette option.</p>
+    </div>
+    <div class="card typeScreen" id="typeScreen4" style="display:none;">
+      <h3>Écran — Option 4</h3>
+      <p class="small">Contenu à définir pour cette option.</p>
+    </div>
+    <div class="card">
+      <h3>À vérifier avant l'achat</h3>
+      <div class="checklist">
+        <label class="chk"><input type="checkbox" id="dchk1"> Attendre 9h30</label>
+        <label class="chk"><input type="checkbox" id="dchk2"> Faire les trois checks (tendance, volume, secteur)</label>
+        <label class="chk"><input type="checkbox" id="dchk3"> Ajuster / confirmer la protection avant clôture</label>
+        <label class="chk"><input type="checkbox" id="dchk4"> Recommandation Warren IA</label>
+        <label class="chk"><input type="checkbox" id="dchk5"> Risque géopolitique</label>
+      </div>
+    </div>
+    <div id="processError" class="small" style="color:var(--red);display:none;margin-bottom:6px;font-weight:600;">Erreur : process du jour non complété — coche les 5 cases avant de valider.</div>
+    <button class="btn primary" id="btnValider">Valider la préparation</button>
+    </div>
+  </section>
+  <!-- ================= ACHAT ================= -->
+  <section id="view-achat" class="view">
+    <div class="card">
+      <h3>Valeur sélectionnée</h3>
+      <div id="achatStockName" class="disp" style="font-size:17px;font-weight:700;">Aucune valeur sélectionnée</div>
+      <label>Cours d'achat (CA) €</label>
+      <input type="number" step="0.01" id="achatInputCA">
+      <label>Nombre acheté</label>
+      <input type="number" step="1" id="achatInputQte">
+      <label>Coût de revient (CR) €</label>
+      <input type="number" step="0.01" id="achatInputCR">
+    </div>
+    <div class="card">
+      <h3>Protection à l'achat — basé sur le cours d'achat</h3>
+      <p class="small">Choisis la méthode de stop initial. Le stop ne pourra ensuite que monter (cliquet).</p>
+      <div class="stopOptions" id="stopOptions"></div>
+      <p class="small" style="margin-top:6px;opacity:.75;">Les pourcentages sont calculés sur la base du cours d'achat.</p>
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>Multiplicateur ATR (1.5–2×)</label>
+          <input type="number" step="0.1" min="1.5" max="2" value="1.75" id="atrMult">
+        </div>
+        <div>
+          <label>Stop retenu (manuel possible)</label>
+          <input type="number" step="0.01" id="stopFinal">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>KPI</h3>
+      <div class="kpi"><span>Cours actuel (CA)</span><span class="v" id="kpiCA">—</span></div>
+      <div class="kpi"><span>Coût de revient (CR)</span><span class="v" id="kpiCR">—</span></div>
+      <div class="kpi"><span>Cours de protection mise (stop)</span><span class="v" id="kpiStop">—</span></div>
+      <div class="kpi"><span>Risque à l'achat</span><span class="v" id="kpiRisk">—</span></div>
+      <div class="kpi"><span>Perte réelle (frais inclus)</span><span class="v" id="kpiPerteReelle">—</span></div>
+    </div>
+    <div id="achatError" class="small" style="color:var(--red);display:none;margin-bottom:6px;font-weight:600;">Erreur : champs manquants.</div>
+    <button class="btn primary" id="btnEnregistrer">Protection mise en place</button>
+  </section>
+  <!-- ================= SUIVI ================= -->
+  <section id="view-suivi" class="view">
+    <div class="card">
+      <h3>Filtrer par personne</h3>
+      <p class="small">L'export CSV ne contient que la personne sélectionnée — pour ne jamais mélanger les historiques.</p>
+      <div class="stopOptions" id="suiviFilterOptions" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stopOpt suiviFilterOpt selected" data-filter="Tous"><div class="lbl">Tous</div></div>
+        <div class="stopOpt suiviFilterOpt" data-filter="Manu"><div class="lbl">Manu</div></div>
+        <div class="stopOpt suiviFilterOpt" data-filter="Julien"><div class="lbl">Julien</div></div>
+        <div class="stopOpt suiviFilterOpt" data-filter="Antoine"><div class="lbl">Antoine</div></div>
+      </div>
+    </div>
+    <div id="positionsWrap"></div>
+    <button class="btn ghost" id="btnExportCSV" style="margin-top:14px;">⬇ Exporter le Suivi (CSV)</button>
+    <p class="small" style="margin-top:8px;">Sur iPhone/iPad : un menu de partage s'ouvre — choisis <b>« Enregistrer dans Fichiers »</b> et note l'emplacement proposé (souvent <b>« Sur mon iPhone »</b>). Le fichier est ensuite consultable dans l'app <b>Fichiers</b>, pas dans BIG DEAL — le nom commence par ton prénom, ex. <span class="mono">Manu-2026-08-29-...</span>.</p>
+  </section>
+
+</main>
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+// Capture immédiate, avant toute exécution/mutation, du document tel que servi :
+// c'est le gabarit canonique utilisé pour republier une nouvelle version complète
+// via la capacité "artifact" (jamais document.documentElement.outerHTML plus tard,
+// qui contiendrait un état de session vivant — voir helpers de persistance plus bas).
+const PRISTINE_SHELL = '<!doctype html>\n' + document.documentElement.outerHTML;
+// ---------- CAC 40 (nom, ticker) ----------
+const CAC40 = [
+ ["Air Liquide","AI.PA"],["Airbus","AIR.PA"],["ArcelorMittal","MT.AS"],["AXA","CS.PA"],
+ ["BNP Paribas","BNP.PA"],["Bouygues","EN.PA"],["Capgemini","CAP.PA"],["Carrefour","CA.PA"],
+ ["Crédit Agricole","ACA.PA"],["Danone","BN.PA"],["Dassault Systèmes","DSY.PA"],["Edenred","EDEN.PA"],
+ ["Engie","ENGI.PA"],["EssilorLuxottica","EL.PA"],["Eurofins Scientific","ERF.PA"],["Hermès","RMS.PA"],
+ ["Kering","KER.PA"],["Legrand","LR.PA"],["L'Oréal","OR.PA"],["LVMH","MC.PA"],
+ ["Michelin","ML.PA"],["Orange","ORA.PA"],["Pernod Ricard","RI.PA"],["Publicis","PUB.PA"],
+ ["Renault","RNO.PA"],["Safran","SAF.PA"],["Saint-Gobain","SGO.PA"],["Sanofi","SAN.PA"],
+ ["Schneider Electric","SU.PA"],["Société Générale","GLE.PA"],["Stellantis","STLAP.PA"],["STMicroelectronics","STMPA.PA"],
+ ["Teleperformance","TEP.PA"],["Thales","HO.PA"],["TotalEnergies","TTE.PA"],["Unibail-Rodamco-Westfield","URW.PA"],
+ ["Veolia","VIE.PA"],["Vinci","DG.PA"],["Vivendi","VIV.PA"],["Worldline","WLN.PA"]
+];
+// Table nom<->ticker partagée par la section Analyse de Préparation (Chartiste)
+const UNIVERSE = {};
+CAC40.forEach(([nom,tk])=>{ UNIVERSE[tk]=nom; });
+const $=(id)=>document.getElementById(id);
+const fmt=(n)=> (n===null||n===undefined||isNaN(n)) ? '—' : n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const fmtPct=(n)=> (n===null||n===undefined||isNaN(n)) ? '—' : (n>=0?'+':'')+n.toFixed(2)+' %';
+// Horodatage complet (date + heure) pour les événements enregistrés (achat, cours, protection)
+const nowDateTime=()=>{
+  const d = new Date();
+  const pad = (n)=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toast._h); toast._h=setTimeout(()=>t.classList.remove('show'),2600);
+}
+// ---------- État applicatif : persistance à double voie ----------
+// 1) localStorage — fonctionne sur n'importe quel hébergement normal (Netlify, etc.),
+//    instantané, propre à cet appareil/navigateur.
+// 2) capacité "artifact" de claude.ai (republication) — quand la page tourne dans le
+//    visualiseur d'artifacts, ce qui synchronise en plus l'état entre tous les visiteurs
+//    du même lien (Manu/Julien/Antoine). Absente hors de ce contexte : dégradation
+//    silencieuse sur localStorage seul.
+const LS_KEY = 'bigdeal-state-v1';
+function loadFromLocalStorage(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      positions: Array.isArray(parsed.positions) ? parsed.positions : [],
+      daily: parsed.daily || null,
+      apiKey: parsed.apiKey || ''
+    };
+  }catch(e){ return null; }
+}
+function saveToLocalStorage(state){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+}
+let appState = (function(){
+  const fromLS = loadFromLocalStorage();
+  if(fromLS) return fromLS;
+  try{
+    const raw = document.getElementById('app-state').textContent;
+    const parsed = raw ? JSON.parse(raw) : {};
+    return {
+      positions: Array.isArray(parsed.positions) ? parsed.positions : [],
+      daily: parsed.daily || null,
+      apiKey: parsed.apiKey || ''
+    };
+  }catch(e){ return { positions: [], daily: null, apiKey: '' }; }
+})();
+let artifactNS = null;
+let pendingSave = false;
+let downloadsNS = null;
+if(window.claude && typeof window.claude.use==='function'){
+  window.claude.use('artifact').then(ns=>{
+    artifactNS = ns;
+    if(pendingSave) persistState();
+  }).catch(()=>{ artifactNS = null; });
+  window.claude.use('downloads').then(ns=>{ downloadsNS = ns; }).catch(()=>{ downloadsNS = null; });
+}
+function buildFullHTML(state){
+  const json = JSON.stringify(state).replace(/</g, '\\u003c');
+  return PRISTINE_SHELL.replace(
+    /(<script id="app-state" type="application\/json">)[\s\S]*?(<\/script>)/,
+    (m, open, close) => open + json + close
+  );
+}
+function currentTab(){
+  const b = document.querySelector('nav.tabs button.active');
+  return b ? b.dataset.view : 'preparation';
+}
+function stashTabForReload(tab){
+  try{ sessionStorage.setItem('bigdeal-post-reload-tab', tab || currentTab()); }catch(e){}
+}
+function stashToastForReload(msg){
+  try{ sessionStorage.setItem('bigdeal-post-reload-toast', msg); }catch(e){}
+}
+async function persistState(targetTab){
+  saveToLocalStorage(appState); // toujours, indépendamment de la capacité artifact
+  if(!artifactNS){ pendingSave = true; return; } // pas de capacité (hébergement normal comme Netlify) ou pas encore résolue : localStorage suffit pour l'instant, on republiera dès que possible
+  stashTabForReload(targetTab);
+  try{
+    await artifactNS.publish(buildFullHTML(appState));
+    // succès : cette vue (et toutes les autres vues ouvertes) va se recharger vers la version publiée.
+  }catch(e){
+    const code = e && e.code;
+    if(code==='conflict') return; // routine — une autre sauvegarde a gagné, le rechargement va apporter la vérité à jour
+    if(code==='not_writer' || code==='not_granted'){ toast('Vue en lecture seule — impossible de sauvegarder ici.'); return; }
+    toast('Sauvegarde impossible : ' + ((e&&e.message)||e));
+  }
+}
+async function loadPositions(){ return appState.positions; }
+async function savePositions(list, toastMsg, targetTab){
+  appState.positions = list;
+  if(toastMsg){ toast(toastMsg); stashToastForReload(toastMsg); }
+  await persistState(targetTab);
+}
+async function loadDailyChecks(){
+  const d = appState.daily;
+  if(!d) return null;
+  const today = new Date().toISOString().slice(0,10);
+  if(d.date !== today) return null;
+  return d;
+}
+async function saveDailyChecks(state){
+  const today = new Date().toISOString().slice(0,10);
+  const next = {date:today, ...state};
+  const prev = appState.daily;
+  const unchanged = prev && prev.date===next.date && prev.c1===next.c1 && prev.c2===next.c2 && prev.c3===next.c3 && prev.c4===next.c4 && prev.c5===next.c5;
+  appState.daily = next;
+  // Évite de republier (donc de recharger la page) quand rien n'a réellement changé —
+  // resetPreparationForm() appelle cette fonction à chaque visite de l'onglet Préparation.
+  if(unchanged) return;
+  await persistState();
+}
+// Clé API EODHD — partagée entre la section Analyse et le bouton ATR14/MA20/Bêta (tous deux dans Préparation)
+let apiKey = appState.apiKey || '';
+async function loadApiKey(){
+  if(apiKey){ if($('anApiKey')) $('anApiKey').value = apiKey; }
+}
+async function saveApiKey(val, toastMsg){
+  apiKey = val;
+  appState.apiKey = val;
+  if(toastMsg){ toast(toastMsg); stashToastForReload(toastMsg); }
+  await persistState();
+}
+// ---------- Export CSV (compatible Excel) ----------
+function csvEscape(val){
+  if(val===null || val===undefined) return '';
+  const s = String(val).replace(/"/g,'""');
+  return /[;",\n]/.test(s) ? `"${s}"` : s;
+}
+async function exportCSV(personFilter){
+  try{
+    let allPositions = await loadPositions();
+    const filtreActif = personFilter || (suiviFilterPerson!=='Tous' ? suiviFilterPerson : null);
+    if(filtreActif){
+      allPositions = allPositions.filter(p=> p.personne === filtreActif);
+    } else {
+      // Aucun filtre explicite : on évite de mélanger plusieurs personnes dans un même export
+      const personnes = [...new Set(allPositions.map(p=>p.personne).filter(Boolean))];
+      if(personnes.length > 1){
+        toast('Plusieurs personnes détectées — choisis un filtre "Personne" avant d\'exporter pour ne pas les mélanger.');
+        return;
+      }
+    }
+    const labelStopType = {fixe3:"Fixe −3%", atr:"CA − k×ATR", ma20:"Sous MA20"};
+    const labelTypeAchat = {'1':"Standard", '2':"Publication Résultat", '3':"Big Deal", '4':"Option 4"};
+    const headers = ['Personne','Nom','Ticker','Type d\'événement','Date','Cours enregistré','Protection enregistrée','Méthode',
+      'Cours d\'achat','Coût de revient','Quantité','Type d\'achat','Statut'];
+    const rows = [];
+    allPositions.forEach(p=>{
+      const contexte = [p.personne||'', p.nom, p.ticker];
+      const suite = [p.CA, p.CR, p.qte, labelTypeAchat[p.typeAchat]||p.typeAchat||''];
+      const statut = p.cloturee ? 'Position close' : 'En cours';
+      // Chaque cours valeur enregistré = un événement
+      (p.historique||[]).forEach(h=>{
+        rows.push([...contexte, 'Cours enregistré', h.date, h.cv, '', '', ...suite, statut]);
+      });
+      // Chaque changement de protection = un événement
+      (p.stopHistorique||[]).forEach(s=>{
+        rows.push([...contexte, 'Protection mise en place', s.date, '', s.stop, labelStopType[s.methode]||s.methode||'', ...suite, statut]);
+      });
+      // Vente de la position, si elle a été vendue
+      if(p.coursVente){
+        rows.push([...contexte, 'Position vendue', p.dateVente||'', p.coursVente, '', '', ...suite, statut]);
+      }
+    });
+    // tri chronologique, par valeur puis par date
+    rows.sort((a,b)=> (a[1]+a[4]).localeCompare(b[1]+b[4]));
+    const csvLines = [headers, ...rows].map(row=>row.map(csvEscape).join(';'));
+    const csvContent = '﻿' + csvLines.join('\r\n'); // BOM pour accents corrects dans Excel
+    const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0,10);
+    const heureStr = String(now.getHours()).padStart(2,'0') + 'h' + String(now.getMinutes()).padStart(2,'0');
+    const personneStr = (filtreActif || selectedPerson || 'Perso').replace(/[^a-zA-Z0-9]/g,'');
+    const statutGlobal = allPositions.some(p=>!p.cloturee) ? 'ouvert' : 'cloture';
+    const filename = `${personneStr}-${dateStr}-${heureStr}-${statutGlobal}.csv`;
+    // Priorité 1 : capacité "downloads" de la page publiée (BIG DEAL hébergé) — c'est la seule
+    // façon fiable de proposer un fichier au visiteur depuis une page artifact ; un <a download>
+    // ou navigator.share n'y fonctionnent pas (la vue n'a pas la permission de téléchargement direct).
+    if(downloadsNS){
+      try{
+        await downloadsNS.save({ filename, data: csvContent });
+        toast(`CSV exporté (${rows.length} événement${rows.length>1?'s':''})`);
+        return;
+      }catch(e){
+        const code = e && e.code;
+        if(code === 'declined'){ return; } // le visiteur a refusé la confirmation : pas une erreur
+        // sinon (capacité indisponible, etc.) on retente via les méthodes classiques ci-dessous
+      }
+    }
+    // Sur iPhone/iPad, le lien <a download> ouvre une boîte de dialogue système imprévisible selon les versions iOS.
+    // On préfère la feuille de partage native (Web Share API) quand elle est disponible : plus fiable sur iOS,
+    // et elle propose directement « Enregistrer dans Fichiers ». On revient au téléchargement classique sinon
+    // (desktop, Android) — là le fichier part directement dans le dossier Téléchargements, sans boîte de dialogue.
+    const file = new File([blob], filename, {type:'text/csv'});
+    let sharedViaNative = false;
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      try{
+        await navigator.share({ files: [file], title: filename });
+        sharedViaNative = true;
+        toast(`CSV prêt (${rows.length} événement${rows.length>1?'s':''}) — choisis « Enregistrer dans Fichiers » dans le menu de partage.`);
+      }catch(e){
+        // L'utilisateur a annulé la feuille de partage : ce n'est pas une erreur, on retente juste le téléchargement classique
+        if(e && e.name === 'AbortError'){ return; }
+      }
+    }
+    if(!sharedViaNative){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast(`CSV exporté (${rows.length} événement${rows.length>1?'s':''})`);
+    }
+  }catch(e){
+    toast('Erreur lors de l\'export CSV : ' + ((e&&e.message)||e));
+  }
+}
+$('btnExportCSV').addEventListener('click', async ()=>{
+  await exportCSV();
+  await renderSuivi();
+});
+// ---------- Import CSV : parsing + reconstruction des positions + fusion ----------
+function parseCSVLine(line, sep){
+  const out = []; let cur=''; let inQuotes=false;
+  for(let i=0;i<line.length;i++){
+    const c = line[i];
+    if(inQuotes){
+      if(c==='"'){
+        if(line[i+1]==='"'){ cur+='"'; i++; } else { inQuotes=false; }
+      } else cur+=c;
+    } else {
+      if(c==='"') inQuotes=true;
+      else if(c===sep){ out.push(cur); cur=''; }
+      else cur+=c;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+function parseCSV(text){
+  const clean = text.replace(/^﻿/, '').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const lines = clean.split('\n').filter(l=>l.length>0);
+  if(lines.length<2) return [];
+  const sep = lines[0].includes(';') ? ';' : ',';
+  const headers = parseCSVLine(lines[0], sep).map(h=>h.trim());
+  return lines.slice(1).map(line=>{
+    const cells = parseCSVLine(line, sep);
+    const obj = {};
+    headers.forEach((h,i)=> obj[h] = (cells[i]!==undefined ? cells[i].trim() : ''));
+    return obj;
+  });
+}
+async function importCSVFile(file){
+  try{
+    const text = await file.text();
+    const events = parseCSV(text);
+    if(events.length===0){ toast('Fichier CSV vide ou illisible'); return; }
+    const labelTypeAchatRev = {"Standard":'1',"Publication Résultat":'2',"Big Deal":'3',"Option 4":'4'};
+    const labelStopTypeRev = {"Fixe −3%":'fixe3',"CA − k×ATR":'atr',"Sous MA20":'ma20'};
+    const groups = {};
+    events.forEach(ev=>{
+      const key = `${ev['Personne']}|${ev['Nom']}|${ev['Ticker']}`;
+      if(!groups[key]) groups[key] = { personne: ev['Personne'], nom: ev['Nom'], ticker: ev['Ticker'], historique:[], stopHistorique:[], coursVente:null, dateVente:null, statut:'', CA:null, CR:null, qte:null, typeAchat:null };
+      const g = groups[key];
+      if(ev['Type d\'événement']==='Cours enregistré' && ev['Cours enregistré']){
+        g.historique.push({date: ev['Date'], cv: parseFloat(ev['Cours enregistré'])});
+      }
+      if(ev['Type d\'événement']==='Protection mise en place' && ev['Protection enregistrée']){
+        g.stopHistorique.push({date: ev['Date'], stop: parseFloat(ev['Protection enregistrée']), methode: labelStopTypeRev[ev['Méthode']] || ev['Méthode'] || 'fixe3'});
+      }
+      if(ev['Type d\'événement']==='Position vendue' && ev['Cours enregistré']){
+        g.coursVente = parseFloat(ev['Cours enregistré']);
+        g.dateVente = ev['Date'];
+      }
+      if(ev['Cours d\'achat']) g.CA = parseFloat(ev['Cours d\'achat']);
+      if(ev['Coût de revient']) g.CR = parseFloat(ev['Coût de revient']);
+      if(ev['Quantité']) g.qte = parseInt(ev['Quantité']);
+      if(ev['Type d\'achat']) g.typeAchat = labelTypeAchatRev[ev['Type d\'achat']] || '1';
+      if(ev['Statut']) g.statut = ev['Statut'];
+    });
+    const existing = await loadPositions();
+    let nbCreees=0, nbFusionnees=0;
+    Object.values(groups).forEach(g=>{
+      g.historique.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
+      g.stopHistorique.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
+      const lastStop = g.stopHistorique.length ? g.stopHistorique[g.stopHistorique.length-1] : null;
+      const match = existing.find(p=> p.personne===g.personne && p.nom===g.nom && p.ticker===g.ticker);
+      if(match){
+        // fusion : on ajoute uniquement les dates qui n'existent pas déjà
+        const datesConnuesCV = new Set(match.historique.map(h=>h.date));
+        g.historique.forEach(h=>{ if(!datesConnuesCV.has(h.date)) match.historique.push(h); });
+        match.historique.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
+        if(!Array.isArray(match.stopHistorique)) match.stopHistorique = [];
+        const datesConnuesStop = new Set(match.stopHistorique.map(s=>s.date));
+        g.stopHistorique.forEach(s=>{ if(!datesConnuesStop.has(s.date)) match.stopHistorique.push(s); });
+        match.stopHistorique.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
+        if(lastStop) match.stop = lastStop.stop;
+        if(g.coursVente){ match.coursVente = g.coursVente; match.dateVente = g.dateVente; }
+        if(g.statut) match.cloturee = (g.statut==='Position close');
+        nbFusionnees++;
+      } else {
+        existing.push({
+          id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+          nom: g.nom, ticker: g.ticker, personne: g.personne,
+          dateAchat: (g.stopHistorique[0]&&g.stopHistorique[0].date) || (g.historique[0]&&g.historique[0].date) || nowDateTime(),
+          CA: g.CA, qte: g.qte||1, fraisA:0.5, fraisV:0.5, CR: g.CR,
+          atr:null, ma20:null, beta:null,
+          stopType: lastStop ? lastStop.methode : 'fixe3',
+          stop: lastStop ? lastStop.stop : g.CA,
+          typeAchat: g.typeAchat || '1',
+          historique: g.historique,
+          stopHistorique: g.stopHistorique,
+          coursVente: g.coursVente, dateVente: g.dateVente,
+          cloturee: g.statut === 'Position close'
+        });
+        nbCreees++;
+      }
+    });
+    positions = existing;
+    await savePositions(existing, `Import terminé — ${nbCreees} position(s) créée(s), ${nbFusionnees} fusionnée(s)`);
+    await renderSuivi();
+  }catch(e){
+    toast('Erreur lors de l\'import : ' + ((e&&e.message)||e));
+  }
+}
+$('btnImportCSV').addEventListener('click', ()=> $('importCSVFile').click());
+$('importCSVFile').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(file) await importCSVFile(file);
+  e.target.value = '';
+});
+let positions = [];
+let selectedStock = null; // {nom, ticker}
+let stopChoice = 'fixe3';
+let atrData = {atr:null, ma20:null};
+let typeAchat = '1';
+let selectedPerson = null;
+let suiviFilterPerson = 'Tous';
+// ---------- Filtre par personne dans Suivi ----------
+document.querySelectorAll('.suiviFilterOpt').forEach(el=>{
+  el.addEventListener('click', async ()=>{
+    document.querySelectorAll('.suiviFilterOpt').forEach(x=>x.classList.remove('selected'));
+    el.classList.add('selected');
+    suiviFilterPerson = el.dataset.filter;
+    await renderSuivi();
+  });
+});
+// ---------- Nouvelle position / Position existante ----------
+async function renderExistingPositions(){
+  const wrap = $('existingPositionsWrap');
+  let allPositions = [];
+  try{ allPositions = await loadPositions(); }catch(e){}
+  const open = allPositions.filter(p=>p && !p.cloturee);
+  if(open.length===0){
+    wrap.innerHTML = `<div class="empty">Aucune position existante en cours.<br>Choisis "Nouvelle position" pour en créer une.</div>`;
+    return;
+  }
+  wrap.innerHTML = `<div class="card"><h3>Choisis la position à suivre</h3>` + open.map(p=>{
+    const lastCV = (p.historique && p.historique.length) ? p.historique[p.historique.length-1].cv : p.CA;
+    return `<div class="stopOpt existingPosItem" data-id="${p.id}" style="grid-template-columns:none;display:block;text-align:left;margin-bottom:8px;">
+      <div class="posHead" style="margin:0;"><span class="nom">${p.nom}</span><span class="tk">${p.ticker}</span></div>
+      <div class="small" style="margin-top:4px;">Cours valeur : ${fmt(lastCV)} · Stop : ${fmt(p.stop)}${p.personne?' · '+p.personne:''}</div>
+    </div>`;
+  }).join('') + `</div>`;
+  wrap.querySelectorAll('.existingPosItem').forEach(el=>{
+    el.addEventListener('click', ()=>{ goTo('suivi'); });
+  });
+}
+document.querySelectorAll('.prepModeOpt').forEach(el=>{
+  el.addEventListener('click', async ()=>{
+    document.querySelectorAll('.prepModeOpt').forEach(x=>x.classList.remove('selected'));
+    el.classList.add('selected');
+    const mode = el.dataset.mode;
+    if(mode==='existante'){
+      $('nouvellePositionWrap').style.display='none';
+      $('existingPositionsWrap').style.display='block';
+      await renderExistingPositions();
+    } else {
+      $('nouvellePositionWrap').style.display='';
+      $('existingPositionsWrap').style.display='none';
+    }
+  });
+});
+// ---------- Sélection de la personne ----------
+document.querySelectorAll('.personOpt').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.personOpt').forEach(x=>x.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedPerson = el.dataset.person;
+  });
+});
+// ---------- Type d'achat : 4 options, 4 écrans distincts ----------
+document.querySelectorAll('.typeOpt').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.typeOpt').forEach(x=>x.classList.remove('selected'));
+    el.classList.add('selected');
+    typeAchat = el.dataset.type;
+    document.querySelectorAll('.typeScreen').forEach(s=> s.style.display='none');
+    $('typeScreen'+typeAchat).style.display='';
+  });
+});
+// ---------- Tabs ----------
+let crManualOverride = false;
+// Tarification Boursorama Bourse — forfait Trader : 16,65€ jusqu'à 7 750€, puis 0,22% au-delà
+function fraisTrader(montantOrdre){
+  if(!montantOrdre) return 0;
+  return +(montantOrdre*0.0022).toFixed(2);
+}
+function updateAchatHeader(){
+  $('achatStockName').textContent = selectedStock ? `${selectedStock.nom} (${selectedStock.ticker})` : 'Aucune valeur sélectionnée';
+  const CA = parseFloat($('achCA').value)||0;
+  const qte = parseInt($('achQte').value)||0;
+  let CR = null;
+  if(CA && qte){
+    const montantOrdre = CA*qte;
+    const fraisAchat = fraisTrader(montantOrdre);
+    const coutTotalAchatVente = fraisAchat*2; // forfait Trader appliqué à l'achat ET à la vente
+    CR = +(CA + coutTotalAchatVente/qte).toFixed(2);
+  }
+  $('achatInputCA').value = CA || '';
+  $('achatInputQte').value = qte || '';
+  if(!crManualOverride) $('achatInputCR').value = CR!==null ? CR : '';
+}
+// Édition depuis l'onglet Achat -> répercutée sur les champs de Préparation
+$('achatInputCA').addEventListener('input', ()=>{
+  $('achCA').value = $('achatInputCA').value;
+  crManualOverride = false;
+  recomputeStopOptions();
+  updateAchatHeader();
+});
+$('achatInputQte').addEventListener('input', ()=>{
+  $('achQte').value = $('achatInputQte').value;
+  recomputeKPI();
+});
+$('achatInputCR').addEventListener('input', ()=>{ crManualOverride = true; recomputeKPI(); });
+// ---------- Réinitialisation complète de Préparation à chaque arrivée sur l'onglet ----------
+async function resetPreparationForm(){
+  selectedStock = null;
+  selectedPerson = null;
+  stopChoice = 'fixe3';
+  typeAchat = '1';
+  crManualOverride = false;
+  ['achCA','achATR','achMA20','achBeta','stopFinal'].forEach(id=>$(id).value='');
+  $('achQte').value = 1;
+  document.querySelectorAll('.personOpt').forEach(x=>x.classList.remove('selected'));
+  document.querySelectorAll('.typeOpt').forEach(x=>x.classList.remove('selected'));
+  document.querySelector('.typeOpt[data-type="1"]')?.classList.add('selected');
+  document.querySelectorAll('.typeScreen').forEach(s=> s.style.display='none');
+  const screen1 = $('typeScreen1'); if(screen1) screen1.style.display='';
+  ['dchk1','dchk2','dchk3','dchk4','dchk5'].forEach(id=>{ if($(id)) $(id).checked=false; });
+  await saveDailyChecks({c1:false,c2:false,c3:false,c4:false,c5:false});
+  $('processError').style.display='none';
+  // mode nouvelle position par défaut
+  document.querySelectorAll('.prepModeOpt').forEach(x=>x.classList.remove('selected'));
+  document.querySelector('.prepModeOpt[data-mode="nouvelle"]')?.classList.add('selected');
+  $('nouvellePositionWrap').style.display='';
+  $('existingPositionsWrap').style.display='none';
+  recomputeStopOptions();
+  updateAchatHeader();
+  updateSelStockLabel();
+}
+document.querySelectorAll('nav.tabs button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('view-'+b.dataset.view).classList.add('active');
+    if(b.dataset.view==='suivi') renderSuivi();
+    if(b.dataset.view==='achat') updateAchatHeader();
+    if(b.dataset.view==='preparation') resetPreparationForm();
+  });
+});
+function goTo(view){
+  document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.toggle('active', x.dataset.view===view));
+  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active', x.id==='view-'+view));
+  // Mémorise l'onglet courant pour le retrouver après un rechargement déclenché par
+  // une sauvegarde (la nôtre ou celle d'un autre utilisateur de BIG DEAL).
+  try{ sessionStorage.setItem('bigdeal-post-reload-tab', view); }catch(e){}
+  if(view==='suivi') renderSuivi();
+  if(view==='achat') updateAchatHeader();
+  if(view==='preparation') resetPreparationForm();
+}
+// ---------- Sélection de la valeur : se fait depuis la section Analyse (bouton "Choisir cette valeur") ----------
+function updateSelStockLabel(){
+  const el = $('selStockLabel');
+  if(!el) return;
+  el.textContent = selectedStock ? `${selectedStock.nom} (${selectedStock.ticker})` : 'Aucune — choisis-la dans la section Analyse ci-dessus.';
+}
+function pickStock(nom, tk){
+  selectedStock = {nom, ticker:tk};
+  updateSelStockLabel();
+  updateAchatHeader();
+}
+// ---------- Indicateurs techniques (ATR14, MA20) à partir de cours OHLC réels ----------
+function trueRanges(highs, lows, closes){
+  const trs=[];
+  for(let i=1;i<closes.length;i++){
+    trs.push(Math.max(
+      highs[i]-lows[i],
+      Math.abs(highs[i]-closes[i-1]),
+      Math.abs(lows[i]-closes[i-1])
+    ));
+  }
+  return trs;
+}
+function atr14Euros(highs, lows, closes){
+  if(closes.length <= 15) return null;
+  const trs = trueRanges(highs, lows, closes);
+  return trs.slice(-14).reduce((a,b)=>a+b,0)/14;
+}
+function sma(arr, n){ return arr.length>=n ? arr.slice(-n).reduce((a,b)=>a+b,0)/n : null; }
+function maxOverLastN(arr, n){
+  if(!arr || !arr.length) return null;
+  const seg = arr.slice(-n);
+  return seg.length ? Math.max(...seg) : null;
+}
+// Bêta = covariance(rendements titre, rendements CAC 40) / variance(rendements CAC 40), sur les séances communes
+function computeBeta(datesStock, closesStock, cac){
+  if(!cac) return null;
+  const cacMap = {};
+  cac.dates.forEach((d,i)=>{ cacMap[d]=cac.closes[i]; });
+  const rs=[], ri=[];
+  for(let i=1;i<datesStock.length;i++){
+    const d0=datesStock[i-1], d1=datesStock[i];
+    const c0=cacMap[d0], c1=cacMap[d1];
+    if(c0!=null && c1!=null && closesStock[i-1]){
+      rs.push((closesStock[i]-closesStock[i-1])/closesStock[i-1]);
+      ri.push((c1-c0)/c0);
+    }
+  }
+  if(rs.length<20) return null; // pas assez de séances communes pour une estimation fiable
+  const meanS = rs.reduce((a,b)=>a+b,0)/rs.length;
+  const meanI = ri.reduce((a,b)=>a+b,0)/ri.length;
+  let cov=0, varI=0;
+  for(let i=0;i<rs.length;i++){
+    cov += (rs[i]-meanS)*(ri[i]-meanI);
+    varI += (ri[i]-meanI)*(ri[i]-meanI);
+  }
+  cov/=rs.length; varI/=rs.length;
+  return varI>0 ? cov/varI : null;
+}
+// ---------- Appel EODHD (utilisé par la section Analyse et le bouton ATR14/MA20/Bêta, tous deux dans Préparation) ----------
+// Relais serveur (netlify/functions/eodhd.js) — le navigateur n'appelle jamais eodhd.com
+// directement : EODHD bloque ces appels côté client (CORS) et sa clé API ne doit jamais
+// être exposée dans le code de la page. La clé vit uniquement dans la variable
+// d'environnement EODHD_API_KEY, configurée sur le site Netlify.
+const EOD_BASE = "/.netlify/functions/eodhd";
+function isoDateDaysAgo(days){
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0,10);
+}
+async function eodFetch(path, extra=''){
+  const url = `${EOD_BASE}?path=${encodeURIComponent(path)}${extra}`;
+  const r = await fetch(url);
+  let body = null;
+  try{ body = await r.json(); }catch(e){}
+  if(!r.ok){
+    const msg = (body && (body.message||body.error)) || `HTTP ${r.status}`;
+    if(r.status===401||r.status===403) throw new Error("Clé API EODHD invalide ou plan insuffisant pour cette donnée (" + msg + ")");
+    if(r.status===429) throw new Error("Limite d'appels EODHD atteinte — patiente un instant");
+    if(r.status===500) throw new Error(msg || "Le relais EODHD n'est pas configuré sur ce site (variable EODHD_API_KEY manquante)");
+    throw new Error("Erreur EODHD : " + msg);
+  }
+  if(body && body.message && !Array.isArray(body)) throw new Error(body.message);
+  return body;
+}
+// Trie une réponse EOD (cours quotidiens) par date croissante et éclate les colonnes utiles
+function parseEodRows(rows){
+  const sorted = rows.slice().sort((a,b)=> String(a.date).localeCompare(String(b.date)));
+  return {
+    dates: sorted.map(r=>r.date),
+    highs: sorted.map(r=>parseFloat(r.high)),
+    lows: sorted.map(r=>parseFloat(r.low)),
+    closes: sorted.map(r=>parseFloat(r.close)),
+    volumes: sorted.map(r=>parseFloat(r.volume))
+  };
+}
+// Récupération complète : ATR14, MA20, Bêta (vs CAC 40) et plus hauts 1 an / 3 mois, pour le bouton de Préparation
+// ~500 jours calendaires d'historique pour couvrir confortablement 1 an de séances de bourse.
+async function fetchStockStats(ticker){
+  const rows = await eodFetch(`/eod/${encodeURIComponent(ticker)}`, `&from=${isoDateDaysAgo(500)}`);
+  if(!Array.isArray(rows) || !rows.length) throw new Error('Pas de données prix pour ' + ticker);
+  const { dates, highs, lows, closes } = parseEodRows(rows);
+  const cac = await loadCAC();
+  return {
+    lastDate: dates[dates.length-1],
+    last: closes[closes.length-1],
+    atr: atr14Euros(highs, lows, closes),
+    ma20: sma(closes, 20),
+    high1y: maxOverLastN(highs, 252),
+    high3m: maxOverLastN(highs, 63),
+    beta: computeBeta(dates, closes, cac),
+    nbSeances: dates.length
+  };
+}
+$('btnFetchATR').addEventListener('click', async ()=>{
+  if(!selectedStock){ toast('Choisis d\'abord une valeur'); return; }
+  const status = $('atrStatus');
+  status.textContent = 'Récupération des données réelles (EODHD)…';
+  try{
+    const data = await fetchStockStats(selectedStock.ticker);
+    if(data.atr!=null) $('achATR').value = data.atr.toFixed(2);
+    if(data.ma20!=null) $('achMA20').value = data.ma20.toFixed(2);
+    if(data.beta!=null) $('achBeta').value = data.beta.toFixed(2);
+    if(data.high1y!=null) $('opt1High1An').value = data.high1y.toFixed(2);
+    if(data.high3m!=null) $('opt1High3M').value = data.high3m.toFixed(2);
+    const manques = [];
+    if(data.beta==null) manques.push('bêta (pas assez de séances communes avec le CAC 40)');
+    if(data.nbSeances < 252) manques.push(`historique limité à ${data.nbSeances} séances — le plus haut 1 an peut être sous-estimé`);
+    const warn = manques.length ? ` ⚠ ${manques.join(' · ')}.` : '';
+    status.textContent = `Données réelles au ${data.lastDate} — dernier cours ${fmt(data.last)}. ATR14, MA20, Bêta et plus hauts 1 an / 3 mois remplis.${warn} À recouper avec Boursorama avant de valider un stop.`;
+    recomputeStopOptions();
+  }catch(e){
+    status.textContent = 'Erreur EODHD : ' + ((e&&e.message)||e);
+  }
+});
+// ---------- Stops ----------
+function stopValues(){
+  const CA = parseFloat($('achCA').value)||0;
+  const atr = parseFloat($('achATR').value)||0;
+  const ma20 = parseFloat($('achMA20').value)||0;
+  const mult = parseFloat($('atrMult').value)||1.75;
+  return {
+    fixe3: CA ? +(CA*0.97).toFixed(2) : null,
+    atr: (CA && atr) ? +(CA - mult*atr).toFixed(2) : null,
+    ma20: ma20 ? +(ma20*0.995).toFixed(2) : null
+  };
+}
+function recomputeStopOptions(){
+  const v = stopValues();
+  const CA = parseFloat($('achCA').value)||0;
+  const defs = [
+    {key:'fixe3', label:'Fixe −3%', val:v.fixe3},
+    {key:'atr', label:'CA − k×ATR', val:v.atr},
+    {key:'ma20', label:'Sous MA20', val:v.ma20}
+  ];
+  $('stopOptions').innerHTML = defs.map(d=>{
+    const pct = (CA && d.val!==null) ? fmtPct(((d.val-CA)/CA)*100) : '';
+    return `<div class="stopOpt ${stopChoice===d.key?'selected':''}" data-key="${d.key}">
+       <div class="lbl">${d.label}</div>
+       <div class="val">${d.val!==null?fmt(d.val):'—'}</div>
+       ${pct?`<div class="small" style="color:var(--dim);margin-top:2px;">${pct}</div>`:''}
+     </div>`;
+  }).join('');
+  document.querySelectorAll('#stopOptions .stopOpt').forEach(el=>{
+    el.addEventListener('click',()=>{
+      stopChoice = el.dataset.key;
+      const val = v[stopChoice];
+      if(val!==null) $('stopFinal').value = val;
+      recomputeStopOptions();
+      recomputeKPI();
+    });
+  });
+  // Par défaut, le stop retenu est calé sur Fixe -3% tant que l'utilisateur n'a pas choisi une autre méthode
+  if(stopChoice==='fixe3' && v.fixe3!==null) $('stopFinal').value = v.fixe3;
+  recomputeKPI();
+}
+['achCA','achATR','achMA20','atrMult','achQte','achFraisA'].forEach(id=>{
+  $(id).addEventListener('input', recomputeStopOptions);
+  $(id).addEventListener('input', updateAchatHeader);
+});
+$('stopFinal').addEventListener('input', recomputeKPI);
+function recomputeKPI(){
+  updateAchatHeader();
+  const CA = parseFloat($('achatInputCA').value)||parseFloat($('achCA').value)||0;
+  const qte = parseInt($('achatInputQte').value)||parseInt($('achQte').value)||0;
+  const stop = parseFloat($('stopFinal').value)||0;
+  const CR = parseFloat($('achatInputCR').value) || null;
+  $('kpiCA').textContent = CA ? fmt(CA) : '—';
+  $('kpiCR').textContent = CR!==null ? fmt(CR) : '—';
+  $('kpiStop').textContent = stop ? fmt(stop) : '—';
+  if(CR && stop){
+    const riskPct = ((stop-CR)/CR)*100;
+    $('kpiRisk').textContent = fmtPct(riskPct);
+  } else { $('kpiRisk').textContent = '—'; }
+  if(CR && stop && qte){
+    // Perte réelle = (coût de revient - stop retenu) x nombre acheté
+    // le CR intègre déjà les frais Trader (achat + vente)
+    const perteReelle = (CR - stop) * qte;
+    $('kpiPerteReelle').textContent = fmt(Math.abs(perteReelle));
+    $('kpiPerteReelle').style.color = perteReelle>0 ? 'var(--red)' : 'var(--green)';
+  } else { $('kpiPerteReelle').textContent = '—'; $('kpiPerteReelle').style.color=''; }
+}
+recomputeStopOptions();
+// ---------- Valider l'achat ----------
+$('btnValider').addEventListener('click', async ()=>{
+  const manquants = [];
+  if(!selectedPerson) manquants.push('sélectionner qui effectue la transaction');
+  if(!selectedStock) manquants.push('choisir une valeur dans la section Analyse (bouton « Choisir cette valeur pour la transaction »)');
+  const processOk = ['dchk1','dchk2','dchk3','dchk4','dchk5'].every(id=>$(id).checked);
+  if(!processOk) manquants.push('cocher les 5 cases du process du jour');
+  if(manquants.length){
+    $('processError').style.display='block';
+    $('processError').innerHTML = 'Erreur — il manque : ' + manquants.join(', ') + '.';
+    toast('Validation impossible, voir le message ci-dessus.');
+    return;
+  }
+  $('processError').style.display='none';
+  toast(`Préparation validée pour ${selectedStock.nom} — direction Achat`);
+  goTo('achat');
+});
+// ---------- Enregistrer la position (dans Achat, une fois le cours et la protection saisis) ----------
+$('btnEnregistrer').addEventListener('click', async ()=>{
+  if(!selectedStock){ toast('Retourne dans Préparation pour choisir une valeur'); return; }
+  const CA = parseFloat($('achCA').value);
+  const stop = parseFloat($('stopFinal').value);
+  const manquants = [];
+  if(!CA) manquants.push('le cours actuel (CA)');
+  if(!stop) manquants.push('le stop retenu');
+  if(manquants.length){
+    $('achatError').style.display='block';
+    $('achatError').innerHTML = 'Erreur — il manque : ' + manquants.join(', ') + '.';
+    toast('Enregistrement impossible, voir le message ci-dessus.');
+    return;
+  }
+  $('achatError').style.display='none';
+  const qte = parseInt($('achQte').value)||1;
+  const fraisA = parseFloat($('achFraisA').value)||0;
+  const fraisV = parseFloat($('achFraisV').value)||0;
+  const montantOrdre = CA*qte;
+  const CR = parseFloat($('achatInputCR').value) || +(CA + (fraisTrader(montantOrdre)*2)/qte).toFixed(2);
+  const pos = {
+    id: Date.now().toString(36),
+    nom: selectedStock.nom, ticker: selectedStock.ticker,
+    personne: selectedPerson,
+    dateAchat: nowDateTime(),
+    CA, qte, fraisA, fraisV, CR,
+    atr: parseFloat($('achATR').value)||null,
+    ma20: parseFloat($('achMA20').value)||null,
+    beta: parseFloat($('achBeta').value)||null,
+    stopType: stopChoice, stop,
+    typeAchat,
+    historique: [],
+    stopHistorique: [{date: nowDateTime(), stop, methode: stopChoice}],
+    cloturee: false
+  };
+  positions.push(pos);
+  await savePositions(positions, `${pos.nom} — Protection mise en place à ${fmt(stop)}`, 'suivi');
+  // reset formulaire
+  ['achCA','achATR','achMA20','achBeta','stopFinal'].forEach(id=>$(id).value='');
+  $('achQte').value=1; selectedStock=null;
+  crManualOverride = false;
+  updateAchatHeader();
+  updateSelStockLabel();
+  goTo('suivi');
+});
+// ---------- Ratchet gauge (élément signature) ----------
+function priceBar(CA, CR, stop, CV, ma20){
+  const points = [
+    {label:'CA', val:CA, color:'var(--dim)', size:10},
+    {label:'CR', val:CR, color:'var(--blue)', size:10},
+    {label:'Stop', val:stop, color:'var(--amber)', size:10},
+    {label:'CV', val:CV, color: CV>=CR?'var(--green)':'var(--red)', size:16},
+  ];
+  if(ma20!==null && ma20!==undefined) points.push({label:'MA20', val:ma20, color:'var(--blue)', size:8});
+  const valid = points.filter(p=>p.val!==null && p.val!==undefined && !isNaN(p.val));
+  if(valid.length<2) return '';
+  const lo = Math.min(...valid.map(p=>p.val));
+  const hi = Math.max(...valid.map(p=>p.val));
+  const range = (hi-lo)||1;
+  const pad = range*0.12;
+  const lo2 = lo-pad, range2 = range+2*pad;
+  const pct = v => Math.min(97, Math.max(3, ((v-lo2)/range2)*100));
+  const sorted = [...valid].sort((a,b)=>a.val-b.val);
+  const zoneStart = Math.min(pct(CR), pct(CV));
+  const zoneEnd = Math.max(pct(CR), pct(CV));
+  const zoneColor = CV>=CR ? 'var(--green)' : 'var(--red)';
+  const markers = sorted.map((p,i)=>{
+    const x = pct(p.val);
+    const above = i%2===0;
+    return `
+    <div class="pmarker" style="left:${x}%;background:${p.color};"></div>
+    <div class="pdot" style="left:${x}%;width:${p.size}px;height:${p.size}px;background:${p.color};"></div>
+    <div class="plabel" style="left:${x}%; ${above? 'top:-4px;':'top:44px;'}">
+      <span class="lname">${p.label}</span><span class="lval">${fmt(p.val)}</span>
+    </div>`;
+  }).join('');
+  // Flèche entre CV et Stop, avec le pourcentage d'écart (marge avant déclenchement du stop)
+  let arrowHtml = '';
+  if(CV!==null && CV!==undefined && !isNaN(CV) && stop!==null && stop!==undefined && !isNaN(stop) && CV){
+    const xCV = pct(CV), xStop = pct(stop);
+    const left = Math.min(xCV, xStop), width = Math.max(1, Math.abs(xCV-xStop));
+    const ecartPct = ((CV-stop)/CV)*100;
+    arrowHtml = `
+    <div class="pArrowLine" style="left:${left}%;width:${width}%;"></div>
+    <div class="pArrowLabel" style="left:${left+width/2}%;">${ecartPct>=0?'+':''}${ecartPct.toFixed(1)}%</div>`;
+  }
+  return `<div class="priceBar">
+    <div class="track"></div>
+    <div class="zone" style="left:${zoneStart}%;width:${(zoneEnd-zoneStart)||0.5}%;background:${zoneColor};opacity:.35;"></div>
+    ${markers}
+    ${arrowHtml}
+  </div>`;
+}
+function priceLadder(CA, CR, stop, CV, ma20){
+  const points = [
+    {label:'CV', val:CV, color: CV>=CA?'var(--green)':'var(--red)'},
+    {label:'Stop', val:stop, color:'var(--amber)'},
+    {label:'CA', val:CA, color:'var(--dim)'},
+    {label:'CR', val:CR, color:'var(--blue)'},
+  ];
+  if(ma20!==null && ma20!==undefined) points.push({label:'MA20', val:ma20, color:'var(--blue)'});
+  const valid = points.filter(p=>p.val!==null && p.val!==undefined && !isNaN(p.val));
+  valid.sort((a,b)=>a.val-b.val); // tri croissant
+  const lo = Math.min(...valid.map(p=>p.val));
+  const hi = Math.max(...valid.map(p=>p.val));
+  const range = (hi-lo)||1;
+  return `<div class="ladder">${valid.map(p=>{
+    const pct = Math.max(6, ((p.val-lo)/range)*100);
+    return `<div class="ladderRow">
+      <span class="ladderLabel">${p.label}</span>
+      <div class="ladderBar"><div class="ladderFill" style="width:${pct}%;background:${p.color}"></div></div>
+      <span class="ladderVal">${fmt(p.val)}</span>
+    </div>`;
+  }).join('')}</div>`;
+}
+// ---------- Suivi quotidien ----------
+async function renderSuivi(){
+  const wrap = $('positionsWrap');
+  try{
+    positions = await loadPositions();
+  }catch(e){
+    wrap.innerHTML = `<div class="empty">Erreur de chargement des positions.<br><span class="small">${(e&&e.message)||e}</span></div>`;
+    return;
+  }
+  if(!Array.isArray(positions)) positions = [];
+  const open = positions.filter(p=> p && !p.cloturee && (suiviFilterPerson==='Tous' || p.personne===suiviFilterPerson));
+  if(open.length===0){
+    wrap.innerHTML = `<div class="empty">Aucune position en cours.<br>Passe par l'onglet <b>Achat</b> pour en enregistrer une.</div>`;
+    return;
+  }
+  try{
+  wrap.innerHTML = open.map(p=>{
+    p.historique = Array.isArray(p.historique) ? p.historique : [];
+    p.qte = p.qte || 1;
+    p.fraisV = (p.fraisV===undefined||p.fraisV===null) ? 0.5 : p.fraisV;
+    p.CR = p.CR || p.CA || 0;
+    p.stop = p.stop || 0;
+    const lastCV = p.historique.length ? p.historique[p.historique.length-1].cv : p.CA;
+    const gainNetUnit = lastCV*(1-p.fraisV/100) - p.CR;
+    const gainNetTotal = gainNetUnit * p.qte;
+    const gainPct = p.CR ? (gainNetUnit/p.CR)*100 : 0;
+    const cas = lastCV >= p.CR ? 2 : 1;
+    const doitIntervenir = cas === 2; // on n'ajuste le stop que si le cours valeur est >= au coût de revient
+    const choixActuel = p.lastAdjChoice || '3';
+    return `
+    <div class="card" data-id="${p.id}">
+      <div class="posHead">
+        <div><span class="nom">${p.nom}</span><span class="tk">${p.ticker}</span></div>
+        <span class="pill ${cas===2?'gain':'perte'}">Cas ${cas} ${cas===2?'· Cours Valeur ≥ Coût de Revient':'· Cours Valeur ≤ Coût de Revient'}</span>
+      </div>
+      <div class="kpi"><span>Valeur</span><span class="v">${p.nom} (${p.ticker})</span></div>
+      <div class="kpi"><span>Cours d'achat (CA)</span><span class="v">${fmt(p.CA)}</span></div>
+      <div class="kpi"><span>Coût de revient (CR)</span><span class="v">${fmt(p.CR)}</span></div>
+      <div class="kpi"><span>Cours de protection (stop)</span><span class="v">${fmt(p.stop)}</span></div>
+      <div class="kpi"><span>Quantité</span><span class="v">${p.qte}</span></div>
+      <hr class="dash">
+      ${priceBar(p.CA, p.CR, p.stop, lastCV, p.ma20)}
+      <hr class="dash">
+      <label class="cvLabel">✏️ Cours valeur (CV) du jour €</label>
+      <div class="row">
+        <input type="number" step="0.01" class="cvInput" value="${lastCV}">
+        <button class="btn primary cvSave" style="width:auto;margin-top:0;">Enregistrer</button>
+      </div>
+      <div class="kpi"><span>Gain net estimé / titre</span><span class="v" style="color:${gainNetUnit>=0?'var(--green)':'var(--red)'}">${fmt(gainNetUnit)} (${fmtPct(gainPct)})</span></div>
+      <div class="kpi"><span>Gain net estimé total (${p.qte} titres)</span><span class="v" style="color:${gainNetTotal>=0?'var(--green)':'var(--red)'}">${fmt(gainNetTotal)}</span></div>
+      <hr class="dash">
+      <h3 style="font-size:16px;color:var(--text);text-transform:none;letter-spacing:0;margin-bottom:8px;">Process à suivre avant 17h30 (clôture)</h3>
+      ${!doitIntervenir ? `
+      <p class="small" style="color:var(--green);font-weight:700;">✓ Rien à faire — le cours valeur est encore sous le coût de revient (Cas 1). On n'ajuste le stop que si le cours valeur dépasse le coût de revient.</p>
+      ` : `
+      <p class="small">Cours valeur ≥ coût de revient — ajuste la protection pour sécuriser le gain. Le cliquet n'autorise qu'une remontée du stop.</p>
+      <div class="stopOptions">
+        <div class="stopOpt adj ${choixActuel==='3'?'selected':''}" data-pct="3"><div class="lbl">−3% prudence tendance</div><div class="val">${fmt(lastCV*0.97)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.97)-p.CR)*p.qte)}</div></div>
+        <div class="stopOpt adj ${choixActuel==='2'?'selected':''}" data-pct="2"><div class="lbl">−2% prudence</div><div class="val">${fmt(lastCV*0.98)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.98)-p.CR)*p.qte)}</div></div>
+        <div class="stopOpt adj ${choixActuel==='1'?'selected':''}" data-pct="1"><div class="lbl">−1% sécuriser</div><div class="val">${fmt(lastCV*0.99)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.99)-p.CR)*p.qte)}</div></div>
+      </div>
+      `}
+      <hr class="dash">
+      <p class="small" style="font-weight:700;">Position vendue</p>
+      <div class="row">
+        <button class="btn primary btnVendue" style="width:auto;margin-top:0;">Clôture</button>
+        <input type="number" step="0.01" class="ventePrix" placeholder="Cours de la vente €">
+      </div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.card').forEach(card=>{
+    const id = card.dataset.id;
+    const pos = positions.find(p=>p.id===id);
+    card.querySelector('.cvSave').addEventListener('click', async ()=>{
+      const cv = parseFloat(card.querySelector('.cvInput').value);
+      if(!cv){ toast('Cours invalide'); return; }
+      pos.historique.push({date:nowDateTime(), cv});
+      await savePositions(positions, 'Cours du jour enregistré');
+      await renderSuivi();
+    });
+    card.querySelectorAll('.adj').forEach(el=>{
+      el.addEventListener('click', async ()=>{
+        const pct = parseFloat(el.dataset.pct);
+        pos.lastAdjChoice = String(pct);
+        const lastCV = pos.historique.length ? pos.historique[pos.historique.length-1].cv : pos.CA;
+        const proposed = +(lastCV*(1-pct/100)).toFixed(2);
+        if(proposed <= pos.stop){
+          await savePositions(positions, `Stop actuel (${fmt(pos.stop)}) déjà plus protecteur — aucun changement (cliquet).`);
+          await renderSuivi();
+          return;
+        }
+        pos.stop = proposed;
+        if(!Array.isArray(pos.stopHistorique)) pos.stopHistorique = [];
+        pos.stopHistorique.push({date: nowDateTime(), stop: proposed, methode: `ajustement -${pct}%`});
+        await savePositions(positions, `Nouveau stop : ${fmt(proposed)}`);
+        await renderSuivi();
+      });
+    });
+    card.querySelector('.btnVendue').addEventListener('click', async ()=>{
+      const prixVente = parseFloat(card.querySelector('.ventePrix').value);
+      if(!prixVente){ toast('Renseigne le cours de la vente'); return; }
+      pos.coursVente = prixVente;
+      pos.dateVente = nowDateTime();
+      pos.historique.push({date: pos.dateVente, cv: prixVente});
+      pos.cloturee = true;
+      await savePositions(positions, `${pos.nom} — Position vendue à ${fmt(prixVente)}`);
+      await renderSuivi();
+      await exportCSV(pos.personne);
+      await renderSuivi();
+    });
+  });
+  }catch(e){
+    wrap.innerHTML = `<div class="empty">Erreur d'affichage des positions.<br><span class="small">${(e&&e.message)||e}</span></div>`;
+  }
+}
+// ---------- Checklist quotidienne persistée (reset chaque jour) ----------
+(async ()=>{
+  const saved = await loadDailyChecks();
+  if(saved){
+    $('dchk1').checked = !!saved.c1; $('dchk2').checked = !!saved.c2; $('dchk3').checked = !!saved.c3;
+    $('dchk4').checked = !!saved.c4; $('dchk5').checked = !!saved.c5;
+  }
+  let dailyCheckSaveTimer = null;
+  ['dchk1','dchk2','dchk3','dchk4','dchk5'].forEach(id=>{
+    $(id).addEventListener('change', ()=>{
+      // Regroupe les coches rapprochées (ex. les 5 cases cochées à la suite) en une
+      // seule sauvegarde/republication au lieu d'une par case.
+      clearTimeout(dailyCheckSaveTimer);
+      dailyCheckSaveTimer = setTimeout(()=>{
+        saveDailyChecks({c1:$('dchk1').checked, c2:$('dchk2').checked, c3:$('dchk3').checked, c4:$('dchk4').checked, c5:$('dchk5').checked});
+      }, 600);
+      const allChecked = ['dchk1','dchk2','dchk3','dchk4','dchk5'].every(x=>$(x).checked);
+      if(allChecked) $('processError').style.display='none';
+    });
+  });
+})();
+
+// =====================================================================
+// ================= ANALYSE — Chartiste CAC 40 (fusionné) ==============
+// =====================================================================
+const AN_SUGGEST = ["LVMH","BNP Paribas","L'Oréal","Airbus","TotalEnergies","Sanofi"];
+// Enlève accents, casse, apostrophes pour comparer noms et codes
+function norm(str){
+  return str.normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .toLowerCase().replace(/['’\-.\s]/g,'').trim();
+}
+// Résout une saisie (nom ou code) vers un ticker
+function resolveTicker(input){
+  const raw = input.trim();
+  if(!raw) return null;
+  const up = raw.toUpperCase();
+  if(/\.[A-Z]{1,3}$/.test(up)) return up;
+  const n = norm(raw);
+  const byCode = Object.keys(UNIVERSE).find(k=>norm(k.split('.')[0])===n);
+  if(byCode) return byCode;
+  const entries = Object.entries(UNIVERSE);
+  let hit = entries.find(([k,v])=>norm(v)===n)
+         || entries.find(([k,v])=>norm(v).startsWith(n))
+         || entries.find(([k,v])=>norm(v).includes(n));
+  if(hit) return hit[0];
+  return up.includes('.') ? up : up + '.PA';
+}
+// Cache de la série de l'indice CAC 40 (pour la perf relative), chargé une fois
+let cacSeries = null;
+let cacTried = false;
+async function loadCAC(){
+  if(cacTried) return cacSeries;
+  cacTried = true;
+  // FCHI.INDX = indice CAC 40 lui-même ; CAC.PA / C40.PA = ETF de repli si l'indice n'est pas disponible sur le plan souscrit
+  for(const proxy of ["FCHI.INDX","CAC.PA","C40.PA"]){
+    try {
+      const rows = await eodFetch(`/eod/${encodeURIComponent(proxy)}`, `&from=${isoDateDaysAgo(500)}`);
+      if(Array.isArray(rows) && rows.length){
+        const { dates, closes } = parseEodRows(rows);
+        cacSeries = { dates, closes };
+        return cacSeries;
+      }
+    } catch(e){}
+  }
+  return null;
+}
+function pctChangeOverDays(closes, days){
+  if(closes.length <= days) return null;
+  const a = closes[closes.length-1-days], b = closes[closes.length-1];
+  return (b-a)/a*100;
+}
+async function loadStock(ticker){
+  // ~200 jours calendaires : largement assez pour RSI-2, ATR14, range 60 séances, perf relative 1 mois
+  const rows = await eodFetch(`/eod/${encodeURIComponent(ticker)}`, `&from=${isoDateDaysAgo(200)}`);
+  if(!Array.isArray(rows) || !rows.length) throw new Error('Pas de données prix pour ' + ticker);
+  const { dates, highs, lows, closes, volumes } = parseEodRows(rows);
+  // --- ATR sur 14 jours (euros + % du prix) ---
+  const atrEuros = atr14Euros(highs, lows, closes);
+  const atrPct = atrEuros!=null ? atrEuros/closes[closes.length-1]*100 : null;
+  // --- Volume relatif : dernier jour vs moyenne 20 jours ---
+  let volRel = null;
+  if(volumes.length > 20){
+    const avg = volumes.slice(-21,-1).reduce((a,b)=>a+b,0)/20;
+    if(avg>0) volRel = volumes[volumes.length-1]/avg;
+  }
+  // --- Position dans le range des ~60 dernières séances (0 % bas, 100 % haut) ---
+  let rangePos = null;
+  if(closes.length >= 20){
+    const seg = closes.slice(-60);
+    const lo = Math.min(...seg), hi = Math.max(...seg);
+    if(hi>lo) rangePos = (closes[closes.length-1]-lo)/(hi-lo)*100;
+  }
+  // --- RSI-2 (Wilder) : mesure de tension court terme pour mean-reversion ---
+  let rsi2 = null;
+  if(closes.length > 3){
+    const period = 2;
+    let gains=0, losses=0;
+    for(let i=1;i<=period;i++){
+      const diff = closes[i]-closes[i-1];
+      if(diff>=0) gains+=diff; else losses-=diff;
+    }
+    let avgG=gains/period, avgL=losses/period;
+    for(let i=period+1;i<closes.length;i++){
+      const diff = closes[i]-closes[i-1];
+      const g = diff>0?diff:0, l = diff<0?-diff:0;
+      avgG = (avgG*(period-1)+g)/period;
+      avgL = (avgL*(period-1)+l)/period;
+    }
+    const rs = avgL===0 ? 100 : avgG/avgL;
+    rsi2 = avgL===0 ? 100 : 100 - 100/(1+rs);
+  }
+  // --- Position vs moyennes mobiles 20 et 50 jours ---
+  const ma20 = sma(closes,20), ma50 = sma(closes,50);
+  const last = closes[closes.length-1];
+  let maState = null; // 'above','below','mixed'
+  let maDist20 = null;
+  if(ma20!=null){
+    maDist20 = (last-ma20)/ma20*100;
+    if(ma50!=null){
+      if(last>ma20 && last>ma50) maState='above';
+      else if(last<ma20 && last<ma50) maState='below';
+      else maState='mixed';
+    } else {
+      maState = last>ma20 ? 'above' : 'below';
+    }
+  }
+  // --- Perf relative vs CAC 40 sur ~21 séances (1 mois) ---
+  let relPerf = null;
+  const cac = await loadCAC();
+  const stockPerf = pctChangeOverDays(closes, 21);
+  if(cac && stockPerf!==null){
+    const idxPerf = pctChangeOverDays(cac.closes, 21);
+    if(idxPerf!==null) relPerf = stockPerf - idxPerf;
+  }
+  // Dividendes - endpoint séparé, tolérant à l'échec
+  let nextDiv = null;
+  try {
+    const dv = await eodFetch(`/div/${encodeURIComponent(ticker)}`);
+    if(Array.isArray(dv) && dv.length){
+      const today = new Date().toISOString().slice(0,10);
+      const withDate = dv.filter(d=>d.date).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+      const future = withDate.filter(d=>d.date >= today);
+      nextDiv = future.length ? future[0].date : (withDate.length ? withDate[withDate.length-1].date : null);
+    }
+  } catch(e){}
+  // Résultats à venir - endpoint séparé (calendrier), tolérant à l'échec : peut ne pas être inclus selon le plan EODHD souscrit
+  let nextEarn = null;
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    const to = isoDateDaysAgo(-180); // 180 jours dans le futur
+    const ec = await eodFetch(`/calendar/earnings`, `&symbols=${encodeURIComponent(ticker)}&from=${today}&to=${to}`);
+    const list = ec && ec.earnings;
+    if(Array.isArray(list) && list.length){
+      const future = list
+        .map(e=>({ date: e.report_date || e.date }))
+        .filter(e=>e.date && e.date >= today)
+        .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+      nextEarn = future.length ? future[0].date : null;
+    }
+  } catch(e){}
+  return { ticker, closes, nextDiv, nextEarn, atrEuros, atrPct, ma20, volRel, rangePos, relPerf, rsi2, maState, maDist20, allCloses: closes };
+}
+// ---------- détection patterns ----------
+function pivots(s, w=3){
+  const highs=[], lows=[];
+  for(let i=w;i<s.length-w;i++){
+    let isH=true,isL=true;
+    for(let j=i-w;j<=i+w;j++){ if(s[j]>s[i]) isH=false; if(s[j]<s[i]) isL=false; }
+    if(isH) highs.push({i,v:s[i]});
+    if(isL) lows.push({i,v:s[i]});
+  }
+  return {highs,lows};
+}
+function detectPatterns(s){
+  const {highs,lows}=pivots(s,3);
+  const found=[];
+  const near=(a,b,tol)=>Math.abs(a-b)/((a+b)/2)<tol;
+  for(let i=highs.length-1;i>0 && found.length<1;i--){
+    const a=highs[i-1],b=highs[i];
+    if(b.i-a.i>=5 && near(a.v,b.v,0.03)){ found.push({name:"Double sommet",dir:"bear",desc:"Deux sommets proches sans nouveau plus-haut : essoufflement possible de la hausse.",conf:"faible"}); break; }
+  }
+  for(let i=lows.length-1;i>0 && !found.some(f=>f.name.includes('creux'));i--){
+    const a=lows[i-1],b=lows[i];
+    if(b.i-a.i>=5 && near(a.v,b.v,0.03)){ found.push({name:"Double creux",dir:"bull",desc:"Deux creux proches défendus : tentative de plancher.",conf:"faible"}); break; }
+  }
+  const slope=(pts)=>{ if(pts.length<2) return 0;
+    const n=pts.length, sx=pts.reduce((a,p)=>a+p.i,0), sy=pts.reduce((a,p)=>a+p.v,0);
+    const sxy=pts.reduce((a,p)=>a+p.i*p.v,0), sxx=pts.reduce((a,p)=>a+p.i*p.i,0);
+    return (n*sxy-sx*sy)/(n*sxx-sx*sx||1); };
+  const sh=slope(highs.slice(-4)), sl=slope(lows.slice(-4));
+  if(sh<-0.02 && sl>0.02) found.push({name:"Triangle symétrique",dir:"neut",desc:"Sommets descendants et creux montants qui convergent : compression avant sortie.",conf:"faible"});
+  else if(Math.abs(sh)<0.03 && sl>0.03) found.push({name:"Triangle ascendant",dir:"bull",desc:"Résistance plate et creux montants : pression acheteuse.",conf:"faible"});
+  else if(sh<-0.03 && Math.abs(sl)<0.03) found.push({name:"Triangle descendant",dir:"bear",desc:"Support plat et sommets descendants : pression vendeuse.",conf:"faible"});
+  const last=s[s.length-1], prev=s[s.length-11]||s[0];
+  const mom=(last-prev)/prev;
+  if(found.length<3){
+    if(mom>0.05) found.push({name:"Poussée haussière",dir:"bull",desc:"Progression nette sur ~2 semaines : tendance de fond acheteuse.",conf:"indicatif"});
+    else if(mom<-0.05) found.push({name:"Repli marqué",dir:"bear",desc:"Baisse nette sur ~2 semaines : pression vendeuse dominante.",conf:"indicatif"});
+    else found.push({name:"Range / consolidation",dir:"neut",desc:"Prix sans direction claire : phase d'attente, cassure à surveiller.",conf:"indicatif"});
+  }
+  const fillers=[
+    {name:"Pullback sur moyenne",dir:"neut",desc:"Repli technique vers une zone d'équilibre.",conf:"indicatif"},
+    {name:"Volatilité contractée",dir:"neut",desc:"Amplitude réduite : mouvement possible à venir.",conf:"indicatif"}
+  ];
+  let fi=0; while(found.length<3 && fi<fillers.length) found.push(fillers[fi++]);
+  return found.slice(0,3);
+}
+function udBars(s, days=14){
+  const seg = s.slice(-(days+1));
+  const changes=[];
+  for(let i=1;i<seg.length;i++) changes.push((seg[i]-seg[i-1])/seg[i-1]*100);
+  const maxAbs=Math.max(...changes.map(Math.abs),0.5);
+  const w=600,h=110,pad=8,mid=h/2,n=changes.length;
+  const bw=(w-2*pad)/n*0.62, gap=(w-2*pad)/n;
+  let up=0,down=0;
+  const bars=changes.map((c,i)=>{
+    const x=pad+i*gap+(gap-bw)/2;
+    const bh=Math.max(2,Math.abs(c)/maxAbs*(mid-pad));
+    const isUp=c>=0; if(isUp)up++; else down++;
+    const y=isUp?mid-bh:mid; const col=isUp?"#2BB39A":"#E85D5D";
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.5" fill="${col}"/>`;
+  }).join("");
+  return { svg:`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><line x1="${pad}" y1="${mid}" x2="${w-pad}" y2="${mid}" stroke="#232B3A" stroke-width="1"/>${bars}</svg>`, up, down, total:n };
+}
+function fmtDate(d){
+  if(!d) return null;
+  const [y,m,day]=d.split('-');
+  const mois=["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+  return `${parseInt(day)} ${mois[parseInt(m)-1]} ${y}`;
+}
+// ---------- interprétation descriptive des métriques ----------
+function interpRel(v){
+  if(v==null) return {color:'grey', txt:'Comparaison à l\'indice indisponible.'};
+  if(v >= 2)  return {color:'green', txt:'Fait nettement mieux que le CAC 40 ce mois-ci.'};
+  if(v <= -2) return {color:'red',   txt:'Fait moins bien que le CAC 40 ce mois-ci.'};
+  return {color:'amber', txt:'Évolue à peu près comme l\'indice.'};
+}
+function interpATR(v){
+  if(v==null) return {color:'grey', txt:'Volatilité indisponible.'};
+  if(v >= 3)  return {color:'red',   txt:'Volatilité élevée : mouvements amples, risque par position plus grand.'};
+  if(v <= 1.5)return {color:'green', txt:'Volatilité calme : mouvements modérés.'};
+  return {color:'amber', txt:'Volatilité moyenne.'};
+}
+function interpVol(v){
+  if(v==null) return {color:'grey', txt:'Volume indisponible.'};
+  if(v >= 1.5)return {color:'red',   txt:'Volume inhabituellement élevé : activité anormale sur le titre.'};
+  if(v <= 0.7)return {color:'green', txt:'Volume faible : peu d\'activité.'};
+  return {color:'amber', txt:'Volume proche de la normale.'};
+}
+function interpRange(v){
+  if(v==null) return {color:'grey', txt:'Position indisponible.'};
+  if(v >= 80) return {color:'red',   txt:'Proche de ses sommets récents.'};
+  if(v <= 20) return {color:'green', txt:'Proche de ses planchers récents.'};
+  return {color:'amber', txt:'Au milieu de sa fourchette récente.'};
+}
+function interpRSI(v){
+  if(v==null) return {color:'grey', txt:'RSI indisponible.'};
+  if(v <= 10) return {color:'green', txt:'Très survendu : forte tension à la baisse, un rebond technique est possible.'};
+  if(v >= 90) return {color:'red',   txt:'Très suracheté : forte tension à la hausse, un repli technique est possible.'};
+  if(v <= 30) return {color:'amber', txt:'Plutôt survendu.'};
+  if(v >= 70) return {color:'amber', txt:'Plutôt suracheté.'};
+  return {color:'grey', txt:'Zone neutre, pas de tension marquée.'};
+}
+function interpMA(state, dist){
+  if(state==null) return {color:'grey', txt:'Tendance indisponible.'};
+  if(state==='above') return {color:'green', txt:`Au-dessus de ses moyennes : tendance de fond haussière (+${dist?dist.toFixed(1):'?'}% vs MM20).`};
+  if(state==='below') return {color:'red',   txt:`Sous ses moyennes : tendance de fond baissière (${dist?dist.toFixed(1):'?'}% vs MM20).`};
+  return {color:'amber', txt:'Entre ses moyennes : tendance hésitante.'};
+}
+// Définitions simples orientées décision, affichables au tap
+const DEFS = {
+  rel:   "Est-ce que l'action fait mieux ou moins bien que la moyenne des grandes valeurs françaises. Aide à repérer les valeurs qui se démarquent, à la hausse comme à la baisse.",
+  atr:   "De combien l'action bouge chaque jour. Aide à juger le risque et à placer ton stop — pas à savoir si elle va monter.",
+  vol:   "Le nombre d'actions échangées. Un fort volume rend un mouvement plus crédible ; un faible volume invite à s'en méfier.",
+  range: "Où se situe le prix entre son plus-bas et son plus-haut récents. Proche du haut = zone tendue ; proche du bas = zone déprimée. Selon ta stratégie, l'un ou l'autre t'intéresse.",
+  rsi:   "Mesure si l'action est « tendue » après une série de baisses (survendue) ou de hausses (surachetée). Très bas = un rebond est parfois proche ; très haut = un repli est parfois proche. Signal de court terme, à confirmer.",
+  ma:    "Situe le prix par rapport à sa tendance de fond (ses moyennes sur 20 et 50 jours). Au-dessus = tendance haussière ; en dessous = baissière. Aide à savoir si tu vas dans le sens du courant ou à contre-courant."
+};
+// ---------- backtest RSI-2 (coup de sonde) ----------
+function rsiSeries(closes, period=2){
+  const out = new Array(closes.length).fill(null);
+  if(closes.length <= period) return out;
+  let avgG=0, avgL=0;
+  for(let i=1;i<=period;i++){
+    const d=closes[i]-closes[i-1];
+    if(d>=0) avgG+=d; else avgL-=d;
+  }
+  avgG/=period; avgL/=period;
+  out[period] = avgL===0?100:100-100/(1+avgG/avgL);
+  for(let i=period+1;i<closes.length;i++){
+    const d=closes[i]-closes[i-1];
+    const g=d>0?d:0, l=d<0?-d:0;
+    avgG=(avgG*(period-1)+g)/period;
+    avgL=(avgL*(period-1)+l)/period;
+    out[i]= avgL===0?100:100-100/(1+avgG/avgL);
+  }
+  return out;
+}
+function backtestRSI2(closes, opts={}){
+  const hold = opts.hold ?? 3;
+  const ttf = 0.003;
+  const fee = 0.001;
+  const rsi = rsiSeries(closes, 2);
+  const trades = [];
+  let i = 50;
+  while(i < closes.length - hold){
+    const ma50 = closes.slice(i-50,i).reduce((a,b)=>a+b,0)/50;
+    if(rsi[i]!=null && rsi[i] < 10 && closes[i] > ma50){
+      const entry = closes[i];
+      const exit  = closes[i+hold];
+      const gross = (exit-entry)/entry;
+      const net = gross - ttf - fee - fee;
+      trades.push(net);
+      i += hold;
+    } else {
+      i++;
+    }
+  }
+  if(!trades.length) return { n:0 };
+  const wins = trades.filter(t=>t>0).length;
+  const avg = trades.reduce((a,b)=>a+b,0)/trades.length;
+  let cum = 1;
+  trades.forEach(t=>{ cum *= (1+t); });
+  return {
+    n: trades.length,
+    winRate: wins/trades.length*100,
+    avgPct: avg*100,
+    cumPct: (cum-1)*100,
+    best: Math.max(...trades)*100,
+    worst: Math.min(...trades)*100
+  };
+}
+// ---------- rendu des cartes Analyse ----------
+function anCardHTML(d, isSelected){
+  const s=d.closes;
+  const last=s[s.length-1], prev=s[s.length-2];
+  const dchg=((last-prev)/prev*100);
+  const bars=udBars(s,14);
+  const pats=detectPatterns(s);
+  const tagCls={bull:'bull',bear:'bear',neut:'neut'}, tagTxt={bull:'Haussier',bear:'Baissier',neut:'Neutre'};
+  const divTxt=fmtDate(d.nextDiv), earnTxt=fmtDate(d.nextEarn);
+  const relTxt = d.relPerf==null ? 'indispo' : `${d.relPerf>=0?'+':''}${d.relPerf.toFixed(1)}%`;
+  const atrTxt = d.atrPct==null ? '—' : `${d.atrPct.toFixed(1)}% /j`;
+  const volTxt = d.volRel==null ? '—' : `×${d.volRel.toFixed(1)}`;
+  const rangeTxt = d.rangePos==null ? '—' : `${Math.round(d.rangePos)}%`;
+  const iRel=interpRel(d.relPerf), iAtr=interpATR(d.atrPct), iVol=interpVol(d.volRel), iRange=interpRange(d.rangePos);
+  const iRSI=interpRSI(d.rsi2), iMA=interpMA(d.maState, d.maDist20);
+  const rsiTxt = d.rsi2==null ? '—' : Math.round(d.rsi2);
+  const maTxt = d.maState==null ? '—' : (d.maState==='above'?'↑ tendance':d.maState==='below'?'↓ tendance':'→ mixte');
+  const bt = backtestRSI2(d.allCloses||d.closes, {hold:3});
+  const metricRow=(lab,val,interp,defKey)=>`
+    <div class="an-metric">
+      <span class="an-dot ${interp.color}"></span>
+      <div class="an-m-body">
+        <div class="an-m-top">
+          <span class="an-m-lab">${lab} <button class="an-m-help" onclick="this.closest('.an-m-body').querySelector('.an-m-def').classList.toggle('show')">?</button></span>
+          <span class="an-m-val">${val}</span>
+        </div>
+        <div class="an-m-txt">${interp.txt}</div>
+        <div class="an-m-def">${DEFS[defKey]}</div>
+      </div>
+    </div>`;
+  return `<div class="card" style="${isSelected?'box-shadow:0 0 0 1.5px var(--amber);':''}">
+    <div class="an-card-head">
+      <div><div class="an-ticker">${UNIVERSE[d.ticker]||d.ticker}</div><div class="an-name">${d.ticker}</div></div>
+      <div><div class="an-price">${fmt(last)}</div><div class="an-chg ${dchg>=0?'up':'down'}">${dchg>=0?'+':''}${dchg.toFixed(2)}% j</div></div>
+    </div>
+    <button class="btn ${isSelected?'primary':'ghost'} anSelectBtn" data-ticker="${d.ticker}" data-nom="${(UNIVERSE[d.ticker]||d.ticker).replace(/"/g,'&quot;')}" style="margin-top:10px;">${isSelected?'✓ Valeur retenue pour la transaction':'Choisir cette valeur pour la transaction'}</button>
+    <div class="an-metrics">
+      ${metricRow('vs CAC 40 · 1 mois', relTxt, iRel, 'rel')}
+      ${metricRow('RSI-2 · tension court terme', rsiTxt, iRSI, 'rsi')}
+      ${metricRow('Tendance (MM 20/50)', maTxt, iMA, 'ma')}
+      ${metricRow('Volatilité (ATR)', atrTxt, iAtr, 'atr')}
+      ${metricRow('Volume vs moyenne', volTxt, iVol, 'vol')}
+      ${metricRow('Position dans le range', rangeTxt, iRange, 'range')}
+    </div>
+    <div class="an-bars">
+      <div class="an-bars-head">
+        <span class="an-bars-title">Hausses / baisses · ${bars.total} séances</span>
+        <span class="an-bars-count"><b class="up">${bars.up}▲</b> <b class="down">${bars.down}▼</b></span>
+      </div>
+      ${bars.svg}
+    </div>
+    <div class="an-dates">
+      <div class="an-date-cell">
+        <div class="an-date-lab">Prochain dividende</div>
+        <div class="an-date-val ${divTxt?'':'none'}">${divTxt||'non communiqué'}</div>
+      </div>
+      <div class="an-date-cell">
+        <div class="an-date-lab">Prochains résultats</div>
+        <div class="an-date-val ${earnTxt?'':'none'}">${earnTxt||'non communiqué'}</div>
+      </div>
+    </div>
+    <details class="an-backtest">
+      <summary>Backtest RSI-2 · coup de sonde</summary>
+      ${bt.n===0
+        ? `<div class="an-bt-empty">Aucun trade déclenché sur l'historique disponible (la règle RSI-2 &lt; 10 + tendance haussière ne s'est pas présentée). Rien à conclure.</div>`
+        : `<div class="an-bt-warn">${bt.n} trade${bt.n>1?'s':''} sur tout l'historique. ${bt.n < 20 ? '⚠ Échantillon trop faible pour conclure — simple illustration.' : 'Échantillon modeste, à confirmer sur Python.'}</div>
+           <div class="an-bt-grid">
+             <div class="an-bt-cell"><div class="an-bt-lab">Trades</div><div class="an-bt-val">${bt.n}</div></div>
+             <div class="an-bt-cell"><div class="an-bt-lab">Gagnants</div><div class="an-bt-val ${bt.winRate>=50?'up':'down'}">${bt.winRate.toFixed(0)}%</div></div>
+             <div class="an-bt-cell"><div class="an-bt-lab">Gain moyen / trade</div><div class="an-bt-val ${bt.avgPct>=0?'up':'down'}">${bt.avgPct>=0?'+':''}${bt.avgPct.toFixed(2)}%</div></div>
+             <div class="an-bt-cell"><div class="an-bt-lab">Cumulé</div><div class="an-bt-val ${bt.cumPct>=0?'up':'down'}">${bt.cumPct>=0?'+':''}${bt.cumPct.toFixed(1)}%</div></div>
+             <div class="an-bt-cell"><div class="an-bt-lab">Meilleur</div><div class="an-bt-val up">+${bt.best.toFixed(1)}%</div></div>
+             <div class="an-bt-cell"><div class="an-bt-lab">Pire</div><div class="an-bt-val down">${bt.worst.toFixed(1)}%</div></div>
+           </div>
+           <div class="an-bt-note">Règle : achat si RSI-2 &lt; 10 et cours &gt; MM50, revente 3 séances après. Net de TTF (0,3 %) et frais (0,1 %/côté). Gain moyen net positif ≠ stratégie validée : échantillon court, pas de test out-of-sample.</div>`
+      }
+    </details>
+    <div class="an-patterns">
+      <div class="an-plabel">Figures détectées · ${s.length} séances</div>
+      ${pats.map((p,i)=>`<div class="an-pattern">
+        <div class="an-pnum">${String(i+1).padStart(2,'0')}</div>
+        <div class="an-pbody">
+          <div class="an-pname">${p.name}</div>
+          <div class="an-pdesc">${p.desc}</div>
+          <div class="an-pmeta"><span class="an-tag ${tagCls[p.dir]}">${tagTxt[p.dir]}</span><span class="an-conf">fiabilité : ${p.conf}</span></div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+let anWatch = [];
+function renderAnalyse(){
+  const box = $('anResults');
+  if(anWatch.length===0){ box.innerHTML='<div class="empty">Entre une ou plusieurs valeurs (ex. LVMH).</div>'; return; }
+  box.innerHTML = anWatch.map(w=>{
+    if(w.state==='loading') return `<div class="card"><div class="an-loading">Chargement de ${UNIVERSE[w.ticker]||w.ticker}…</div></div>`;
+    if(w.state==='error') return `<div class="card"><div class="an-error"><b>${UNIVERSE[w.ticker]||w.ticker}</b> — ${w.msg}</div></div>`;
+    return anCardHTML(w.data, !!(selectedStock && selectedStock.ticker===w.data.ticker));
+  }).join('');
+  box.querySelectorAll('.anSelectBtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      pickStock(btn.dataset.nom, btn.dataset.ticker);
+      renderAnalyse();
+    });
+  });
+}
+async function anAddTickers(raw){
+  const parts = raw.split(/[,;\n]+/).map(t=>t.trim()).filter(Boolean);
+  for(let part of parts){
+    const t = resolveTicker(part);
+    if(!t) continue;
+    if(anWatch.some(w=>w.ticker===t)) continue;
+    const entry={ticker:t,state:'loading'};
+    anWatch.unshift(entry);
+    renderAnalyse();
+    try {
+      entry.data = await loadStock(t);
+      entry.state='done';
+    } catch(e){
+      entry.state='error'; entry.msg=e.message;
+    }
+    renderAnalyse();
+  }
+  $('anTickerInput').value='';
+}
+$('anAddBtn').addEventListener('click', ()=>{ $('anAutocomplete').classList.remove('show'); anAddTickers($('anTickerInput').value); });
+const anChipBox=$('anChips');
+AN_SUGGEST.forEach(t=>{ const c=document.createElement('div'); c.className='an-chip'; c.textContent=t; c.onclick=()=>anAddTickers(t); anChipBox.appendChild(c); });
+// ---------- autocomplétion de la section Analyse (Préparation) ----------
+const anAcBox = $('anAutocomplete');
+const anTInput = $('anTickerInput');
+function anCurrentFragment(val){
+  const parts = val.split(/[,;]/);
+  return parts[parts.length-1];
+}
+function anSuggestions(frag){
+  const n = norm(frag);
+  if(!n) return [];
+  const entries = Object.entries(UNIVERSE);
+  const starts = entries.filter(([k,v])=>norm(v).startsWith(n) || norm(k.split('.')[0]).startsWith(n));
+  const contains = entries.filter(([k,v])=>!starts.includes(([k,v])) && norm(v).includes(n));
+  const seen = new Set();
+  const out = [];
+  [...starts, ...contains].forEach(e=>{ if(!seen.has(e[0])){ seen.add(e[0]); out.push(e); } });
+  return out.slice(0,6);
+}
+function anRenderAC(){
+  const frag = anCurrentFragment(anTInput.value).trim();
+  const list = anSuggestions(frag);
+  if(!list.length){ anAcBox.classList.remove('show'); anAcBox.innerHTML=''; return; }
+  anAcBox.innerHTML = list.map(([code,name])=>
+    `<div class="an-ac-item" data-name="${name.replace(/"/g,'&quot;')}"><span class="an-ac-name">${name}</span><span class="an-ac-code">${code}</span></div>`
+  ).join('');
+  anAcBox.classList.add('show');
+  anAcBox.querySelectorAll('.an-ac-item').forEach(el=>{
+    el.onclick = ()=>{
+      const val = anTInput.value;
+      const idx = Math.max(val.lastIndexOf(','), val.lastIndexOf(';'));
+      const prefix = idx>=0 ? val.slice(0,idx+1)+' ' : '';
+      anTInput.value = prefix + el.dataset.name;
+      anAcBox.classList.remove('show'); anAcBox.innerHTML='';
+      anTInput.focus();
+    };
+  });
+}
+anTInput.addEventListener('input', anRenderAC);
+anTInput.addEventListener('focus', anRenderAC);
+document.addEventListener('click', e=>{
+  if(!anAcBox.contains(e.target) && e.target!==anTInput){ anAcBox.classList.remove('show'); }
+});
+anTInput.addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
+    const first = anAcBox.querySelector('.an-ac-item');
+    if(anAcBox.classList.contains('show') && first){
+      e.preventDefault();
+      first.click();
+    } else {
+      anAcBox.classList.remove('show');
+      anAddTickers(anTInput.value);
+    }
+  }
+});
+// ---------- Init ----------
+loadPositions().then(p=>{
+  positions = p;
+  // Si ce chargement fait suite à une republication (la nôtre ou celle d'un autre
+  // utilisateur), on retrouve l'onglet où on se trouvait et on réaffiche le toast en attente.
+  try{
+    const postTab = sessionStorage.getItem('bigdeal-post-reload-tab');
+    const postToast = sessionStorage.getItem('bigdeal-post-reload-toast');
+    if(postToast) sessionStorage.removeItem('bigdeal-post-reload-toast');
+    if(postTab && postTab !== 'preparation'){ goTo(postTab); }
+    if(postToast) toast(postToast);
+  }catch(e){}
+});
+loadApiKey().then(()=>{ renderAnalyse(); });
+})();
+</script>
+</body>
+</html>
