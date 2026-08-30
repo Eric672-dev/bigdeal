@@ -92,20 +92,24 @@
   .ladderRow .ladderBar{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden;position:relative;}
   .ladderRow .ladderFill{height:100%;border-radius:4px;}
   .ladderRow .ladderVal{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;text-align:right;}
-  .priceBar{position:relative;height:100px;margin:30px 8px 40px;}
-  .priceBar .track{position:absolute;top:34px;left:0;right:0;height:6px;background:var(--panel2);border-radius:4px;}
-  .priceBar .zone{position:absolute;top:34px;height:6px;border-radius:4px;}
-  .priceBar .pmarker{position:absolute;top:20px;width:2px;height:34px;transform:translateX(-50%);opacity:.7;}
-  .priceBar .pdot{position:absolute;top:37px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--bg);}
-  .priceBar .plabel{position:absolute;transform:translateX(-50%);text-align:center;line-height:1.25;white-space:nowrap;}
-  .priceBar .plabel .lname{display:block;font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px;}
-  .priceBar .plabel .lval{display:block;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12px;}
-  .priceBar .pArrowLine{position:absolute;top:76px;height:2px;background:var(--amber);}
+  .priceBar{position:relative;height:70px;margin:16px 8px 6px;}
+  .priceBar .track{position:absolute;top:20px;left:0;right:0;height:6px;background:var(--panel2);border-radius:4px;}
+  .priceBar .zone{position:absolute;top:20px;height:6px;border-radius:4px;}
+  .priceBar .pmarker{position:absolute;top:6px;width:2px;height:34px;transform:translateX(-50%);opacity:.7;}
+  .priceBar .pdot{position:absolute;top:23px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--bg);}
+  .priceBar .pArrowLine{position:absolute;top:40px;height:2px;background:var(--amber);}
   .priceBar .pArrowLine::before,.priceBar .pArrowLine::after{content:'';position:absolute;top:-4px;width:0;height:0;border:5px solid transparent;}
   .priceBar .pArrowLine::before{left:-3px;border-right-color:var(--amber);}
   .priceBar .pArrowLine::after{right:-3px;border-left-color:var(--amber);}
-  .priceBar .pArrowLabel{position:absolute;top:82px;transform:translateX(-50%);font-size:11px;font-family:'IBM Plex Mono',monospace;
+  .priceBar .pArrowLabel{position:absolute;top:46px;transform:translateX(-50%);font-size:11px;font-family:'IBM Plex Mono',monospace;
     font-weight:700;color:var(--bg);background:var(--amber);padding:2px 7px;border-radius:8px;white-space:nowrap;}
+  /* Légende des points (CA/CR/Stop/CV/MA20) : en dessous de la barre, pas dessus — passe à la
+     ligne si besoin, donc les chiffres ne se superposent jamais même si les points sont proches. */
+  .priceLegend{display:flex;flex-wrap:wrap;gap:5px 14px;margin:2px 8px 10px;}
+  .priceLegend .legItem{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;}
+  .priceLegend .legItem i{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block;}
+  .priceLegend .legItem .lname{color:var(--dim);text-transform:uppercase;font-size:9.5px;letter-spacing:.3px;}
+  .priceLegend .legItem b{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--text);}
   .empty{text-align:center;color:var(--dim);padding:36px 10px;font-size:13.5px;line-height:1.6;}
   .toast{position:fixed;left:16px;right:16px;bottom:18px;background:var(--panel2);border:1px solid var(--line);
     padding:12px 14px;border-radius:10px;font-size:13px;z-index:50;display:none;box-shadow:0 8px 30px rgba(0,0,0,.4);}
@@ -212,8 +216,8 @@
   <div class="brand">
     <div class="mark"></div>
     <h1>BIG DEAL</h1>
-    <div class="sub">Trailing&nbsp;Stop</div>
-    <div class="ver" id="appVersion" title="Version de cette page">v30/08 17:48</div>
+    <div class="sub">Manu</div>
+    <div class="ver" id="appVersion" title="Version de cette page">v…</div>
   </div>
   <nav class="tabs">
     <button data-view="preparation" class="active">Préparation</button>
@@ -275,8 +279,8 @@
     <div class="card">
       <h3>Données historiques — ATR14, MA20 &amp; Bêta</h3>
       <p class="small">Valeur retenue pour cette transaction : <b id="selStockLabel" style="color:var(--text);">Aucune — choisis-la dans la section Analyse ci-dessus.</b></p>
-      <p class="small">Récupère l'ATR14, la MA20, le Bêta (vs CAC 40) et les plus hauts 1 an / 3 mois à partir des cours quotidiens réels (EODHD — même clé API que la section Analyse ci-dessus). <b>À recouper avec Boursorama avant de valider un stop.</b> Tu peux aussi saisir les valeurs toi-même.</p>
-      <button class="btn" id="btnFetchATR">Récupérer ATR14, MA20, Bêta &amp; plus hauts (données réelles)</button>
+      <p class="small">L'ATR14, la MA20, le Bêta (vs CAC 40) et les plus hauts 1 an / 3 mois se remplissent automatiquement dès que tu choisis une valeur ci-dessus (EODHD). <b>À recouper avec Boursorama avant de valider un stop.</b> Tu peux aussi saisir les valeurs toi-même, ou les actualiser avec le bouton ci-dessous.</p>
+      <button class="btn" id="btnFetchATR">Actualiser (ATR14, MA20, Bêta &amp; plus hauts)</button>
       <div id="atrStatus" class="small" style="margin-top:8px;"></div>
       <div class="row" style="margin-top:6px;">
         <div>
@@ -452,6 +456,21 @@ function toast(msg){
 //    visualiseur d'artifacts, ce qui synchronise en plus l'état entre tous les visiteurs
 //    du même lien (Manu/Julien/Antoine). Absente hors de ce contexte : dégradation
 //    silencieuse sur localStorage seul.
+// ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
+// de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
+// de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
+const BUILD_TIME_UTC = '2026-08-30T18:16:00Z';
+(function(){
+  try{
+    const d = new Date(BUILD_TIME_UTC);
+    const parts = new Intl.DateTimeFormat('fr-FR', {
+      timeZone:'Europe/Paris', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false
+    }).formatToParts(d);
+    const get = t => (parts.find(p=>p.type===t)||{}).value || '--';
+    const el = document.getElementById('appVersion');
+    if(el) el.textContent = `v${get('day')}/${get('month')} ${get('hour')}:${get('minute')}`;
+  }catch(e){}
+})();
 const LS_KEY = 'bigdeal-state-v1';
 function loadFromLocalStorage(){
   try{
@@ -566,16 +585,13 @@ function csvEscape(val){
 async function exportCSV(personFilter){
   try{
     let allPositions = await loadPositions();
+    // Si un filtre "Personne" est actif (dans Suivi, ou passé explicitement lors d'une clôture),
+    // on exporte uniquement ses positions. Sinon on exporte tout le monde d'un coup, sans demander
+    // de choisir un filtre au préalable — la colonne "Personne" du CSV distingue déjà chaque ligne,
+    // donc mélanger plusieurs personnes dans un même fichier ne pose pas de problème.
     const filtreActif = personFilter || (suiviFilterPerson!=='Tous' ? suiviFilterPerson : null);
     if(filtreActif){
       allPositions = allPositions.filter(p=> p.personne === filtreActif);
-    } else {
-      // Aucun filtre explicite : on évite de mélanger plusieurs personnes dans un même export
-      const personnes = [...new Set(allPositions.map(p=>p.personne).filter(Boolean))];
-      if(personnes.length > 1){
-        toast('Plusieurs personnes détectées — choisis un filtre "Personne" avant d\'exporter pour ne pas les mélanger.');
-        return;
-      }
     }
     const labelStopType = {fixe3:"Fixe −3%", atr:"CA − k×ATR", ma20:"Sous MA20"};
     const labelTypeAchat = {'1':"Standard", '2':"Publication Résultat", '3':"Big Deal", '4':"Option 4"};
@@ -907,6 +923,8 @@ document.querySelectorAll('nav.tabs button').forEach(b=>{
   });
 });
 function goTo(view){
+  const prevBtn = document.querySelector('nav.tabs button.active');
+  const prevView = prevBtn ? prevBtn.dataset.view : null;
   document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.toggle('active', x.dataset.view===view));
   document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active', x.id==='view-'+view));
   // Mémorise l'onglet courant pour le retrouver après un rechargement déclenché par
@@ -925,6 +943,13 @@ function goTo(view){
   }
   if(view==='achat') recomputeStopOptions(); // recalcule aussi le stop par défaut + les KPI (dont la perte réelle, déjà x quantité)
   if(view==='preparation') resetPreparationForm();
+  // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
+  // vers Achat avec les données qu'il vient de préparer — on ne touche pas à ce cas), on
+  // réinitialise le formulaire : pas de saisie à moitié faite (valeur choisie, ATR récupéré…)
+  // qui traîne pendant qu'on regarde un autre onglet.
+  if(prevView==='preparation' && view!=='preparation' && view!=='achat'){
+    resetPreparationForm();
+  }
 }
 // ---------- Sélection de la valeur : se fait depuis la section Analyse (bouton "Choisir cette valeur") ----------
 function updateSelStockLabel(){
@@ -940,6 +965,10 @@ function pickStock(nom, tk){
   pushRecentTicker(tk);
   updateSelStockLabel();
   updateAchatHeader();
+  // Récupère automatiquement ATR14/MA20/Bêta/plus hauts dès la sélection —
+  // plus besoin de cliquer sur le bouton (autoFetchATR défini plus bas dans le fichier,
+  // mais c'est une déclaration de fonction : elle est déjà disponible à l'exécution).
+  autoFetchATR();
 }
 // ---------- Indicateurs techniques (ATR14, MA20) à partir de cours OHLC réels ----------
 function trueRanges(highs, lows, closes){
@@ -1044,10 +1073,10 @@ async function fetchStockStats(ticker){
     nbSeances: dates.length
   };
 }
-$('btnFetchATR').addEventListener('click', async ()=>{
-  if(!selectedStock){ toast('Choisis d\'abord une valeur'); return; }
+async function autoFetchATR(){
+  if(!selectedStock) return;
   const status = $('atrStatus');
-  status.textContent = 'Récupération des données réelles (EODHD)…';
+  if(status) status.textContent = 'Récupération des données réelles (EODHD)…';
   try{
     const data = await fetchStockStats(selectedStock.ticker);
     if(data.atr!=null) $('achATR').value = data.atr.toFixed(2);
@@ -1059,11 +1088,15 @@ $('btnFetchATR').addEventListener('click', async ()=>{
     if(data.beta==null) manques.push('bêta (pas assez de séances communes avec le CAC 40)');
     if(data.nbSeances < 252) manques.push(`historique limité à ${data.nbSeances} séances — le plus haut 1 an peut être sous-estimé`);
     const warn = manques.length ? ` ⚠ ${manques.join(' · ')}.` : '';
-    status.textContent = `Données réelles au ${data.lastDate} — dernier cours ${fmt(data.last)}. ATR14, MA20, Bêta et plus hauts 1 an / 3 mois remplis.${warn} À recouper avec Boursorama avant de valider un stop.`;
+    if(status) status.textContent = `Données réelles au ${data.lastDate} — dernier cours ${fmt(data.last)}. ATR14, MA20, Bêta et plus hauts 1 an / 3 mois remplis automatiquement.${warn} À recouper avec Boursorama avant de valider un stop.`;
     recomputeStopOptions();
   }catch(e){
-    status.textContent = 'Erreur EODHD : ' + ((e&&e.message)||e);
+    if(status) status.textContent = 'Erreur EODHD : ' + ((e&&e.message)||e);
   }
+}
+$('btnFetchATR').addEventListener('click', ()=>{
+  if(!selectedStock){ toast('Choisis d\'abord une valeur'); return; }
+  autoFetchATR();
 });
 // ---------- Stops ----------
 function stopValues(){
@@ -1212,19 +1245,18 @@ function priceBar(CA, CR, stop, CV, ma20){
   const pad = range*0.12;
   const lo2 = lo-pad, range2 = range+2*pad;
   const pct = v => Math.min(97, Math.max(3, ((v-lo2)/range2)*100));
-  const sorted = [...valid].sort((a,b)=>a.val-b.val);
   const zoneStart = Math.min(pct(CR), pct(CV));
   const zoneEnd = Math.max(pct(CR), pct(CV));
   const zoneColor = CV>=CR ? 'var(--green)' : 'var(--red)';
-  const markers = sorted.map((p,i)=>{
+  // Les points (dots) restent positionnés sur la barre pour donner l'ordre visuel des valeurs,
+  // mais les chiffres eux-mêmes sont affichés à part, dans une légende qui passe à la ligne —
+  // ainsi, quand plusieurs valeurs sont proches (CA ≈ CR ≈ Stop par ex.), les chiffres ne se
+  // superposent jamais, quel que soit l'écart réel entre les points sur la barre.
+  const markers = valid.map(p=>{
     const x = pct(p.val);
-    const above = i%2===0;
     return `
     <div class="pmarker" style="left:${x}%;background:${p.color};"></div>
-    <div class="pdot" style="left:${x}%;width:${p.size}px;height:${p.size}px;background:${p.color};"></div>
-    <div class="plabel" style="left:${x}%; ${above? 'top:-4px;':'top:44px;'}">
-      <span class="lname">${p.label}</span><span class="lval">${fmt(p.val)}</span>
-    </div>`;
+    <div class="pdot" style="left:${x}%;width:${p.size}px;height:${p.size}px;background:${p.color};"></div>`;
   }).join('');
   // Flèche entre CV et Stop, avec le pourcentage d'écart (marge avant déclenchement du stop)
   let arrowHtml = '';
@@ -1236,12 +1268,15 @@ function priceBar(CA, CR, stop, CV, ma20){
     <div class="pArrowLine" style="left:${left}%;width:${width}%;"></div>
     <div class="pArrowLabel" style="left:${left+width/2}%;">${ecartPct>=0?'+':''}${ecartPct.toFixed(1)}%</div>`;
   }
+  const legend = valid.map(p=>`
+    <span class="legItem"><i style="background:${p.color};"></i><span class="lname">${p.label}</span><b>${fmt(p.val)}</b></span>`).join('');
   return `<div class="priceBar">
     <div class="track"></div>
     <div class="zone" style="left:${zoneStart}%;width:${(zoneEnd-zoneStart)||0.5}%;background:${zoneColor};opacity:.35;"></div>
     ${markers}
     ${arrowHtml}
-  </div>`;
+  </div>
+  <div class="priceLegend">${legend}</div>`;
 }
 function priceLadder(CA, CR, stop, CV, ma20){
   const points = [
