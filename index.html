@@ -213,7 +213,7 @@
     <div class="mark"></div>
     <h1>BIG DEAL</h1>
     <div class="sub">Trailing&nbsp;Stop</div>
-    <div class="ver" id="appVersion" title="Version de cette page">v30/08 16:41</div>
+    <div class="ver" id="appVersion" title="Version de cette page">v30/08 16:55</div>
   </div>
   <nav class="tabs">
     <button data-view="preparation" class="active">Préparation</button>
@@ -1378,13 +1378,8 @@ async function renderSuivi(){
     wrap.innerHTML = `<div class="empty">Erreur d'affichage des positions.<br><span class="small">${(e&&e.message)||e}</span></div>`;
   }
 }
-// ---------- Checklist quotidienne persistée (reset chaque jour) ----------
+// ---------- Checklist du jour : toujours vide au chargement, jamais restaurée cochée ----------
 (async ()=>{
-  const saved = await loadDailyChecks();
-  if(saved){
-    $('dchk1').checked = !!saved.c1; $('dchk2').checked = !!saved.c2; $('dchk3').checked = !!saved.c3;
-    $('dchk4').checked = !!saved.c4; $('dchk5').checked = !!saved.c5;
-  }
   let dailyCheckSaveTimer = null;
   ['dchk1','dchk2','dchk3','dchk4','dchk5'].forEach(id=>{
     $(id).addEventListener('change', ()=>{
