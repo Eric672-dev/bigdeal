@@ -213,7 +213,7 @@
     <div class="mark"></div>
     <h1>BIG DEAL</h1>
     <div class="sub">Trailing&nbsp;Stop</div>
-    <div class="ver" id="appVersion" title="Version de cette page">v30/08 16:25</div>
+    <div class="ver" id="appVersion" title="Version de cette page">v30/08 16:41</div>
   </div>
   <nav class="tabs">
     <button data-view="preparation" class="active">Préparation</button>
@@ -900,13 +900,9 @@ async function resetPreparationForm(){
 }
 document.querySelectorAll('nav.tabs button').forEach(b=>{
   b.addEventListener('click',()=>{
-    document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.remove('active'));
-    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    document.getElementById('view-'+b.dataset.view).classList.add('active');
-    if(b.dataset.view==='suivi') renderSuivi();
-    if(b.dataset.view==='achat') updateAchatHeader();
-    if(b.dataset.view==='preparation') resetPreparationForm();
+    // Passe par goTo() pour que la logique (filtre Suivi, recalcul des KPI Achat,
+    // mémorisation de l'onglet, etc.) ne soit écrite qu'à un seul endroit.
+    goTo(b.dataset.view);
   });
 });
 function goTo(view){
@@ -915,8 +911,18 @@ function goTo(view){
   // Mémorise l'onglet courant pour le retrouver après un rechargement déclenché par
   // une sauvegarde (la nôtre ou celle d'un autre utilisateur de BIG DEAL).
   try{ sessionStorage.setItem('bigdeal-post-reload-tab', view); }catch(e){}
-  if(view==='suivi') renderSuivi();
-  if(view==='achat') updateAchatHeader();
+  if(view==='suivi'){
+    // Le filtre "par personne" de Suivi reprend automatiquement la personne choisie
+    // dans Préparation (si elle a été sélectionnée), au lieu de rester sur "Tous".
+    if(selectedPerson){
+      suiviFilterPerson = selectedPerson;
+      document.querySelectorAll('.suiviFilterOpt').forEach(x=>{
+        x.classList.toggle('selected', x.dataset.filter===selectedPerson);
+      });
+    }
+    renderSuivi();
+  }
+  if(view==='achat') recomputeStopOptions(); // recalcule aussi le stop par défaut + les KPI (dont la perte réelle, déjà x quantité)
   if(view==='preparation') resetPreparationForm();
 }
 // ---------- Sélection de la valeur : se fait depuis la section Analyse (bouton "Choisir cette valeur") ----------
@@ -927,6 +933,9 @@ function updateSelStockLabel(){
 }
 function pickStock(nom, tk){
   selectedStock = {nom, ticker:tk};
+  // On ne garde que la valeur retenue pour la transaction — les autres valeurs
+  // analysées dans cette même session sont effacées de la section Analyse.
+  anWatch = anWatch.filter(w=> w.ticker === tk);
   updateSelStockLabel();
   updateAchatHeader();
 }
