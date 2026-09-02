@@ -223,6 +223,7 @@
     <button data-view="preparation" class="active">Préparation</button>
     <button data-view="achat">Achat</button>
     <button data-view="suivi">Suivi</button>
+    <button data-view="bilan">Bilan</button>
   </nav>
 </header>
 <main>
@@ -285,15 +286,15 @@
       <div class="row" style="margin-top:6px;">
         <div>
           <label>ATR14 €</label>
-          <input type="number" step="0.01" id="achATR">
+          <input type="text" inputmode="decimal" data-decimal="1" id="achATR">
         </div>
         <div>
           <label>MA20 €</label>
-          <input type="number" step="0.01" id="achMA20">
+          <input type="text" inputmode="decimal" data-decimal="1" id="achMA20">
         </div>
       </div>
       <label>Bêta (vs CAC 40)</label>
-      <input type="number" step="0.01" id="achBeta" placeholder="ex: 1.20">
+      <input type="text" inputmode="decimal" data-decimal="1" id="achBeta" placeholder="ex: 1,20">
     </div>
     <div class="card">
       <h3>Type d'achat</h3>
@@ -310,9 +311,9 @@
       <p class="small">Objectif : très bonne valeur, sous-cotée temporairement.</p>
       <p class="small">Remplis automatiquement par le bouton de récupération de données réelles de la carte « Données historiques » ci-dessus — ajustables à la main si besoin.</p>
       <label>Plus haut depuis 1 an (€)</label>
-      <input type="number" step="0.01" id="opt1High1An">
+      <input type="text" inputmode="decimal" data-decimal="1" id="opt1High1An">
       <label>Plus haut depuis 3 mois (€)</label>
-      <input type="number" step="0.01" id="opt1High3M">
+      <input type="text" inputmode="decimal" data-decimal="1" id="opt1High3M">
     </div>
     <div class="card typeScreen" id="typeScreen2" style="display:none;">
       <h3>Publication Résultat</h3>
@@ -331,7 +332,7 @@
       <label>Date de l'annonce</label>
       <input type="text" id="opt2DatePublication" placeholder="jj/mm/aaaa">
       <label>Seuil de déclenchement (ordre à la hausse) €</label>
-      <input type="number" step="0.01" id="opt2SeuilDeclenchement">
+      <input type="text" inputmode="decimal" data-decimal="1" id="opt2SeuilDeclenchement">
     </div>
     <div class="card typeScreen" id="typeScreen3" style="display:none;">
       <h3>Big Deal</h3>
@@ -361,11 +362,11 @@
       <h3>Valeur sélectionnée</h3>
       <div id="achatStockName" class="disp" style="font-size:17px;font-weight:700;">Aucune valeur sélectionnée</div>
       <label>Cours d'achat (CA) €</label>
-      <input type="number" step="0.01" id="achatInputCA">
+      <input type="text" inputmode="decimal" data-decimal="1" id="achatInputCA">
       <label>Nombre acheté</label>
       <input type="number" step="1" id="achatInputQte">
       <label>Coût de revient (CR) €</label>
-      <input type="number" step="0.01" id="achatInputCR">
+      <input type="text" inputmode="decimal" data-decimal="1" id="achatInputCR">
     </div>
     <div class="card">
       <h3>Protection à l'achat — basé sur le cours d'achat</h3>
@@ -375,11 +376,11 @@
       <div class="row" style="margin-top:10px;">
         <div>
           <label>Multiplicateur ATR (1.5–2×)</label>
-          <input type="number" step="0.1" min="1.5" max="2" value="1.75" id="atrMult">
+          <input type="text" inputmode="decimal" data-decimal="1" value="1.75" id="atrMult">
         </div>
         <div>
           <label>Stop retenu (manuel possible)</label>
-          <input type="number" step="0.01" id="stopFinal">
+          <input type="text" inputmode="decimal" data-decimal="1" id="stopFinal">
         </div>
       </div>
     </div>
@@ -410,6 +411,10 @@
     <button class="btn ghost" id="btnExportCSV" style="margin-top:14px;">⬇ Exporter le Suivi (CSV)</button>
     <p class="small" style="margin-top:8px;">Sur iPhone/iPad : un menu de partage s'ouvre — choisis <b>« Enregistrer dans Fichiers »</b> et note l'emplacement proposé (souvent <b>« Sur mon iPhone »</b>). Le fichier est ensuite consultable dans l'app <b>Fichiers</b>, pas dans BIG DEAL — le nom commence par ton prénom, ex. <span class="mono">Manu-2026-08-29-...</span>.</p>
   </section>
+  <!-- ================= BILAN ================= -->
+  <section id="view-bilan" class="view">
+    <div id="bilanWrap"></div>
+  </section>
 
 </main>
 <div class="toast" id="toast"></div>
@@ -437,6 +442,35 @@ const CAC40 = [
 const UNIVERSE = {};
 CAC40.forEach(([nom,tk])=>{ UNIVERSE[tk]=nom; });
 const $=(id)=>document.getElementById(id);
+// ---------- Champs décimaux : accepte la virgule comme séparateur décimal (usage français) ----------
+// <input type="number"> refuse purement et simplement la virgule au clavier dans la plupart des
+// navigateurs — on utilise donc type="text" + inputmode="decimal" (clavier numérique sur mobile)
+// sur ces champs, marqués data-decimal="1", et on normalise la frappe en "." à la volée (le seul
+// séparateur que parseFloat() sait lire) pour que tout le reste du code continue de fonctionner
+// sans changement. Écouteur posé en phase de capture sur le document pour s'exécuter AVANT les
+// écouteurs 'input' propres à chaque champ (ex: recopie vers achCA) — sinon ceux-ci liraient
+// encore la valeur brute avec virgule.
+function sanitizeDecimalInput(el){
+  const start = el.selectionStart;
+  const before = el.value;
+  let cleaned = before.replace(/,/g, '.').replace(/[^0-9.\-]/g, '');
+  const neg = cleaned.startsWith('-') ? '-' : '';
+  cleaned = cleaned.replace(/-/g, '');
+  const parts = cleaned.split('.');
+  if(parts.length > 2) cleaned = parts[0] + '.' + parts.slice(1).join('');
+  const after = neg + cleaned;
+  if(after !== before){
+    el.value = after;
+    if(start!=null){
+      const pos = Math.max(0, start + (after.length - before.length));
+      try{ el.setSelectionRange(pos, pos); }catch(e){}
+    }
+  }
+}
+document.addEventListener('input', (e)=>{
+  const el = e.target;
+  if(el && el.dataset && el.dataset.decimal==='1') sanitizeDecimalInput(el);
+}, true);
 const fmt=(n)=> (n===null||n===undefined||isNaN(n)) ? '—' : n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 const fmtPct=(n)=> (n===null||n===undefined||isNaN(n)) ? '—' : (n>=0?'+':'')+n.toFixed(2)+' %';
 // Horodatage complet (date + heure) pour les événements enregistrés (achat, cours, protection)
@@ -459,7 +493,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-08-30T18:16:00Z';
+const BUILD_TIME_UTC = '2026-09-02T17:29:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -873,8 +907,11 @@ function updateAchatHeader(){
     const coutTotalAchatVente = fraisAchat*2; // forfait Trader appliqué à l'achat ET à la vente
     CR = +(CA + coutTotalAchatVente/qte).toFixed(2);
   }
-  $('achatInputCA').value = CA || '';
-  $('achatInputQte').value = qte || '';
+  // On ne réécrit pas la valeur du champ que l'utilisateur est justement en train de taper —
+  // sinon une frappe en cours (ex. "12," en train de devenir "12,34") se ferait aplatir à
+  // chaque keystroke par la valeur déjà parsée/arrondie (perte de la virgule/décimale en cours).
+  if(document.activeElement !== $('achatInputCA')) $('achatInputCA').value = CA || '';
+  if(document.activeElement !== $('achatInputQte')) $('achatInputQte').value = qte || '';
   if(!crManualOverride) $('achatInputCR').value = CR!==null ? CR : '';
 }
 // Édition depuis l'onglet Achat -> répercutée sur les champs de Préparation
@@ -943,6 +980,7 @@ function goTo(view){
   }
   if(view==='achat') recomputeStopOptions(); // recalcule aussi le stop par défaut + les KPI (dont la perte réelle, déjà x quantité)
   if(view==='preparation') resetPreparationForm();
+  if(view==='bilan') renderBilan();
   // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
   // vers Achat avec les données qu'il vient de préparer — on ne touche pas à ce cas), on
   // réinitialise le formulaire : pas de saisie à moitié faite (valeur choisie, ATR récupéré…)
@@ -1345,7 +1383,7 @@ async function renderSuivi(){
       <hr class="dash">
       <label class="cvLabel">✏️ Cours valeur (CV) du jour €</label>
       <div class="row">
-        <input type="number" step="0.01" class="cvInput" value="${lastCV}">
+        <input type="text" inputmode="decimal" data-decimal="1" class="cvInput" value="${lastCV}">
         <button class="btn primary cvSave" style="width:auto;margin-top:0;">Enregistrer</button>
       </div>
       <div class="kpi"><span>Gain net estimé / titre</span><span class="v" style="color:${gainNetUnit>=0?'var(--green)':'var(--red)'}">${fmt(gainNetUnit)} (${fmtPct(gainPct)})</span></div>
@@ -1366,7 +1404,7 @@ async function renderSuivi(){
       <p class="small" style="font-weight:700;">Position vendue</p>
       <div class="row">
         <button class="btn primary btnVendue" style="width:auto;margin-top:0;">Clôture</button>
-        <input type="number" step="0.01" class="ventePrix" placeholder="Cours de la vente €">
+        <input type="text" inputmode="decimal" data-decimal="1" class="ventePrix" placeholder="Cours de la vente €">
       </div>
     </div>`;
   }).join('');
@@ -1413,6 +1451,80 @@ async function renderSuivi(){
   });
   }catch(e){
     wrap.innerHTML = `<div class="empty">Erreur d'affichage des positions.<br><span class="small">${(e&&e.message)||e}</span></div>`;
+  }
+}
+// ---------- Bilan chiffré par personne ----------
+// Gain net d'une position — même formule que la carte Suivi (gainNetUnit/gainNetTotal) : pour
+// une position clôturée, le dernier point d'historique EST le cours de vente (poussé par
+// btnVendue), donc ce calcul donne directement le gain réalisé ; pour une position en cours,
+// il donne le gain latent au dernier cours valeur saisi (ou au cours d'achat si aucun encore).
+function positionGainNet(p){
+  const historique = Array.isArray(p.historique) ? p.historique : [];
+  const lastCV = historique.length ? historique[historique.length-1].cv : p.CA;
+  const fraisV = (p.fraisV===undefined||p.fraisV===null) ? 0.5 : p.fraisV;
+  const qte = p.qte || 1;
+  const CR = p.CR || p.CA || 0;
+  const gainNetUnit = lastCV*(1-fraisV/100) - CR;
+  return gainNetUnit * qte;
+}
+function bilanStatsFor(list){
+  const ouvertes = list.filter(p=>!p.cloturee);
+  const cloturees = list.filter(p=>p.cloturee);
+  const gainsCloturees = cloturees.map(positionGainNet);
+  const gainsOuvertes = ouvertes.map(positionGainNet);
+  const gainRealise = gainsCloturees.reduce((s,g)=>s+g, 0);
+  const gainLatent = gainsOuvertes.reduce((s,g)=>s+g, 0);
+  const gagnantes = gainsCloturees.filter(g=>g>0).length;
+  const tauxReussite = cloturees.length ? (gagnantes/cloturees.length)*100 : null;
+  const investi = ouvertes.reduce((s,p)=> s + (p.CR||p.CA||0)*(p.qte||1), 0);
+  return {
+    total: list.length, nbOuvertes: ouvertes.length, nbCloturees: cloturees.length,
+    gainRealise, gainLatent, gainTotal: gainRealise+gainLatent, tauxReussite, investi
+  };
+}
+function bilanCard(title, s){
+  const signe = (n)=> n>=0 ? '+' : '';
+  return `
+  <div class="card">
+    <h3>${title}</h3>
+    <div class="kpi"><span>Positions</span><span class="v">${s.total} (${s.nbOuvertes} en cours · ${s.nbCloturees} clôturées)</span></div>
+    <div class="kpi"><span>Capital actuellement investi</span><span class="v">${fmt(s.investi)}</span></div>
+    <div class="kpi"><span>Gain net réalisé (clôturées)</span><span class="v" style="color:${s.gainRealise>=0?'var(--green)':'var(--red)'}">${signe(s.gainRealise)}${fmt(s.gainRealise)}</span></div>
+    <div class="kpi"><span>Gain net latent (en cours)</span><span class="v" style="color:${s.gainLatent>=0?'var(--green)':'var(--red)'}">${signe(s.gainLatent)}${fmt(s.gainLatent)}</span></div>
+    <div class="kpi"><span>Gain net total</span><span class="v" style="font-weight:700;color:${s.gainTotal>=0?'var(--green)':'var(--red)'}">${signe(s.gainTotal)}${fmt(s.gainTotal)}</span></div>
+    ${s.tauxReussite!==null ? `<div class="kpi"><span>Taux de réussite (clôturées)</span><span class="v">${s.tauxReussite.toFixed(0)}%</span></div>` : ''}
+  </div>`;
+}
+async function renderBilan(){
+  const wrap = $('bilanWrap');
+  let all;
+  try{
+    all = await loadPositions();
+  }catch(e){
+    wrap.innerHTML = `<div class="empty">Erreur de chargement des positions.<br><span class="small">${(e&&e.message)||e}</span></div>`;
+    return;
+  }
+  if(!Array.isArray(all)) all = [];
+  if(all.length===0){
+    wrap.innerHTML = `<div class="empty">Aucune position enregistrée.<br>Passe par <b>Achat</b> pour en créer une, elle apparaîtra ici.</div>`;
+    return;
+  }
+  try{
+    const ordre = ['Manu','Julien','Antoine'];
+    const personnes = [...new Set(all.map(p=>p.personne || 'Sans personne'))].sort((a,b)=>{
+      const ia = ordre.indexOf(a), ib = ordre.indexOf(b);
+      if(ia!==-1 && ib!==-1) return ia-ib;
+      if(ia!==-1) return -1;
+      if(ib!==-1) return 1;
+      return a.localeCompare(b);
+    });
+    const global = bilanStatsFor(all);
+    const parPersonne = personnes
+      .map(nom=> ({ nom, ...bilanStatsFor(all.filter(p=>(p.personne||'Sans personne')===nom)) }))
+      .sort((a,b)=> b.gainTotal - a.gainTotal);
+    wrap.innerHTML = bilanCard('Tous — bilan global', global) + parPersonne.map(s=>bilanCard(s.nom, s)).join('');
+  }catch(e){
+    wrap.innerHTML = `<div class="empty">Erreur d'affichage du bilan.<br><span class="small">${(e&&e.message)||e}</span></div>`;
   }
 }
 // ---------- Checklist du jour : toujours vide au chargement, jamais restaurée cochée ----------
