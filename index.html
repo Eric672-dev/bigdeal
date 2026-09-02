@@ -137,6 +137,11 @@
   .an-chip{font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:5px 10px;border:1px solid var(--line);
     border-radius:20px;background:var(--panel2);cursor:pointer;color:var(--blue);}
   .an-chip:active{background:var(--panel);}
+  /* ============ Pépites (momentum haussier) ============ */
+  .pepBadge{display:inline-block;padding:8px 14px;border-radius:10px;font-weight:700;font-size:14px;}
+  .pepBadge-green{background:rgba(43,179,154,.15);color:var(--green);}
+  .pepBadge-amber{background:rgba(232,166,61,.15);color:var(--amber);}
+  .pepBadge-red{background:rgba(232,93,93,.15);color:var(--red);}
   .an-card-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--line);}
   .an-ticker{font-weight:700;font-size:16.5px;letter-spacing:-.01em;line-height:1.15;color:var(--text);}
   .an-name{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);margin-top:2px;}
@@ -217,6 +222,7 @@
     <div class="ver" id="appVersion" title="Version de cette page">v…</div>
   </div>
   <nav class="tabs">
+    <button data-view="pepites">Pépites</button>
     <button data-view="preparation" class="active">Préparation</button>
     <button data-view="achat">Achat</button>
     <button data-view="suivi">Suivi</button>
@@ -224,6 +230,25 @@
   </nav>
 </header>
 <main>
+  <!-- ================= PÉPITES ================= -->
+  <section id="view-pepites" class="view">
+    <div class="card">
+      <h3>Repérer un momentum haussier</h3>
+      <p class="small">Ajoute plusieurs valeurs du CAC 40 — pour chacune, je regarde la tendance de fond, la performance récente vs le CAC 40, la position dans son range et les figures détectées, pour te dire si le momentum a l'air favorable en ce moment.</p>
+      <p class="small" style="opacity:.75;">Signal indicatif basé sur des indicateurs techniques — pas une prédiction ni un conseil financier, à confirmer par ta propre analyse avant d'investir.</p>
+      <div class="an-input-row">
+        <div class="an-autocomplete" style="flex:1;">
+          <input type="text" id="pepTickerInput" placeholder="Nom(s), ex. LVMH ou LVMH, Air Liquide" autocomplete="off">
+          <div class="an-ac-list" id="pepAutocomplete"></div>
+        </div>
+        <button class="btn primary" id="pepAddBtn" style="width:auto;margin-top:0;">Ajouter</button>
+      </div>
+      <div class="an-chips" id="pepChips"></div>
+    </div>
+    <div id="pepResults">
+      <div class="empty">Ajoute une ou plusieurs valeurs ci-dessus pour évaluer leur momentum.</div>
+    </div>
+  </section>
   <!-- ================= PRÉPARATION ================= -->
   <section id="view-preparation" class="view active">
     <div class="card">
@@ -491,7 +516,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-02T17:59:00Z';
+const BUILD_TIME_UTC = '2026-09-02T18:15:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -979,6 +1004,7 @@ function goTo(view){
   if(view==='achat') recomputeStopOptions(); // recalcule aussi le stop par défaut + les KPI (dont la perte réelle, déjà x quantité)
   if(view==='preparation') resetPreparationForm();
   if(view==='bilan') renderBilan();
+  if(view==='pepites') renderPepites();
   // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
   // vers Achat avec les données qu'il vient de préparer — on ne touche pas à ce cas), on
   // réinitialise le formulaire : pas de saisie à moitié faite (valeur choisie, ATR récupéré…)
@@ -2073,6 +2099,163 @@ anTInput.addEventListener('keydown', e=>{
     } else {
       anAcBox.classList.remove('show');
       anAddTickers(anTInput.value);
+    }
+  }
+});
+// =====================================================================
+// ================= PÉPITES — repérage de momentum haussier ==========
+// =====================================================================
+// Watch-list indépendante de celle de "Analyser une valeur" (anWatch) — c'est un écran de
+// dépistage séparé. Comme anWatch, elle est volontairement en mémoire seulement (pas dans
+// appState/localStorage) : c'est un scratchpad d'analyse, pas une donnée à conserver.
+let pepList = [];
+// Synthétise les indicateurs déjà calculés par loadStock() en un signal simple à 3 niveaux.
+// Réutilise les mêmes fonctions d'interprétation que la section Analyse (interpMA, interpRel,
+// interpRange) pour rester cohérent avec le vocabulaire déjà utilisé ailleurs dans l'app.
+function pepiteVerdict(data){
+  let score = 0;
+  const reasons = [];
+  if(data.maState==='above'){ score += 2; reasons.push({t:interpMA(data.maState,data.maDist20).txt, dir:'bull'}); }
+  else if(data.maState==='below'){ score -= 2; reasons.push({t:interpMA(data.maState,data.maDist20).txt, dir:'bear'}); }
+  else if(data.maState==='mixed'){ reasons.push({t:interpMA(data.maState,data.maDist20).txt, dir:'neut'}); }
+  if(data.relPerf!=null){
+    if(data.relPerf>=2){ score += 1; reasons.push({t:interpRel(data.relPerf).txt, dir:'bull'}); }
+    else if(data.relPerf<=-2){ score -= 1; reasons.push({t:interpRel(data.relPerf).txt, dir:'bear'}); }
+  }
+  if(data.rangePos!=null){
+    if(data.rangePos>=80){ score += 1; reasons.push({t:interpRange(data.rangePos).txt, dir:'bull'}); }
+    else if(data.rangePos<=20){ score -= 1; reasons.push({t:interpRange(data.rangePos).txt, dir:'bear'}); }
+  }
+  const pats = detectPatterns(data.allCloses);
+  pats.forEach(p=>{
+    if(p.dir==='bull'){ score += 0.5; reasons.push({t:`${p.name} — ${p.desc}`, dir:'bull'}); }
+    else if(p.dir==='bear'){ score -= 0.5; reasons.push({t:`${p.name} — ${p.desc}`, dir:'bear'}); }
+  });
+  // Le RSI est un signal de TIMING court terme, pas de tendance — il ne change pas le score,
+  // juste une alerte informative (ex. suracheté = attendre un repli avant d'entrer).
+  if(data.rsi2!=null){
+    if(data.rsi2>=90) reasons.push({t:'RSI très suracheté — un repli technique est possible avant d\'entrer.', dir:'warn'});
+    else if(data.rsi2<=10) reasons.push({t:'RSI très survendu — un rebond technique est possible.', dir:'warn'});
+  }
+  let verdict, color;
+  if(score>=2.5){ verdict='Bon moment'; color='green'; }
+  else if(score>=0.5){ verdict='À surveiller'; color='amber'; }
+  else { verdict='Pas le moment'; color='red'; }
+  return {score, verdict, color, reasons};
+}
+function pepCardHTML(entry){
+  if(entry.state==='loading') return `<div class="card"><div class="an-loading">Chargement de ${UNIVERSE[entry.ticker]||entry.ticker}…</div></div>`;
+  if(entry.state==='error') return `<div class="card"><div class="an-error"><b>${UNIVERSE[entry.ticker]||entry.ticker}</b> — ${entry.msg}</div></div>`;
+  const d = entry.data;
+  const v = pepiteVerdict(d);
+  const last = d.closes[d.closes.length-1];
+  const dotCls = {bull:'green', bear:'red', neut:'grey', warn:'amber'};
+  const badgeIcon = {green:'🟢', amber:'🟡', red:'🔴'};
+  return `<div class="card" data-ticker="${d.ticker}">
+    <div class="an-card-head">
+      <div>
+        <div class="an-ticker">${UNIVERSE[d.ticker]||d.ticker}</div>
+        <div class="an-name">${d.ticker}</div>
+      </div>
+      <div class="an-price">${fmt(last)}</div>
+    </div>
+    <div class="pepBadge pepBadge-${v.color}">${badgeIcon[v.color]} ${v.verdict}</div>
+    <div class="an-metrics" style="margin-top:10px;">
+      ${v.reasons.map(r=>`<div class="an-metric"><div class="an-dot ${dotCls[r.dir]}"></div><div class="an-m-body"><div class="an-m-txt">${r.t}</div></div></div>`).join('')}
+    </div>
+    <button class="btn ghost pepDetailBtn" data-ticker="${d.ticker}" data-nom="${UNIVERSE[d.ticker]||d.ticker}" style="margin-top:10px;">Voir l'analyse complète (Préparation) →</button>
+  </div>`;
+}
+function renderPepites(){
+  const box = $('pepResults');
+  if(!box) return;
+  if(pepList.length===0){ box.innerHTML = '<div class="empty">Ajoute une ou plusieurs valeurs ci-dessus pour évaluer leur momentum.</div>'; return; }
+  // Les valeurs chargées sont triées par score décroissant (les meilleures pépites en premier) ;
+  // celles encore en chargement ou en erreur restent à la fin, dans l'ordre d'ajout.
+  const scored = pepList.map(e=> ({ entry:e, score: e.state==='done' ? pepiteVerdict(e.data).score : null }));
+  scored.sort((a,b)=>{
+    if(a.score===null && b.score===null) return 0;
+    if(a.score===null) return 1;
+    if(b.score===null) return -1;
+    return b.score - a.score;
+  });
+  box.innerHTML = scored.map(s=>pepCardHTML(s.entry)).join('');
+  box.querySelectorAll('.pepDetailBtn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      goTo('preparation');
+      await anAddTickers(btn.dataset.nom);
+    });
+  });
+}
+function renderPepChips(){
+  const box = $('pepChips');
+  if(!box) return;
+  box.innerHTML = pepList.map(e=>`<div class="an-chip" data-ticker="${e.ticker}">${UNIVERSE[e.ticker]||e.ticker} ✕</div>`).join('');
+  box.querySelectorAll('.an-chip').forEach(c=>{
+    c.onclick = ()=>{
+      pepList = pepList.filter(e=>e.ticker!==c.dataset.ticker);
+      renderPepChips();
+      renderPepites();
+    };
+  });
+}
+async function pepAddTickers(raw){
+  const parts = raw.split(/[,;\n]+/).map(t=>t.trim()).filter(Boolean);
+  for(let part of parts){
+    const t = resolveTicker(part);
+    if(!t) continue;
+    if(pepList.some(e=>e.ticker===t)) continue;
+    const entry = {ticker:t, state:'loading'};
+    pepList.push(entry);
+    renderPepChips();
+    renderPepites();
+    try{
+      entry.data = await loadStock(t);
+      entry.state = 'done';
+    }catch(e){
+      entry.state = 'error'; entry.msg = e.message;
+    }
+    renderPepites();
+  }
+  $('pepTickerInput').value = '';
+}
+$('pepAddBtn').addEventListener('click', ()=>{ $('pepAutocomplete').classList.remove('show'); pepAddTickers($('pepTickerInput').value); });
+// ---------- autocomplétion de Pépites (même logique que celle de la section Analyse) ----------
+const pepAcBox = $('pepAutocomplete');
+const pepTInput = $('pepTickerInput');
+function pepRenderAC(){
+  const frag = anCurrentFragment(pepTInput.value).trim();
+  const list = anSuggestions(frag);
+  if(!list.length){ pepAcBox.classList.remove('show'); pepAcBox.innerHTML=''; return; }
+  pepAcBox.innerHTML = list.map(([code,name])=>
+    `<div class="an-ac-item" data-name="${name.replace(/"/g,'&quot;')}"><span class="an-ac-name">${name}</span><span class="an-ac-code">${code}</span></div>`
+  ).join('');
+  pepAcBox.classList.add('show');
+  pepAcBox.querySelectorAll('.an-ac-item').forEach(el=>{
+    el.onclick = ()=>{
+      const val = pepTInput.value;
+      const idx = Math.max(val.lastIndexOf(','), val.lastIndexOf(';'));
+      const prefix = idx>=0 ? val.slice(0,idx+1)+' ' : '';
+      pepTInput.value = prefix + el.dataset.name;
+      pepAcBox.classList.remove('show'); pepAcBox.innerHTML='';
+      pepTInput.focus();
+    };
+  });
+}
+pepTInput.addEventListener('input', pepRenderAC);
+pepTInput.addEventListener('focus', pepRenderAC);
+document.addEventListener('click', e=>{
+  if(!pepAcBox.contains(e.target) && e.target!==pepTInput){ pepAcBox.classList.remove('show'); }
+});
+pepTInput.addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
+    const first = pepAcBox.querySelector('.an-ac-item');
+    if(pepAcBox.classList.contains('show') && first){
+      e.preventDefault();
+      first.click();
+    } else {
+      pepAcBox.classList.remove('show');
+      pepAddTickers(pepTInput.value);
     }
   }
 });
