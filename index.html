@@ -494,7 +494,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-02T17:42:00Z';
+const BUILD_TIME_UTC = '2026-09-02T17:49:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1405,24 +1405,13 @@ async function renderSuivi(){
       `}
       <hr class="dash">
       <p class="small" style="font-weight:700;">Position vendue</p>
-      <p class="small" style="opacity:.75;margin-top:-4px;">Prérempli avec le cours valeur ci-dessus — modifie-le seulement si le cours de vente est différent.</p>
-      <div class="row">
-        <button class="btn primary btnVendue" style="width:auto;margin-top:0;">Clôture</button>
-        <input type="text" inputmode="decimal" data-decimal="1" class="ventePrix" placeholder="Cours de la vente €" value="${lastCV}">
-      </div>
+      <p class="small" style="opacity:.75;margin-top:-4px;">Clôture la position au cours valeur saisi ci-dessus — ajuste-le d'abord si le cours de vente est différent, un seul champ suffit pour les deux.</p>
+      <button class="btn primary btnVendue" style="margin-top:6px;">Clôturer la position</button>
     </div>`;
   }).join('');
   wrap.querySelectorAll('.card').forEach(card=>{
     const id = card.dataset.id;
     const pos = positions.find(p=>p.id===id);
-    // Le cours de vente suit automatiquement le cours valeur du jour tant que l'utilisateur n'a
-    // pas modifié ce champ lui-même à la main — on ne demande le même chiffre qu'une seule fois.
-    const cvInputEl = card.querySelector('.cvInput');
-    const ventePrixEl = card.querySelector('.ventePrix');
-    cvInputEl.addEventListener('input', ()=>{
-      if(ventePrixEl.dataset.userEdited !== '1') ventePrixEl.value = cvInputEl.value;
-    });
-    ventePrixEl.addEventListener('input', ()=>{ ventePrixEl.dataset.userEdited = '1'; });
     card.querySelector('.cvSave').addEventListener('click', async ()=>{
       const cv = parseFloat(card.querySelector('.cvInput').value);
       if(!cv){ toast('Cours invalide'); return; }
@@ -1449,8 +1438,11 @@ async function renderSuivi(){
       });
     });
     card.querySelector('.btnVendue').addEventListener('click', async ()=>{
-      const prixVente = parseFloat(card.querySelector('.ventePrix').value);
-      if(!prixVente){ toast('Renseigne le cours de la vente'); return; }
+      // Un seul champ (cours valeur) sert à la fois à journaliser le cours du jour et à
+      // clôturer — plus de second champ "cours de vente" séparé qui redemandait le même chiffre.
+      const prixVente = parseFloat(card.querySelector('.cvInput').value);
+      if(!prixVente){ toast('Renseigne un cours valeur valide avant de clôturer'); return; }
+      if(!confirm(`Clôturer ${pos.nom} (${pos.ticker}) à ${fmt(prixVente)} ? Cette action est définitive.`)) return;
       pos.coursVente = prixVente;
       pos.dateVente = nowDateTime();
       pos.historique.push({date: pos.dateVente, cv: prixVente});
