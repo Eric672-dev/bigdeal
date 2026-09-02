@@ -413,6 +413,7 @@
   </section>
   <!-- ================= BILAN ================= -->
   <section id="view-bilan" class="view">
+    <button class="btn ghost" id="btnResetAll" style="margin-bottom:14px;color:var(--red);border-color:rgba(232,93,93,.4);">🗑 Réinitialiser toutes les positions</button>
     <div id="bilanWrap"></div>
   </section>
 
@@ -493,7 +494,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-02T17:29:00Z';
+const BUILD_TIME_UTC = '2026-09-02T17:42:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1268,13 +1269,15 @@ $('btnEnregistrer').addEventListener('click', async ()=>{
 });
 // ---------- Ratchet gauge (élément signature) ----------
 function priceBar(CA, CR, stop, CV, ma20){
+  // Libellés à 2 lettres (comme CA/CR déjà) pour rester lisibles dans la légende, avec le nom
+  // complet en info-bulle (title) au survol/appui long.
   const points = [
-    {label:'CA', val:CA, color:'var(--dim)', size:10},
-    {label:'CR', val:CR, color:'var(--blue)', size:10},
-    {label:'Stop', val:stop, color:'var(--amber)', size:10},
-    {label:'CV', val:CV, color: CV>=CR?'var(--green)':'var(--red)', size:16},
+    {label:'CA', full:"Cours d'achat", val:CA, color:'var(--dim)', size:10},
+    {label:'CR', full:'Coût de revient', val:CR, color:'var(--blue)', size:10},
+    {label:'St', full:'Stop (protection)', val:stop, color:'var(--amber)', size:10},
+    {label:'CV', full:'Cours valeur', val:CV, color: CV>=CR?'var(--green)':'var(--red)', size:16},
   ];
-  if(ma20!==null && ma20!==undefined) points.push({label:'MA20', val:ma20, color:'var(--blue)', size:8});
+  if(ma20!==null && ma20!==undefined) points.push({label:'MA', full:'MA20 (moyenne mobile 20j)', val:ma20, color:'var(--blue)', size:8});
   const valid = points.filter(p=>p.val!==null && p.val!==undefined && !isNaN(p.val));
   if(valid.length<2) return '';
   const lo = Math.min(...valid.map(p=>p.val));
@@ -1307,7 +1310,7 @@ function priceBar(CA, CR, stop, CV, ma20){
     <div class="pArrowLabel" style="left:${left+width/2}%;">${ecartPct>=0?'+':''}${ecartPct.toFixed(1)}%</div>`;
   }
   const legend = valid.map(p=>`
-    <span class="legItem"><i style="background:${p.color};"></i><span class="lname">${p.label}</span><b>${fmt(p.val)}</b></span>`).join('');
+    <span class="legItem" title="${p.full}"><i style="background:${p.color};"></i><span class="lname">${p.label}</span><b>${fmt(p.val)}</b></span>`).join('');
   return `<div class="priceBar">
     <div class="track"></div>
     <div class="zone" style="left:${zoneStart}%;width:${(zoneEnd-zoneStart)||0.5}%;background:${zoneColor};opacity:.35;"></div>
@@ -1402,15 +1405,24 @@ async function renderSuivi(){
       `}
       <hr class="dash">
       <p class="small" style="font-weight:700;">Position vendue</p>
+      <p class="small" style="opacity:.75;margin-top:-4px;">Prérempli avec le cours valeur ci-dessus — modifie-le seulement si le cours de vente est différent.</p>
       <div class="row">
         <button class="btn primary btnVendue" style="width:auto;margin-top:0;">Clôture</button>
-        <input type="text" inputmode="decimal" data-decimal="1" class="ventePrix" placeholder="Cours de la vente €">
+        <input type="text" inputmode="decimal" data-decimal="1" class="ventePrix" placeholder="Cours de la vente €" value="${lastCV}">
       </div>
     </div>`;
   }).join('');
   wrap.querySelectorAll('.card').forEach(card=>{
     const id = card.dataset.id;
     const pos = positions.find(p=>p.id===id);
+    // Le cours de vente suit automatiquement le cours valeur du jour tant que l'utilisateur n'a
+    // pas modifié ce champ lui-même à la main — on ne demande le même chiffre qu'une seule fois.
+    const cvInputEl = card.querySelector('.cvInput');
+    const ventePrixEl = card.querySelector('.ventePrix');
+    cvInputEl.addEventListener('input', ()=>{
+      if(ventePrixEl.dataset.userEdited !== '1') ventePrixEl.value = cvInputEl.value;
+    });
+    ventePrixEl.addEventListener('input', ()=>{ ventePrixEl.dataset.userEdited = '1'; });
     card.querySelector('.cvSave').addEventListener('click', async ()=>{
       const cv = parseFloat(card.querySelector('.cvInput').value);
       if(!cv){ toast('Cours invalide'); return; }
@@ -1527,6 +1539,16 @@ async function renderBilan(){
     wrap.innerHTML = `<div class="empty">Erreur d'affichage du bilan.<br><span class="small">${(e&&e.message)||e}</span></div>`;
   }
 }
+// Réinitialisation complète — supprime TOUTES les positions (toutes personnes confondues),
+// donc vide en même temps Suivi et Bilan. Confirmation obligatoire vu le caractère irréversible.
+$('btnResetAll').addEventListener('click', async ()=>{
+  const nb = (Array.isArray(appState.positions) ? appState.positions.length : 0);
+  if(nb===0){ toast('Rien à réinitialiser — aucune position enregistrée.'); return; }
+  const ok = confirm(`Supprimer définitivement les ${nb} position(s) enregistrée(s), pour toutes les personnes ? Cette action est irréversible.`);
+  if(!ok) return;
+  await savePositions([], 'Toutes les positions ont été supprimées.');
+  await renderBilan();
+});
 // ---------- Checklist du jour : toujours vide au chargement, jamais restaurée cochée ----------
 (async ()=>{
   let dailyCheckSaveTimer = null;
