@@ -92,24 +92,21 @@
   .ladderRow .ladderBar{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden;position:relative;}
   .ladderRow .ladderFill{height:100%;border-radius:4px;}
   .ladderRow .ladderVal{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;text-align:right;}
-  .priceBar{position:relative;height:70px;margin:16px 8px 6px;}
+  .priceBar{position:relative;height:88px;margin:16px 8px 8px;}
   .priceBar .track{position:absolute;top:20px;left:0;right:0;height:6px;background:var(--panel2);border-radius:4px;}
   .priceBar .zone{position:absolute;top:20px;height:6px;border-radius:4px;}
   .priceBar .pmarker{position:absolute;top:6px;width:2px;height:34px;transform:translateX(-50%);opacity:.7;}
   .priceBar .pdot{position:absolute;top:23px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--bg);}
-  .priceBar .pArrowLine{position:absolute;top:40px;height:2px;background:var(--amber);}
+  /* Initiale (2 lettres) juste sous chaque point coloré — identifie le point directement sur le
+     graphique, sans légende séparée à faire correspondre. Nom complet + valeur en info-bulle. */
+  .priceBar .plabel{position:absolute;top:42px;transform:translateX(-50%);font-size:10px;font-weight:700;
+    color:var(--dim);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+  .priceBar .pArrowLine{position:absolute;top:60px;height:2px;background:var(--amber);}
   .priceBar .pArrowLine::before,.priceBar .pArrowLine::after{content:'';position:absolute;top:-4px;width:0;height:0;border:5px solid transparent;}
   .priceBar .pArrowLine::before{left:-3px;border-right-color:var(--amber);}
   .priceBar .pArrowLine::after{right:-3px;border-left-color:var(--amber);}
-  .priceBar .pArrowLabel{position:absolute;top:46px;transform:translateX(-50%);font-size:11px;font-family:'IBM Plex Mono',monospace;
+  .priceBar .pArrowLabel{position:absolute;top:66px;transform:translateX(-50%);font-size:11px;font-family:'IBM Plex Mono',monospace;
     font-weight:700;color:var(--bg);background:var(--amber);padding:2px 7px;border-radius:8px;white-space:nowrap;}
-  /* Légende des points (CA/CR/Stop/CV/MA20) : en dessous de la barre, pas dessus — passe à la
-     ligne si besoin, donc les chiffres ne se superposent jamais même si les points sont proches. */
-  .priceLegend{display:flex;flex-wrap:wrap;gap:5px 14px;margin:2px 8px 10px;}
-  .priceLegend .legItem{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;}
-  .priceLegend .legItem i{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block;}
-  .priceLegend .legItem .lname{color:var(--dim);text-transform:uppercase;font-size:9.5px;letter-spacing:.3px;}
-  .priceLegend .legItem b{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--text);}
   .empty{text-align:center;color:var(--dim);padding:36px 10px;font-size:13.5px;line-height:1.6;}
   .toast{position:fixed;left:16px;right:16px;bottom:18px;background:var(--panel2);border:1px solid var(--line);
     padding:12px 14px;border-radius:10px;font-size:13px;z-index:50;display:none;box-shadow:0 8px 30px rgba(0,0,0,.4);}
@@ -494,7 +491,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-02T17:49:00Z';
+const BUILD_TIME_UTC = '2026-09-02T17:59:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1269,8 +1266,8 @@ $('btnEnregistrer').addEventListener('click', async ()=>{
 });
 // ---------- Ratchet gauge (élément signature) ----------
 function priceBar(CA, CR, stop, CV, ma20){
-  // Libellés à 2 lettres (comme CA/CR déjà) pour rester lisibles dans la légende, avec le nom
-  // complet en info-bulle (title) au survol/appui long.
+  // Initiales (2 lettres) affichées directement sous chaque point coloré de la barre — le nom
+  // complet et la valeur restent consultables via l'info-bulle (title) au survol/appui long.
   const points = [
     {label:'CA', full:"Cours d'achat", val:CA, color:'var(--dim)', size:10},
     {label:'CR', full:'Coût de revient', val:CR, color:'var(--blue)', size:10},
@@ -1289,15 +1286,13 @@ function priceBar(CA, CR, stop, CV, ma20){
   const zoneStart = Math.min(pct(CR), pct(CV));
   const zoneEnd = Math.max(pct(CR), pct(CV));
   const zoneColor = CV>=CR ? 'var(--green)' : 'var(--red)';
-  // Les points (dots) restent positionnés sur la barre pour donner l'ordre visuel des valeurs,
-  // mais les chiffres eux-mêmes sont affichés à part, dans une légende qui passe à la ligne —
-  // ainsi, quand plusieurs valeurs sont proches (CA ≈ CR ≈ Stop par ex.), les chiffres ne se
-  // superposent jamais, quel que soit l'écart réel entre les points sur la barre.
   const markers = valid.map(p=>{
     const x = pct(p.val);
+    const titre = `${p.full} : ${fmt(p.val)}`;
     return `
-    <div class="pmarker" style="left:${x}%;background:${p.color};"></div>
-    <div class="pdot" style="left:${x}%;width:${p.size}px;height:${p.size}px;background:${p.color};"></div>`;
+    <div class="pmarker" style="left:${x}%;background:${p.color};" title="${titre}"></div>
+    <div class="pdot" style="left:${x}%;width:${p.size}px;height:${p.size}px;background:${p.color};" title="${titre}"></div>
+    <div class="plabel" style="left:${x}%;" title="${titre}">${p.label}</div>`;
   }).join('');
   // Flèche entre CV et Stop, avec le pourcentage d'écart (marge avant déclenchement du stop)
   let arrowHtml = '';
@@ -1309,15 +1304,12 @@ function priceBar(CA, CR, stop, CV, ma20){
     <div class="pArrowLine" style="left:${left}%;width:${width}%;"></div>
     <div class="pArrowLabel" style="left:${left+width/2}%;">${ecartPct>=0?'+':''}${ecartPct.toFixed(1)}%</div>`;
   }
-  const legend = valid.map(p=>`
-    <span class="legItem" title="${p.full}"><i style="background:${p.color};"></i><span class="lname">${p.label}</span><b>${fmt(p.val)}</b></span>`).join('');
   return `<div class="priceBar">
     <div class="track"></div>
     <div class="zone" style="left:${zoneStart}%;width:${(zoneEnd-zoneStart)||0.5}%;background:${zoneColor};opacity:.35;"></div>
     ${markers}
     ${arrowHtml}
-  </div>
-  <div class="priceLegend">${legend}</div>`;
+  </div>`;
 }
 function priceLadder(CA, CR, stop, CV, ma20){
   const points = [
@@ -1522,11 +1514,11 @@ async function renderBilan(){
       if(ib!==-1) return 1;
       return a.localeCompare(b);
     });
-    const global = bilanStatsFor(all);
+    // Pas de carte de synthèse globale "Tous" — uniquement le détail par personne.
     const parPersonne = personnes
       .map(nom=> ({ nom, ...bilanStatsFor(all.filter(p=>(p.personne||'Sans personne')===nom)) }))
       .sort((a,b)=> b.gainTotal - a.gainTotal);
-    wrap.innerHTML = bilanCard('Tous — bilan global', global) + parPersonne.map(s=>bilanCard(s.nom, s)).join('');
+    wrap.innerHTML = parPersonne.map(s=>bilanCard(s.nom, s)).join('');
   }catch(e){
     wrap.innerHTML = `<div class="empty">Erreur d'affichage du bilan.<br><span class="small">${(e&&e.message)||e}</span></div>`;
   }
