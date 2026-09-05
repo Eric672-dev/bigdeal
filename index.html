@@ -79,6 +79,19 @@
   table.sel{width:100%;border-collapse:collapse;font-size:13.5px;}
   table.sel td{padding:9px 4px;border-bottom:1px solid var(--line);}
   table.sel td.tk{color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-align:right;}
+  table.bilanTable{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.bilanTable th{text-align:left;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.4px;
+    font-weight:600;padding:0 4px 6px;border-bottom:1px solid var(--line);}
+  table.bilanTable td{padding:8px 4px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  table.bilanTable tr:last-child td{border-bottom:none;}
+  table.bilanTable td.bPersonne{color:var(--dim);white-space:nowrap;}
+  table.bilanTable td.bValeur{font-weight:600;}
+  table.bilanTable td.bValeur .tk{display:block;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:400;}
+  table.bilanTable td.bGain{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;white-space:nowrap;}
+  table.bilanTable td.bProt{text-align:center;}
+  .okBadge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;
+    background:rgba(43,179,154,.15);color:var(--green);letter-spacing:.3px;}
+  .okBadge.non{background:transparent;color:var(--dim);font-weight:400;}
   .pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;letter-spacing:.4px;
     text-transform:uppercase;font-weight:700;}
   .pill.person{background:rgba(91,141,239,.15);color:var(--blue);margin-left:8px;}
@@ -516,7 +529,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-02T18:15:00Z';
+const BUILD_TIME_UTC = '2026-09-05T09:30:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1489,33 +1502,12 @@ function positionGainNet(p){
   const gainNetUnit = lastCV*(1-fraisV/100) - CR;
   return gainNetUnit * qte;
 }
-function bilanStatsFor(list){
-  const ouvertes = list.filter(p=>!p.cloturee);
-  const cloturees = list.filter(p=>p.cloturee);
-  const gainsCloturees = cloturees.map(positionGainNet);
-  const gainsOuvertes = ouvertes.map(positionGainNet);
-  const gainRealise = gainsCloturees.reduce((s,g)=>s+g, 0);
-  const gainLatent = gainsOuvertes.reduce((s,g)=>s+g, 0);
-  const gagnantes = gainsCloturees.filter(g=>g>0).length;
-  const tauxReussite = cloturees.length ? (gagnantes/cloturees.length)*100 : null;
-  const investi = ouvertes.reduce((s,p)=> s + (p.CR||p.CA||0)*(p.qte||1), 0);
-  return {
-    total: list.length, nbOuvertes: ouvertes.length, nbCloturees: cloturees.length,
-    gainRealise, gainLatent, gainTotal: gainRealise+gainLatent, tauxReussite, investi
-  };
-}
-function bilanCard(title, s){
-  const signe = (n)=> n>=0 ? '+' : '';
-  return `
-  <div class="card">
-    <h3>${title}</h3>
-    <div class="kpi"><span>Positions</span><span class="v">${s.total} (${s.nbOuvertes} en cours · ${s.nbCloturees} clôturées)</span></div>
-    <div class="kpi"><span>Capital actuellement investi</span><span class="v">${fmt(s.investi)}</span></div>
-    <div class="kpi"><span>Gain net réalisé (clôturées)</span><span class="v" style="color:${s.gainRealise>=0?'var(--green)':'var(--red)'}">${signe(s.gainRealise)}${fmt(s.gainRealise)}</span></div>
-    <div class="kpi"><span>Gain net latent (en cours)</span><span class="v" style="color:${s.gainLatent>=0?'var(--green)':'var(--red)'}">${signe(s.gainLatent)}${fmt(s.gainLatent)}</span></div>
-    <div class="kpi"><span>Gain net total</span><span class="v" style="font-weight:700;color:${s.gainTotal>=0?'var(--green)':'var(--red)'}">${signe(s.gainTotal)}${fmt(s.gainTotal)}</span></div>
-    ${s.tauxReussite!==null ? `<div class="kpi"><span>Taux de réussite (clôturées)</span><span class="v">${s.tauxReussite.toFixed(0)}%</span></div>` : ''}
-  </div>`;
+// Protection "mise" = le stop protège au moins le coût de revient (CR) : si le stop est
+// déclenché, la position ne peut plus finir en perte nette. C'est exactement ce que le
+// process de Suivi demande de faire dès que le cours valeur dépasse le CR (Cas 2).
+function protectionMise(p){
+  const CR = p.CR || p.CA || 0;
+  return (p.stop||0) >= CR && CR > 0;
 }
 async function renderBilan(){
   const wrap = $('bilanWrap');
@@ -1527,24 +1519,41 @@ async function renderBilan(){
     return;
   }
   if(!Array.isArray(all)) all = [];
-  if(all.length===0){
-    wrap.innerHTML = `<div class="empty">Aucune position enregistrée.<br>Passe par <b>Achat</b> pour en créer une, elle apparaîtra ici.</div>`;
+  const ouvertes = all.filter(p=>!p.cloturee);
+  if(ouvertes.length===0){
+    wrap.innerHTML = `<div class="empty">Aucune position en cours.<br>Passe par <b>Achat</b> pour en créer une, elle apparaîtra ici.</div>`;
     return;
   }
   try{
     const ordre = ['Manu','Julien','Antoine'];
-    const personnes = [...new Set(all.map(p=>p.personne || 'Sans personne'))].sort((a,b)=>{
-      const ia = ordre.indexOf(a), ib = ordre.indexOf(b);
-      if(ia!==-1 && ib!==-1) return ia-ib;
-      if(ia!==-1) return -1;
-      if(ib!==-1) return 1;
-      return a.localeCompare(b);
-    });
-    // Pas de carte de synthèse globale "Tous" — uniquement le détail par personne.
-    const parPersonne = personnes
-      .map(nom=> ({ nom, ...bilanStatsFor(all.filter(p=>(p.personne||'Sans personne')===nom)) }))
-      .sort((a,b)=> b.gainTotal - a.gainTotal);
-    wrap.innerHTML = parPersonne.map(s=>bilanCard(s.nom, s)).join('');
+    const rows = ouvertes
+      .map(p=>({ p, personne: p.personne || 'Sans personne', gain: positionGainNet(p), ok: protectionMise(p) }))
+      .sort((a,b)=>{
+        const ia = ordre.indexOf(a.personne), ib = ordre.indexOf(b.personne);
+        if(ia!==ib){
+          if(ia!==-1 && ib!==-1) return ia-ib;
+          if(ia!==-1) return -1;
+          if(ib!==-1) return 1;
+          return a.personne.localeCompare(b.personne);
+        }
+        return b.gain - a.gain;
+      });
+    const signe = (n)=> n>=0 ? '+' : '';
+    wrap.innerHTML = `
+    <div class="card">
+      <table class="bilanTable">
+        <thead><tr><th>Personne</th><th>Valeur</th><th>Gain</th><th>Protection</th></tr></thead>
+        <tbody>
+          ${rows.map(r=>`
+          <tr>
+            <td class="bPersonne">${r.personne}</td>
+            <td class="bValeur">${r.p.nom}<span class="tk">${r.p.ticker||''}</span></td>
+            <td class="bGain" style="color:${r.gain>=0?'var(--green)':'var(--red)'}">${signe(r.gain)}${fmt(r.gain)}</td>
+            <td class="bProt">${r.ok ? '<span class="okBadge">OK</span>' : '<span class="okBadge non">—</span>'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
   }catch(e){
     wrap.innerHTML = `<div class="empty">Erreur d'affichage du bilan.<br><span class="small">${(e&&e.message)||e}</span></div>`;
   }
