@@ -91,6 +91,9 @@
   table.bilanTable td.bProt{text-align:center;}
   table.bilanTable td.bDate{color:var(--dim);white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:11px;}
   table.bilanTable td.bOp{font-size:12px;}
+  table.bilanTable td.bDel{text-align:center;width:1%;white-space:nowrap;}
+  .btnDelEvent{background:transparent;border:none;color:var(--red);font-size:15px;padding:4px 6px;opacity:.75;}
+  .btnDelEvent:active{opacity:1;}
   .okBadge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;
     background:rgba(43,179,154,.15);color:var(--green);letter-spacing:.3px;}
   .okBadge.non{background:transparent;color:var(--dim);font-weight:400;}
@@ -357,6 +360,10 @@
       <input type="text" inputmode="decimal" data-decimal="1" id="opt1High1An">
       <label>Plus haut depuis 3 mois (€)</label>
       <input type="text" inputmode="decimal" data-decimal="1" id="opt1High3M">
+      <label>% baisse depuis 1 semaine</label>
+      <input type="text" inputmode="decimal" data-decimal="1" id="opt1Pct1S">
+      <label>% baisse depuis 1 mois</label>
+      <input type="text" inputmode="decimal" data-decimal="1" id="opt1Pct1M">
     </div>
     <div class="card typeScreen" id="typeScreen2" style="display:none;">
       <h3>Publication Résultat</h3>
@@ -545,7 +552,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-06T10:03:00Z';
+const BUILD_TIME_UTC = '2026-09-06T15:53:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -985,7 +992,7 @@ async function resetPreparationForm(){
   stopChoice = 'fixe3';
   typeAchat = '1';
   crManualOverride = false;
-  ['achCA','achATR','achMA20','achBeta','stopFinal'].forEach(id=>$(id).value='');
+  ['achCA','achATR','achMA20','achBeta','stopFinal','opt1Pct1S','opt1Pct1M'].forEach(id=>$(id).value='');
   $('achQte').value = 1;
   document.querySelectorAll('.personOpt').forEach(x=>x.classList.remove('selected'));
   document.querySelectorAll('.typeOpt').forEach(x=>x.classList.remove('selected'));
@@ -1161,6 +1168,12 @@ async function fetchStockStats(ticker){
     ma20: sma(closes, 20),
     high1y: maxOverLastN(highs, 252),
     high3m: maxOverLastN(highs, 63),
+    // Variation sur ~1 semaine (5 séances) et ~1 mois (21 séances, même convention que la perf
+    // relative CAC 40 utilisée ailleurs) — négatif si le cours a baissé sur la période, ce qui
+    // est justement ce qu'on veut repérer pour le type d'achat "Standard" (valeur sous-cotée
+    // temporairement).
+    pct1s: pctChangeOverDays(closes, 5),
+    pct1m: pctChangeOverDays(closes, 21),
     beta: computeBeta(dates, closes, cac),
     nbSeances: dates.length
   };
@@ -1176,6 +1189,8 @@ async function autoFetchATR(){
     if(data.beta!=null) $('achBeta').value = data.beta.toFixed(2);
     if(data.high1y!=null) $('opt1High1An').value = data.high1y.toFixed(2);
     if(data.high3m!=null) $('opt1High3M').value = data.high3m.toFixed(2);
+    if(data.pct1s!=null) $('opt1Pct1S').value = data.pct1s.toFixed(2);
+    if(data.pct1m!=null) $('opt1Pct1M').value = data.pct1m.toFixed(2);
     const manques = [];
     if(data.beta==null) manques.push('bêta (pas assez de séances communes avec le CAC 40)');
     if(data.nbSeances < 252) manques.push(`historique limité à ${data.nbSeances} séances — le plus haut 1 an peut être sous-estimé`);
@@ -1313,7 +1328,7 @@ $('btnEnregistrer').addEventListener('click', async ()=>{
   positions.push(pos);
   await savePositions(positions, `${pos.nom} — Protection mise en place à ${fmt(stop)}`, 'suivi');
   // reset formulaire
-  ['achCA','achATR','achMA20','achBeta','stopFinal'].forEach(id=>$(id).value='');
+  ['achCA','achATR','achMA20','achBeta','stopFinal','opt1Pct1S','opt1Pct1M'].forEach(id=>$(id).value='');
   $('achQte').value=1; selectedStock=null;
   crManualOverride = false;
   updateAchatHeader();
@@ -1576,34 +1591,37 @@ async function renderPosition(){
   }
 }
 // ---------- Bilan : journal des opérations (log complet, toutes personnes/valeurs) ----------
-// Format court d'une date "YYYY-MM-DD HH:MM" (celui de nowDateTime()) en "JJ/MM HH:MM" pour
-// l'affichage — distinct de fmtDate() qui n'attend qu'une date sans heure ("YYYY-MM-DD").
-function fmtLogDateTime(dt){
+// Format court d'une date "YYYY-MM-DD HH:MM" (celui de nowDateTime()) en "JJ/MM" pour
+// l'affichage — sans l'horaire (retiré sur demande) — distinct de fmtDate() qui gère un autre format.
+function fmtLogDate(dt){
   if(!dt) return '—';
-  const [datePart, timePart] = String(dt).split(' ');
+  const datePart = String(dt).split(' ')[0];
   const [y,m,d] = (datePart||'').split('-');
   if(!y||!m||!d) return dt;
-  return `${d}/${m}${timePart?(' '+timePart):''}`;
+  return `${d}/${m}`;
 }
 // Reconstruit, pour chaque position, la chronologie de tout ce qui a été enregistré — même
 // nature d'événements que ceux déjà journalisés par exportCSV() (achat, cours du jour,
 // protection, vente), mais ici sous forme d'objets pour l'affichage à l'écran plutôt qu'un CSV.
+// Chaque événement porte posId/delKind(/delIdx) pour permettre de le supprimer individuellement
+// (colonne "effacer" de renderBilan) sans toucher au format de exportCSV(), non modifiée.
 function buildOperationsLog(allPositions){
   const labelStopType = {fixe3:"Fixe −3%", atr:"CA − k×ATR", ma20:"Sous MA20"};
   const events = [];
   (allPositions||[]).forEach(p=>{
-    const base = { personne: p.personne||'Sans personne', nom: p.nom, ticker: p.ticker||'' };
-    events.push({...base, type:'Achat enregistré', date: p.dateAchat || (p.stopHistorique&&p.stopHistorique[0]&&p.stopHistorique[0].date) || '',
+    const base = { posId: p.id, personne: p.personne||'Sans personne', nom: p.nom, ticker: p.ticker||'' };
+    events.push({...base, type:'Achat enregistré', delKind:'achat',
+      date: p.dateAchat || (p.stopHistorique&&p.stopHistorique[0]&&p.stopHistorique[0].date) || '',
       detail: `Cours d'achat ${fmt(p.CA)} · Qté ${p.qte||1}`});
-    (p.historique||[]).forEach(h=>{
-      events.push({...base, type:'Cours enregistré', date:h.date, detail: fmt(h.cv)});
+    (p.historique||[]).forEach((h,idx)=>{
+      events.push({...base, type:'Cours enregistré', delKind:'cours', delIdx:idx, date:h.date, detail: fmt(h.cv)});
     });
-    (p.stopHistorique||[]).forEach(s=>{
-      events.push({...base, type:'Protection mise en place', date:s.date,
+    (p.stopHistorique||[]).forEach((s,idx)=>{
+      events.push({...base, type:'Protection mise en place', delKind:'stop', delIdx:idx, date:s.date,
         detail: `Stop ${fmt(s.stop)}${s.methode?(' · '+(labelStopType[s.methode]||s.methode)):''}`});
     });
     if(p.coursVente){
-      events.push({...base, type:'Position vendue', date:p.dateVente||'', detail: fmt(p.coursVente)});
+      events.push({...base, type:'Position vendue', delKind:'vente', date:p.dateVente||'', detail: fmt(p.coursVente)});
     }
   });
   // Le plus récent en premier — c'est un journal, on veut voir ce qui vient de se passer sans scroller.
@@ -1630,18 +1648,47 @@ async function renderBilan(){
     wrap.innerHTML = `
     <div class="card">
       <table class="bilanTable logTable">
-        <thead><tr><th>Date</th><th>Personne</th><th>Valeur</th><th>Opération</th></tr></thead>
+        <thead><tr><th>Date</th><th>Personne</th><th>Valeur</th><th>Opération</th><th></th></tr></thead>
         <tbody>
-          ${events.map(e=>`
+          ${events.map((e,i)=>`
           <tr>
-            <td class="bDate">${fmtLogDateTime(e.date)}</td>
+            <td class="bDate">${fmtLogDate(e.date)}</td>
             <td class="bPersonne">${e.personne}</td>
             <td class="bValeur">${e.nom}<span class="tk">${e.ticker}</span></td>
             <td class="bOp">${typeIcon[e.type]||''} ${e.type}${e.detail?` — ${e.detail}`:''}</td>
+            <td class="bDel"><button class="btnDelEvent" data-i="${i}" title="Effacer cette trace">🗑</button></td>
           </tr>`).join('')}
         </tbody>
       </table>
     </div>`;
+    wrap.querySelectorAll('.btnDelEvent').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const e = events[parseInt(btn.dataset.i)];
+        const pos = all.find(p=>p.id===e.posId);
+        if(!pos) return;
+        let msg, action;
+        if(e.delKind==='achat'){
+          msg = `Supprimer complètement ${pos.nom} (${pos.ticker}) et tout son historique (cours, protections, vente) ? Cette action est irréversible.`;
+          action = ()=>{ all = all.filter(p=>p.id!==pos.id); };
+        } else if(e.delKind==='cours'){
+          msg = `Supprimer cet enregistrement de cours (${e.detail} du ${fmtLogDate(e.date)}) ? Cette action est irréversible.`;
+          action = ()=>{ pos.historique.splice(e.delIdx,1); };
+        } else if(e.delKind==='stop'){
+          msg = `Supprimer cet ajustement de protection (${e.detail} du ${fmtLogDate(e.date)}) ? Cette action est irréversible.`;
+          action = ()=>{
+            pos.stopHistorique.splice(e.delIdx,1);
+            if(pos.stopHistorique.length) pos.stop = pos.stopHistorique[pos.stopHistorique.length-1].stop;
+          };
+        } else if(e.delKind==='vente'){
+          msg = `Annuler la vente de ${pos.nom} du ${fmtLogDate(e.date)} et rouvrir la position ? Cette action est irréversible.`;
+          action = ()=>{ pos.coursVente = null; pos.dateVente = null; pos.cloturee = false; };
+        } else return;
+        if(!confirm(msg)) return;
+        action();
+        await savePositions(all, 'Trace supprimée du journal');
+        await renderBilan();
+      });
+    });
   }catch(e){
     wrap.innerHTML = `<div class="empty">Erreur d'affichage du journal.<br><span class="small">${(e&&e.message)||e}</span></div>`;
   }
@@ -2315,9 +2362,19 @@ function renderPepites(){
   const box = $('pepResults');
   if(!box) return;
   if(pepList.length===0){ box.innerHTML = '<div class="empty">Lance le scan ou ajoute une valeur ci-dessus pour évaluer son momentum.</div>'; return; }
+  // Sur demande explicite : ne pas noyer l'utilisateur sous les 40 résultats du CAC 40 — seules les
+  // valeurs au signal 🟢 vert ("Bon moment") méritent d'être affichées ici, le but de l'onglet étant
+  // justement de repérer les bons momentums sans avoir à trier soi-même. Les cartes encore en
+  // chargement ou en erreur restent visibles (retour de progression pendant un scan), mais une
+  // valeur "done" avec un score amber/rouge est filtrée silencieusement.
+  const visible = pepList.filter(e=> e.state!=='done' || pepiteVerdict(e.data).color==='green');
+  if(visible.length===0){
+    box.innerHTML = '<div class="empty">Aucune valeur avec un signal 🟢 vert pour l\'instant parmi celles analysées.</div>';
+    return;
+  }
   // Les valeurs chargées sont triées par score décroissant (les meilleures pépites en premier) ;
   // celles encore en chargement ou en erreur restent à la fin, dans l'ordre d'ajout.
-  const scored = pepList.map(e=> ({ entry:e, score: e.state==='done' ? pepiteVerdict(e.data).score : null }));
+  const scored = visible.map(e=> ({ entry:e, score: e.state==='done' ? pepiteVerdict(e.data).score : null }));
   scored.sort((a,b)=>{
     if(a.score===null && b.score===null) return 0;
     if(a.score===null) return 1;
