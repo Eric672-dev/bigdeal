@@ -534,7 +534,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-06T08:49:00Z';
+const BUILD_TIME_UTC = '2026-09-06T09:30:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1714,6 +1714,15 @@ async function loadStock(ticker){
     const rs = avgL===0 ? 100 : avgG/avgL;
     rsi2 = avgL===0 ? 100 : 100 - 100/(1+rs);
   }
+  // --- RSI-14 (Wilder, lecture "momentum" classique — pas la même chose que le RSI-2 ci-dessus,
+  // qui sert au coup de sonde mean-reversion de l'onglet Analyse) : >50 = momentum haussier,
+  // <50 = momentum baissier. Réutilise rsiSeries() (déjà utilisée par le backtest RSI-2) plutôt
+  // que de dupliquer le calcul — on ne garde que sa dernière valeur connue.
+  let rsi14 = null;
+  {
+    const series14 = rsiSeries(closes, 14);
+    for(let i=series14.length-1;i>=0;i--){ if(series14[i]!=null){ rsi14 = series14[i]; break; } }
+  }
   // --- Position vs moyennes mobiles 20 et 50 jours ---
   const ma20 = sma(closes,20), ma50 = sma(closes,50);
   const last = closes[closes.length-1];
@@ -1763,7 +1772,7 @@ async function loadStock(ticker){
       nextEarn = future.length ? future[0].date : null;
     }
   } catch(e){}
-  return { ticker, closes, nextDiv, nextEarn, atrEuros, atrPct, ma20, volRel, rangePos, relPerf, rsi2, maState, maDist20, allCloses: closes };
+  return { ticker, closes, nextDiv, nextEarn, atrEuros, atrPct, ma20, ma50, volRel, rangePos, relPerf, rsi2, rsi14, maState, maDist20, allCloses: closes };
 }
 // ---------- détection patterns ----------
 function pivots(s, w=3){
@@ -1787,6 +1796,21 @@ function detectPatterns(s){
   for(let i=lows.length-1;i>0 && !found.some(f=>f.name.includes('creux'));i--){
     const a=lows[i-1],b=lows[i];
     if(b.i-a.i>=5 && near(a.v,b.v,0.03)){ found.push({name:"Double creux",dir:"bull",desc:"Deux creux proches défendus : tentative de plancher.",conf:"faible"}); break; }
+  }
+  // --- Cassure de résistance : le cours dépasse nettement un plus-haut pivot déjà établi
+  // (pas juste "être proche de ses plus hauts" comme le fait rangePos — ici on compare
+  // explicitement au niveau d'un sommet antérieur). Signal de momentum haussier demandé
+  // explicitement par l'utilisateur, en complément des figures déjà détectées ci-dessus.
+  if(found.length<3 && highs.length>=1){
+    // pivots() ne marque jamais un point des w derniers jours comme pivot (il faut w jours de
+    // recul de chaque côté) : tout pivot détecté ici est donc déjà forcément antérieur au tout
+    // dernier cours comparé juste après — pas besoin d'exclure le dernier pivot pour éviter une
+    // comparaison circulaire, un seul sommet confirmé suffit comme niveau de résistance.
+    const resistance = Math.max(...highs.map(h=>h.v));
+    const last = s[s.length-1];
+    if(last > resistance*1.005){
+      found.push({name:"Cassure de résistance", dir:"bull", desc:`Le cours dépasse un plus-haut résistance à ${fmt(resistance)} : signal de momentum haussier si la cassure se confirme.`, conf:"indicatif"});
+    }
   }
   const slope=(pts)=>{ if(pts.length<2) return 0;
     const n=pts.length, sx=pts.reduce((a,p)=>a+p.i,0), sy=pts.reduce((a,p)=>a+p.v,0);
@@ -2139,6 +2163,30 @@ function pepiteVerdict(data){
   if(data.rangePos!=null){
     if(data.rangePos>=80){ score += 1; reasons.push({t:interpRange(data.rangePos).txt, dir:'bull'}); }
     else if(data.rangePos<=20){ score -= 1; reasons.push({t:interpRange(data.rangePos).txt, dir:'bear'}); }
+  }
+  // RSI-14 (lecture "momentum" classique, différente du RSI-2 utilisé plus bas juste comme alerte
+  // de timing) : >50 = momentum haussier, <50 = momentum baissier — demandé explicitement en plus
+  // de la tendance MM20/MM50, comme confirmation supplémentaire.
+  if(data.rsi14!=null){
+    if(data.rsi14>50){ score += 1; reasons.push({t:`RSI14 à ${Math.round(data.rsi14)} — au-dessus de 50 : momentum haussier.`, dir:'bull'}); }
+    else { score -= 1; reasons.push({t:`RSI14 à ${Math.round(data.rsi14)} — sous 50 : momentum baissier.`, dir:'bear'}); }
+  }
+  // "RSI reset" : RSI14 revenu proche de 50 (entre 48 et 55) alors que le cours reste au-dessus de
+  // sa MM50 — repli technique sain dans une tendance haussière, pas un signal d'essoufflement (à
+  // distinguer du cas RSI14<50 ci-dessus, qui serait lu comme baissier s'il n'était pas combiné à
+  // ce test-ci). Demandé explicitement en plus de la lecture RSI14>50/<50.
+  const last = data.closes[data.closes.length-1];
+  if(data.rsi14!=null && data.rsi14>=48 && data.rsi14<=55 && data.ma50!=null && last>data.ma50){
+    score += 1;
+    reasons.push({t:`RSI14 proche de 50 (${Math.round(data.rsi14)}) avec un cours au-dessus de sa MM50 — repli sain dans la tendance haussière, pas un signal d'essoufflement.`, dir:'bull'});
+  }
+  // Conviction du volume : en tendance haussière (au-dessus des moyennes), un volume seulement
+  // "moyen" (ni faible ni élevé — mêmes bornes que interpVol()) n'est pas confirmé par les
+  // échanges : la hausse manque peut-être de conviction. Pénalise le score plutôt que de rester
+  // une simple alerte informative, car c'est un vrai facteur de risque demandé explicitement.
+  if(data.maState==='above' && data.volRel!=null && data.volRel>0.7 && data.volRel<1.5){
+    score -= 0.5;
+    reasons.push({t:'Volume proche de la moyenne pendant la hausse — pas confirmé par des échanges soutenus, risque de manque de conviction.', dir:'warn'});
   }
   const pats = detectPatterns(data.allCloses);
   pats.forEach(p=>{
