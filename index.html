@@ -197,6 +197,14 @@
   .an-date-val.none{color:var(--dim);font-weight:400;font-size:12px;}
   .an-patterns{padding-top:6px;}
   .an-plabel{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:8px 0 10px;}
+  .an-news{padding-top:6px;border-bottom:1px solid var(--line);}
+  .an-news-item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);}
+  .an-news-item:first-of-type{border-top:none;}
+  .an-news-item .an-dot{margin-top:5px;flex-shrink:0;}
+  .an-news-body{flex:1;min-width:0;}
+  .an-news-title{display:block;font-size:13px;font-weight:600;color:var(--text);text-decoration:none;line-height:1.35;}
+  .an-news-title:hover{color:var(--blue);text-decoration:underline;}
+  .an-news-meta{font-size:11px;color:var(--dim);margin-top:3px;}
   .an-backtest{border-bottom:1px solid var(--line);}
   .an-backtest summary{padding:10px 0;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;
     text-transform:uppercase;color:var(--blue);cursor:pointer;}
@@ -552,7 +560,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-06T15:53:00Z';
+const BUILD_TIME_UTC = '2026-09-06T16:41:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1123,6 +1131,12 @@ function computeBeta(datesStock, closesStock, cac){
 // être exposée dans le code de la page. La clé vit uniquement dans la variable
 // d'environnement EODHD_API_KEY, configurée sur le site Netlify.
 const EOD_BASE = "/.netlify/functions/eodhd";
+// Relais serveur pour les actualités (netlify/functions/marketaux.js) — même principe que
+// EOD_BASE ci-dessus : la clé Marketaux (MARKETAUX_API_KEY) reste côté serveur. Ajouté sur
+// demande explicite ("récupérer des actus sur le marché/les valeurs"), utilisé UNIQUEMENT
+// depuis "Analyser une valeur" (voir loadNews/anAddTickers) — jamais pendant le scan Pépites,
+// pour ne pas épuiser le quota gratuit (100 requêtes/jour) sur 40 valeurs d'un coup.
+const NEWS_BASE = "/.netlify/functions/marketaux";
 function isoDateDaysAgo(days){
   const d = new Date();
   d.setDate(d.getDate() - days);
@@ -1142,6 +1156,33 @@ async function eodFetch(path, extra=''){
   }
   if(body && body.message && !Array.isArray(body)) throw new Error(body.message);
   return body;
+}
+// Actualités récentes pour une valeur (Marketaux, via le relais NEWS_BASE) — best-effort : ne
+// lève JAMAIS d'exception, retourne null si le relais/la clé/le quota posent problème (clé pas
+// encore configurée sur Netlify, quota gratuit 100/jour dépassé, etc.), pour ne jamais casser
+// l'affichage de "Analyser une valeur" à cause d'un service annexe. Retourne un tableau (vide si
+// aucune actu trouvée) sinon. Pas de filtre de langue : restreindre à 'fr' réduisait fortement le
+// nombre de résultats récents lors des tests (peu de couverture française sur ce plan gratuit).
+async function loadNews(ticker, limit=3){
+  try{
+    const qs = `?symbols=${encodeURIComponent(ticker)}&filter_entities=true&sort=published_desc&limit=${limit}`;
+    const r = await fetch(NEWS_BASE + qs);
+    let body = null;
+    try{ body = await r.json(); }catch(e){}
+    if(!r.ok || !body || !Array.isArray(body.data)) return null;
+    return body.data.map(a=>{
+      const ent = (a.entities||[]).find(e=>e.symbol===ticker) || (a.entities||[])[0];
+      return {
+        title: a.title,
+        url: a.url,
+        source: a.source,
+        date: a.published_at,
+        sentiment: ent ? ent.sentiment_score : null
+      };
+    });
+  } catch(e){
+    return null;
+  }
 }
 // Trie une réponse EOD (cours quotidiens) par date croissante et éclate les colonnes utiles
 function parseEodRows(rows){
@@ -1804,7 +1845,7 @@ function pctChangeOverDays(closes, days){
   const a = closes[closes.length-1-days], b = closes[closes.length-1];
   return (b-a)/a*100;
 }
-async function loadStock(ticker){
+async function loadStock(ticker, opts={}){
   // ~200 jours calendaires : largement assez pour RSI-2, ATR14, range 60 séances, perf relative 1 mois
   const rows = await eodFetch(`/eod/${encodeURIComponent(ticker)}`, `&from=${isoDateDaysAgo(200)}`);
   if(!Array.isArray(rows) || !rows.length) throw new Error('Pas de données prix pour ' + ticker);
@@ -1902,7 +1943,13 @@ async function loadStock(ticker){
       nextEarn = future.length ? future[0].date : null;
     }
   } catch(e){}
-  return { ticker, closes, nextDiv, nextEarn, atrEuros, atrPct, ma20, ma50, volRel, rangePos, relPerf, rsi2, rsi14, maState, maDist20, allCloses: closes };
+  // Actualités récentes — UNIQUEMENT si demandé explicitement par l'appelant (opts.news), jamais
+  // par défaut : Pépites (ajout manuel et scan des 40 valeurs) appelle loadStock() SANS ce flag
+  // pour ne pas épuiser le quota gratuit Marketaux (100 requêtes/jour) sur un scan complet. Seule
+  // "Analyser une valeur" (anAddTickers) le demande, un ticker à la fois.
+  let news = null;
+  if(opts.news) news = await loadNews(ticker, 3);
+  return { ticker, closes, nextDiv, nextEarn, atrEuros, atrPct, ma20, ma50, volRel, rangePos, relPerf, rsi2, rsi14, maState, maDist20, allCloses: closes, news };
 }
 // ---------- détection patterns ----------
 function pivots(s, w=3){
@@ -2107,6 +2154,27 @@ function anCardHTML(d, isSelected){
   const rsiTxt = d.rsi2==null ? '—' : Math.round(d.rsi2);
   const maTxt = d.maState==null ? '—' : (d.maState==='above'?'↑ tendance':d.maState==='below'?'↓ tendance':'→ mixte');
   const bt = backtestRSI2(d.allCloses||d.closes, {hold:3});
+  // Actualités récentes (Marketaux, via loadNews dans loadStock) — sur demande explicite
+  // ("récupérer des actus sur le marché et/ou les valeurs"). d.news vaut :
+  //  - undefined : jamais demandé pour cette carte (ne devrait pas arriver ici, Analyse demande
+  //    toujours news:true) -> rien affiché ;
+  //  - null : demandé mais le relais/la clé/le quota Marketaux ont posé problème -> rien affiché,
+  //    en silence (service annexe, ne doit jamais gêner la lecture du reste de la fiche) ;
+  //  - tableau vide : demandé, réponse reçue, mais aucun article trouvé pour ce ticker -> message dédié ;
+  //  - tableau non vide : liste des actualités, triées par date décroissante (déjà fait côté API).
+  const sentDot = (sc)=> sc==null ? 'grey' : (sc>0.15?'green':(sc<-0.15?'red':'amber'));
+  const newsHTML = !Array.isArray(d.news) ? '' : (d.news.length===0
+    ? `<div class="an-news"><div class="an-plabel">Actualités récentes</div><div class="an-bt-empty">Aucune actualité récente trouvée pour cette valeur.</div></div>`
+    : `<div class="an-news">
+        <div class="an-plabel">Actualités récentes</div>
+        ${d.news.map(n=>`<div class="an-news-item">
+          <span class="an-dot ${sentDot(n.sentiment)}"></span>
+          <div class="an-news-body">
+            <a class="an-news-title" href="${n.url}" target="_blank" rel="noopener">${String(n.title||'').replace(/</g,'&lt;')}</a>
+            <div class="an-news-meta">${n.source||''} · ${fmtDate(n.date ? String(n.date).slice(0,10) : null) || '—'}</div>
+          </div>
+        </div>`).join('')}
+      </div>`);
   const metricRow=(lab,val,interp,defKey)=>`
     <div class="an-metric">
       <span class="an-dot ${interp.color}"></span>
@@ -2150,6 +2218,7 @@ function anCardHTML(d, isSelected){
         <div class="an-date-val ${earnTxt?'':'none'}">${earnTxt||'non communiqué'}</div>
       </div>
     </div>
+    ${newsHTML}
     <details class="an-backtest">
       <summary>Backtest RSI-2 · coup de sonde</summary>
       ${bt.n===0
@@ -2205,7 +2274,7 @@ async function anAddTickers(raw){
     anWatch.unshift(entry);
     renderAnalyse();
     try {
-      entry.data = await loadStock(t);
+      entry.data = await loadStock(t, {news:true});
       entry.state='done';
     } catch(e){
       entry.state='error'; entry.msg=e.message;
