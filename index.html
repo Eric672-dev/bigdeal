@@ -247,8 +247,12 @@
   <section id="view-pepites" class="view">
     <div class="card">
       <h3>Repérer un momentum haussier</h3>
-      <p class="small">Ajoute plusieurs valeurs du CAC 40 — pour chacune, je regarde la tendance de fond, la performance récente vs le CAC 40, la position dans son range et les figures détectées, pour te dire si le momentum a l'air favorable en ce moment.</p>
+      <p class="small">Je regarde, pour chaque valeur, la tendance de fond, la performance récente vs le CAC 40, la position dans son range et les figures détectées, pour te dire si le momentum a l'air favorable en ce moment.</p>
       <p class="small" style="opacity:.75;">Signal indicatif basé sur des indicateurs techniques — pas une prédiction ni un conseil financier, à confirmer par ta propre analyse avant d'investir.</p>
+      <button class="btn primary" id="pepScanBtn">🔍 Scanner tout le CAC 40 (40 valeurs)</button>
+      <p class="small" id="pepScanStatus" style="opacity:.75;margin-top:6px;"></p>
+      <hr class="dash">
+      <label style="margin-top:12px;">Ou ajoute une valeur précise</label>
       <div class="an-input-row">
         <div class="an-autocomplete" style="flex:1;">
           <input type="text" id="pepTickerInput" placeholder="Nom(s), ex. LVMH ou LVMH, Air Liquide" autocomplete="off">
@@ -257,9 +261,10 @@
         <button class="btn primary" id="pepAddBtn" style="width:auto;margin-top:0;">Ajouter</button>
       </div>
       <div class="an-chips" id="pepChips"></div>
+      <button class="btn ghost" id="pepClearBtn" style="display:none;">Tout effacer</button>
     </div>
     <div id="pepResults">
-      <div class="empty">Ajoute une ou plusieurs valeurs ci-dessus pour évaluer leur momentum.</div>
+      <div class="empty">Lance le scan ou ajoute une valeur ci-dessus pour évaluer son momentum.</div>
     </div>
   </section>
   <!-- ================= PRÉPARATION ================= -->
@@ -529,7 +534,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-05T09:30:00Z';
+const BUILD_TIME_UTC = '2026-09-06T08:49:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -2178,7 +2183,7 @@ function pepCardHTML(entry){
 function renderPepites(){
   const box = $('pepResults');
   if(!box) return;
-  if(pepList.length===0){ box.innerHTML = '<div class="empty">Ajoute une ou plusieurs valeurs ci-dessus pour évaluer leur momentum.</div>'; return; }
+  if(pepList.length===0){ box.innerHTML = '<div class="empty">Lance le scan ou ajoute une valeur ci-dessus pour évaluer son momentum.</div>'; return; }
   // Les valeurs chargées sont triées par score décroissant (les meilleures pépites en premier) ;
   // celles encore en chargement ou en erreur restent à la fin, dans l'ordre d'ajout.
   const scored = pepList.map(e=> ({ entry:e, score: e.state==='done' ? pepiteVerdict(e.data).score : null }));
@@ -2207,7 +2212,59 @@ function renderPepChips(){
       renderPepites();
     };
   });
+  const clearBtn = $('pepClearBtn');
+  if(clearBtn) clearBtn.style.display = pepList.length ? 'block' : 'none';
 }
+$('pepClearBtn').addEventListener('click', ()=>{
+  pepList = [];
+  renderPepChips();
+  renderPepites();
+});
+// Scan automatique : passe les 40 valeurs du CAC 40 une à une dans loadStock()/pepiteVerdict()
+// (même mécanique que l'ajout manuel, juste en boucle) pour que l'utilisateur n'ait plus à
+// deviner lui-même quelles valeurs regarder — répond à "identifie toi-même les bons momentums".
+// Séquentiel (pas en parallèle) pour ménager le relais Netlify/EODHD ; loadCAC() n'est de toute
+// façon interrogé qu'une seule fois grâce à son propre cache (cacTried), donc le coût du scan
+// reste ~1 fetch EOD + 1 dividendes + 1 calendrier de résultats par valeur.
+let pepScanning = false;
+async function pepScanAll(){
+  if(pepScanning) return;
+  pepScanning = true;
+  const btn = $('pepScanBtn');
+  const status = $('pepScanStatus');
+  btn.disabled = true;
+  const todo = CAC40.map(([nom,tk])=>tk).filter(tk=> !pepList.some(e=>e.ticker===tk));
+  const total = todo.length;
+  if(total===0){
+    status.textContent = 'Les 40 valeurs du CAC 40 sont déjà dans la liste ci-dessous.';
+    btn.disabled = false;
+    pepScanning = false;
+    return;
+  }
+  let done = 0;
+  for(const tk of todo){
+    status.textContent = `Analyse en cours… (${done+1}/${total}) — ${UNIVERSE[tk]||tk}`;
+    const entry = {ticker:tk, state:'loading'};
+    pepList.push(entry);
+    renderPepChips();
+    renderPepites();
+    try{
+      entry.data = await loadStock(tk);
+      entry.state = 'done';
+    }catch(e){
+      entry.state = 'error'; entry.msg = e.message;
+    }
+    done++;
+    renderPepites();
+  }
+  const okDone = pepList.filter(e=>e.state==='done');
+  const bons = okDone.filter(e=>pepiteVerdict(e.data).color==='green').length;
+  const surveiller = okDone.filter(e=>pepiteVerdict(e.data).color==='amber').length;
+  status.textContent = `Scan terminé — 🟢 ${bons} bon(s) momentum, 🟡 ${surveiller} à surveiller, sur ${okDone.length} valeurs analysées.`;
+  btn.disabled = false;
+  pepScanning = false;
+}
+$('pepScanBtn').addEventListener('click', pepScanAll);
 async function pepAddTickers(raw){
   const parts = raw.split(/[,;\n]+/).map(t=>t.trim()).filter(Boolean);
   for(let part of parts){
