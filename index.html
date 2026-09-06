@@ -89,6 +89,8 @@
   table.bilanTable td.bValeur .tk{display:block;color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:400;}
   table.bilanTable td.bGain{font-family:'IBM Plex Mono',monospace;font-weight:700;text-align:right;white-space:nowrap;}
   table.bilanTable td.bProt{text-align:center;}
+  table.bilanTable td.bDate{color:var(--dim);white-space:nowrap;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  table.bilanTable td.bOp{font-size:12px;}
   .okBadge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;
     background:rgba(43,179,154,.15);color:var(--green);letter-spacing:.3px;}
   .okBadge.non{background:transparent;color:var(--dim);font-weight:400;}
@@ -239,6 +241,7 @@
     <button data-view="preparation" class="active">Préparation</button>
     <button data-view="achat">Achat</button>
     <button data-view="suivi">Suivi</button>
+    <button data-view="position">Position</button>
     <button data-view="bilan">Bilan</button>
   </nav>
 </header>
@@ -451,10 +454,18 @@
     <button class="btn ghost" id="btnExportCSV" style="margin-top:14px;">⬇ Exporter le Suivi (CSV)</button>
     <p class="small" style="margin-top:8px;">Sur iPhone/iPad : un menu de partage s'ouvre — choisis <b>« Enregistrer dans Fichiers »</b> et note l'emplacement proposé (souvent <b>« Sur mon iPhone »</b>). Le fichier est ensuite consultable dans l'app <b>Fichiers</b>, pas dans BIG DEAL — le nom commence par ton prénom, ex. <span class="mono">Manu-2026-08-29-...</span>.</p>
   </section>
-  <!-- ================= BILAN ================= -->
-  <section id="view-bilan" class="view">
+  <!-- ================= POSITION ================= -->
+  <section id="view-position" class="view">
     <button class="btn ghost" id="btnResetAll" style="margin-bottom:14px;color:var(--red);border-color:rgba(232,93,93,.4);">🗑 Réinitialiser toutes les positions</button>
-    <div id="bilanWrap"></div>
+    <div id="positionWrap"></div>
+  </section>
+  <!-- ================= BILAN (journal des opérations) ================= -->
+  <section id="view-bilan" class="view">
+    <div class="card">
+      <h3>Journal des opérations</h3>
+      <p class="small">Historique complet de tout ce qui a été enregistré — achats, cours renseignés, ajustements de protection, ventes — toutes personnes et valeurs confondues, du plus récent au plus ancien.</p>
+    </div>
+    <div id="bilanLogWrap"></div>
   </section>
 
 </main>
@@ -534,7 +545,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-06T09:30:00Z';
+const BUILD_TIME_UTC = '2026-09-06T10:03:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1021,6 +1032,7 @@ function goTo(view){
   }
   if(view==='achat') recomputeStopOptions(); // recalcule aussi le stop par défaut + les KPI (dont la perte réelle, déjà x quantité)
   if(view==='preparation') resetPreparationForm();
+  if(view==='position') renderPosition();
   if(view==='bilan') renderBilan();
   if(view==='pepites') renderPepites();
   // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
@@ -1514,8 +1526,8 @@ function protectionMise(p){
   const CR = p.CR || p.CA || 0;
   return (p.stop||0) >= CR && CR > 0;
 }
-async function renderBilan(){
-  const wrap = $('bilanWrap');
+async function renderPosition(){
+  const wrap = $('positionWrap');
   let all;
   try{
     all = await loadPositions();
@@ -1560,18 +1572,89 @@ async function renderBilan(){
       </table>
     </div>`;
   }catch(e){
-    wrap.innerHTML = `<div class="empty">Erreur d'affichage du bilan.<br><span class="small">${(e&&e.message)||e}</span></div>`;
+    wrap.innerHTML = `<div class="empty">Erreur d'affichage des positions.<br><span class="small">${(e&&e.message)||e}</span></div>`;
+  }
+}
+// ---------- Bilan : journal des opérations (log complet, toutes personnes/valeurs) ----------
+// Format court d'une date "YYYY-MM-DD HH:MM" (celui de nowDateTime()) en "JJ/MM HH:MM" pour
+// l'affichage — distinct de fmtDate() qui n'attend qu'une date sans heure ("YYYY-MM-DD").
+function fmtLogDateTime(dt){
+  if(!dt) return '—';
+  const [datePart, timePart] = String(dt).split(' ');
+  const [y,m,d] = (datePart||'').split('-');
+  if(!y||!m||!d) return dt;
+  return `${d}/${m}${timePart?(' '+timePart):''}`;
+}
+// Reconstruit, pour chaque position, la chronologie de tout ce qui a été enregistré — même
+// nature d'événements que ceux déjà journalisés par exportCSV() (achat, cours du jour,
+// protection, vente), mais ici sous forme d'objets pour l'affichage à l'écran plutôt qu'un CSV.
+function buildOperationsLog(allPositions){
+  const labelStopType = {fixe3:"Fixe −3%", atr:"CA − k×ATR", ma20:"Sous MA20"};
+  const events = [];
+  (allPositions||[]).forEach(p=>{
+    const base = { personne: p.personne||'Sans personne', nom: p.nom, ticker: p.ticker||'' };
+    events.push({...base, type:'Achat enregistré', date: p.dateAchat || (p.stopHistorique&&p.stopHistorique[0]&&p.stopHistorique[0].date) || '',
+      detail: `Cours d'achat ${fmt(p.CA)} · Qté ${p.qte||1}`});
+    (p.historique||[]).forEach(h=>{
+      events.push({...base, type:'Cours enregistré', date:h.date, detail: fmt(h.cv)});
+    });
+    (p.stopHistorique||[]).forEach(s=>{
+      events.push({...base, type:'Protection mise en place', date:s.date,
+        detail: `Stop ${fmt(s.stop)}${s.methode?(' · '+(labelStopType[s.methode]||s.methode)):''}`});
+    });
+    if(p.coursVente){
+      events.push({...base, type:'Position vendue', date:p.dateVente||'', detail: fmt(p.coursVente)});
+    }
+  });
+  // Le plus récent en premier — c'est un journal, on veut voir ce qui vient de se passer sans scroller.
+  events.sort((a,b)=> String(b.date||'').localeCompare(String(a.date||'')));
+  return events;
+}
+async function renderBilan(){
+  const wrap = $('bilanLogWrap');
+  let all;
+  try{
+    all = await loadPositions();
+  }catch(e){
+    wrap.innerHTML = `<div class="empty">Erreur de chargement.<br><span class="small">${(e&&e.message)||e}</span></div>`;
+    return;
+  }
+  if(!Array.isArray(all)) all = [];
+  if(all.length===0){
+    wrap.innerHTML = `<div class="empty">Aucune opération enregistrée pour l'instant.<br>Chaque achat, cours renseigné, ajustement de protection ou vente apparaîtra ici.</div>`;
+    return;
+  }
+  try{
+    const events = buildOperationsLog(all);
+    const typeIcon = {'Achat enregistré':'🛒','Cours enregistré':'📈','Protection mise en place':'🛡️','Position vendue':'✅'};
+    wrap.innerHTML = `
+    <div class="card">
+      <table class="bilanTable logTable">
+        <thead><tr><th>Date</th><th>Personne</th><th>Valeur</th><th>Opération</th></tr></thead>
+        <tbody>
+          ${events.map(e=>`
+          <tr>
+            <td class="bDate">${fmtLogDateTime(e.date)}</td>
+            <td class="bPersonne">${e.personne}</td>
+            <td class="bValeur">${e.nom}<span class="tk">${e.ticker}</span></td>
+            <td class="bOp">${typeIcon[e.type]||''} ${e.type}${e.detail?` — ${e.detail}`:''}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }catch(e){
+    wrap.innerHTML = `<div class="empty">Erreur d'affichage du journal.<br><span class="small">${(e&&e.message)||e}</span></div>`;
   }
 }
 // Réinitialisation complète — supprime TOUTES les positions (toutes personnes confondues),
-// donc vide en même temps Suivi et Bilan. Confirmation obligatoire vu le caractère irréversible.
+// donc vide en même temps Suivi, Position et Bilan. Confirmation obligatoire vu le caractère irréversible.
 $('btnResetAll').addEventListener('click', async ()=>{
   const nb = (Array.isArray(appState.positions) ? appState.positions.length : 0);
   if(nb===0){ toast('Rien à réinitialiser — aucune position enregistrée.'); return; }
   const ok = confirm(`Supprimer définitivement les ${nb} position(s) enregistrée(s), pour toutes les personnes ? Cette action est irréversible.`);
   if(!ok) return;
   await savePositions([], 'Toutes les positions ont été supprimées.');
-  await renderBilan();
+  await renderPosition();
 });
 // ---------- Checklist du jour : toujours vide au chargement, jamais restaurée cochée ----------
 (async ()=>{
