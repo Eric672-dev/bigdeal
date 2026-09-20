@@ -155,6 +155,67 @@
   .an-chip{font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:5px 10px;border:1px solid var(--line);
     border-radius:20px;background:var(--panel2);cursor:pointer;color:var(--blue);}
   .an-chip:active{background:var(--panel);}
+  /* ============ Classement momentum 12-1 (top 20 trimestriel) ============ */
+  .mom-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .mom-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);line-height:1.5;margin-top:4px;}
+  .mom-stale{color:var(--amber);}
+  .mom-ok{font-size:12.5px;color:var(--green);padding:8px 0;}
+  .dg-badge{display:inline-block;padding:8px 14px;border-radius:10px;font-weight:700;font-size:14px;margin-bottom:4px;}
+  .dg-badge-green{background:rgba(43,179,154,.15);color:var(--green);}
+  .dg-badge-amber{background:rgba(232,166,61,.15);color:var(--amber);}
+  .dg-badge-red{background:rgba(232,93,93,.15);color:var(--red);}
+  .dg-step{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--dim);margin:14px 0 2px;padding-top:10px;border-top:1px dashed var(--line);}
+  .dg-manuel{font-size:12px;color:var(--dim);line-height:1.6;margin:6px 0 0;padding-left:16px;}
+  .cx-src{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);line-height:1.6;margin-bottom:6px;}
+  .cx-src .ko{color:var(--amber);}
+  .cx-vide{font-size:12.5px;color:var(--dim);padding:8px 0;line-height:1.5;}
+  .cx-deux{font-size:12px;color:var(--dim);line-height:1.5;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);}
+  .go-etat{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--dim);margin-top:10px;line-height:1.5;}
+  .go-etat b.ok{color:var(--green);} .go-etat b.ko{color:var(--amber);}
+  .go-item{border-top:1px solid var(--line);padding:13px 0;}
+  .go-item:first-child{border-top:none;padding-top:4px;}
+  .go-q{display:flex;gap:11px;align-items:flex-start;cursor:pointer;}
+  .go-q input{width:22px;height:22px;margin:1px 0 0;accent-color:var(--green);flex:none;}
+  .go-q-txt{flex:1;font-size:13.5px;color:var(--text);line-height:1.4;}
+  .go-item.fait .go-q-txt{color:var(--dim);}
+  .go-aide{font-size:11.5px;color:var(--dim);line-height:1.5;margin:6px 0 0 33px;}
+  .go-sub{margin:9px 0 0 33px;display:flex;flex-direction:column;gap:7px;}
+  .go-opt{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);
+    border-radius:8px;cursor:pointer;font-size:12.5px;color:var(--dim);}
+  .go-opt.on{border-color:var(--green);color:var(--green);background:rgba(43,179,154,.10);}
+  .go-opt input{width:18px;height:18px;margin:0;accent-color:var(--green);flex:none;}
+  .go-champ{margin:9px 0 0 33px;display:flex;gap:8px;flex-wrap:wrap;}
+  .go-champ label{flex:1;min-width:130px;font-size:11px;color:var(--dim);display:flex;flex-direction:column;gap:3px;}
+  .go-champ input{font-size:13px;}
+  .sx-grid{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
+  .sx-chip{font-size:12px;padding:7px 11px;border:1px solid var(--line);border-radius:18px;
+    background:var(--panel2);color:var(--dim);cursor:pointer;user-select:none;line-height:1.2;}
+  .sx-chip.on{border-color:var(--green);color:var(--green);background:rgba(43,179,154,.13);font-weight:600;}
+  .sx-chip:active{opacity:.7;}
+  .sx-count{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--dim);margin-top:10px;}
+  .sx-count b{color:var(--green);}
+  .dg-table{width:100%;border-collapse:collapse;margin-top:8px;}
+  .dg-table tr{border-top:1px solid var(--line);}
+  .dg-table tr:first-child{border-top:none;}
+  .dg-table td{padding:8px 2px;font-size:12.5px;vertical-align:middle;}
+  .dg-sect{color:var(--text);}
+  .dg-num{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;text-align:right;white-space:nowrap;}
+  .dg-etat{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.05em;white-space:nowrap;}
+  .dg-etat.crise{color:var(--red);} .dg-etat.pression{color:var(--amber);} .dg-etat.ok{color:var(--dim);}
+  .dg-val{border-top:1px solid var(--line);padding:10px 0;}
+  .dg-val-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+  .dg-val-nom{font-size:13.5px;font-weight:600;color:var(--text);}
+  .dg-val-chiffres{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.5;}
+  .dg-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.05em;
+    padding:3px 7px;border-radius:6px;white-space:nowrap;}
+  .dg-tag.cand{background:rgba(43,179,154,.15);color:var(--green);}
+  .dg-tag.surv{background:rgba(232,166,61,.15);color:var(--amber);}
+  .dg-tag.out{background:rgba(232,93,93,.15);color:var(--red);}
+  .dg-chiffres{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .dg-chiffre{flex:1;min-width:92px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;}
+  .dg-c-lab{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);}
+  .dg-c-val{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:var(--text);margin-top:3px;}
   /* ============ Pépites (momentum haussier) ============ */
   .pepBadge{display:inline-block;padding:8px 14px;border-radius:10px;font-weight:700;font-size:14px;}
   .pepBadge-green{background:rgba(43,179,154,.15);color:var(--green);}
@@ -175,7 +236,7 @@
   .an-m-body{flex:1;}
   .an-m-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
   .an-m-lab{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);}
-  .an-m-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);}
+  .an-m-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;}
   .an-m-txt{font-size:12px;color:var(--dim);margin-top:2px;line-height:1.4;}
   .an-m-help{font-family:inherit;font-size:10px;font-weight:700;line-height:1;width:15px;height:15px;padding:0;
     border-radius:50%;border:1px solid var(--line);background:var(--panel2);color:var(--dim);cursor:pointer;
@@ -249,6 +310,8 @@
   </div>
   <nav class="tabs">
     <button data-view="pepites">Pépites</button>
+    <button data-view="analyse">Analyse</button>
+    <button data-view="go">Go</button>
     <button data-view="preparation" class="active">Préparation</button>
     <button data-view="achat">Achat</button>
     <button data-view="suivi">Suivi</button>
@@ -257,8 +320,73 @@
   </nav>
 </header>
 <main>
+  <!-- ================= ANALYSE ================= -->
+  <section id="view-analyse" class="view">
+    <div class="card">
+      <h3>Analyser une valeur</h3>
+      <p class="small">Tous les indicateurs d'une valeur du CAC 40, chacun avec un voyant : vert = favorable à un achat, orange = à surveiller, rouge = défavorable. Indicatif, et à confirmer par ta propre analyse — ni prédiction, ni conseil financier.</p>
+      <div class="an-input-row" style="margin-top:12px;">
+        <select id="anaSelect" style="flex:1;"></select>
+        <button class="btn primary" id="anaRunBtn" style="width:auto;margin-top:0;">Analyser</button>
+      </div>
+      <div id="anaResults"><div class="empty">Choisis une valeur puis lance l'analyse.</div></div>
+    </div>
+  </section>
+
+  <!-- ================= GO ================= -->
+  <section id="view-go" class="view">
+    <div class="card">
+      <h3>Feu vert avant d'acheter</h3>
+      <p class="small">Les cinq points à vérifier avant de passer l'ordre. Les réponses sont enregistrées par valeur sur cet appareil — tu retrouves ta grille en revenant.</p>
+      <label style="margin-top:12px;">Valeur</label>
+      <select id="goSelect"></select>
+      <div class="go-etat" id="goEtat"></div>
+    </div>
+    <div class="card" id="goCard">
+      <div id="goListe"></div>
+      <button class="btn ghost" id="goResetBtn" style="margin-top:14px;">Réinitialiser cette valeur</button>
+    </div>
+  </section>
+
   <!-- ================= PÉPITES ================= -->
   <section id="view-pepites" class="view">
+    <div class="card">
+      <div class="mom-head">
+        <h3 style="margin:0;">Classement momentum 12-1</h3>
+        <button class="btn ghost" id="momRefreshBtn" style="width:auto;margin:0;padding:6px 12px;font-size:12px;">Calculer</button>
+      </div>
+      <p class="small">Classe les 40 valeurs par performance sur 12 mois, en excluant le dernier mois, et garde le <b>top 20</b> en mémoire sur cet appareil. Le classement n'est pas affiché : il sert de référence interne, à recalculer à chaque trimestre. Ni prédiction, ni conseil financier.</p>
+      <div class="mom-meta" id="momMeta"></div>
+      <div id="momResults"><div class="empty">Aucun classement en mémoire. Appuie sur « Calculer » (40 valeurs, environ une minute).</div></div>
+    </div>
+    <div class="card">
+      <h3>Scanner les secteurs</h3>
+      <p class="small">Repère les situations de krach ou de crise sectorielle : l'état du marché et la baisse médiane de chaque secteur. Les valeurs retenues, elles, ne sont pas affichées — elles sont gardées en mémoire sur cet appareil, avec pour chacune la cause de sa baisse (comme son secteur, ou bien plus) et son état de stabilisation.</p>
+      <label style="margin-top:12px;">Ne lister que les baisses d'au moins</label>
+      <div class="an-input-row">
+        <select id="dgSeuil" style="flex:1;">
+          <option value="10">10 %</option>
+          <option value="15" selected>15 %</option>
+          <option value="20">20 %</option>
+          <option value="30">30 %</option>
+        </select>
+        <button class="btn primary" id="dgRunBtn" style="width:auto;margin-top:0;">Scanner</button>
+      </div>
+      <div id="dgResults"><div class="empty">Aucun scan en mémoire. Lance-le : les 40 valeurs du CAC 40, environ une minute.</div></div>
+    </div>
+    <div class="card">
+      <h3>Sélection externe</h3>
+      <p class="small">Tes propres valeurs, repérées ailleurs qu'avec les modules ci-dessus (presse, analyses, conviction personnelle). Touche une valeur pour l'ajouter ou la retirer. La sélection est conservée sur cet appareil.</p>
+      <div class="sx-grid" id="sxGrid"></div>
+      <div class="sx-count" id="sxCount"></div>
+      <button class="btn ghost" id="sxClearBtn" style="margin-top:10px;display:none;">Tout désélectionner</button>
+    </div>
+    <div class="card">
+      <h3>Croisement des listes</h3>
+      <p class="small">D'abord les valeurs présentes à la fois dans le <b>top 20 momentum</b> et dans le <b>scan des secteurs</b> (hors celles à écarter), puis celles qui figurent en plus dans ta <b>sélection externe</b>.</p>
+      <div id="cxResults"></div>
+      <button class="btn ghost" id="cxRefreshBtn" style="margin-top:10px;">Actualiser le croisement</button>
+    </div>
     <div class="card">
       <h3>Repérer un momentum haussier</h3>
       <p class="small">Je regarde, pour chaque valeur, la tendance de fond, la performance récente vs le CAC 40, la position dans son range et les figures détectées, pour te dire si le momentum a l'air favorable en ce moment.</p>
@@ -1079,7 +1207,8 @@ function goTo(view){
   if(view==='preparation') resetPreparationForm();
   if(view==='position') renderPosition();
   if(view==='bilan') renderBilan();
-  if(view==='pepites') renderPepites();
+  if(view==='go') renderGo();
+  if(view==='pepites'){ renderMomentum(); renderScan(); renderSelectionExterne(); renderCroisement(); renderPepites(); }
   // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
   // vers Achat avec les données qu'il vient de préparer — on ne touche pas à ce cas), on
   // réinitialise le formulaire : pas de saisie à moitié faite (valeur choisie, ATR récupéré…)
@@ -2470,6 +2599,691 @@ function pepCardHTML(entry){
     <button class="btn ghost pepDetailBtn" data-ticker="${d.ticker}" data-nom="${UNIVERSE[d.ticker]||d.ticker}" style="margin-top:10px;">Voir l'analyse complète (Préparation) →</button>
   </div>`;
 }
+// ---------- Classement momentum 12-1 (module en tête de l'onglet Pépites) ----------
+// Reprend exactement la règle backtestée dans momentum_classement.py : performance entre la fin
+// du mois M-13 et la fin du mois M-1 (le mois en cours est exclu, il n'est pas terminé), top 20,
+// rééquilibrage trimestriel (fin mars/juin/septembre/décembre). Les cours passent par le relais
+// EOD_BASE comme partout ailleurs : aucune clé API dans cette page.
+const MOM_KEY = 'bigdeal-momentum-v1';
+const MOM_TOP = 20;
+let momState = null;      // {calcule, debut, fin, lignes:[{tk,nom,perf}]}
+let momRunning = false;
+let momShowAll = false;
+
+// Dernier mois calendaire TERMINÉ, et le même mois un an plus tôt (bornes du calcul 12-1).
+function momBornes(){
+  const now = new Date();
+  const fin = new Date(now.getFullYear(), now.getMonth(), 0);        // dernier jour du mois précédent
+  const debut = new Date(fin.getFullYear()-1, fin.getMonth()+1, 0);  // 12 mois plus tôt
+  return {debut, fin};
+}
+function momNextRebal(){
+  const now = new Date();
+  const jour = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  for(const m of [2,5,8,11]){                      // mars, juin, septembre, décembre
+    const d = new Date(now.getFullYear(), m+1, 0);
+    if(d >= jour) return d;
+  }
+  return new Date(now.getFullYear()+1, 3, 0);
+}
+const momIso = (d)=> `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const momFrDate = (d)=> d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+const momFrMois = (d)=> d.toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
+
+// Dernière clôture connue à une date donnée (bornes incluses), sur des lignes EOD triées.
+function momCloseAu(rows, isoLimite){
+  let val = null;
+  for(const r of rows){
+    if(String(r.date) > isoLimite) break;
+    const c = parseFloat(r.adjusted_close != null ? r.adjusted_close : r.close);
+    if(!isNaN(c)) val = c;
+  }
+  return val;
+}
+function momCharger(){
+  try{
+    const brut = localStorage.getItem(MOM_KEY);
+    if(brut) momState = JSON.parse(brut);
+  }catch(e){}
+}
+function momSauver(){
+  try{ localStorage.setItem(MOM_KEY, JSON.stringify(momState)); }catch(e){}
+}
+async function momCalculer(){
+  if(momRunning) return;
+  momRunning = true;
+  momShowAll = false;
+  const btn = $('momRefreshBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Calcul…'; }
+  const {debut, fin} = momBornes();
+  const isoDebut = momIso(debut), isoFin = momIso(fin);
+  const lignes = [], echecs = [];
+  const box = $('momResults');
+  for(let i=0; i<CAC40.length; i++){
+    const [nom, tk] = CAC40[i];
+    if(box) box.innerHTML = `<div class="an-loading">Calcul en cours — ${i+1}/${CAC40.length} (${nom})…</div>`;
+    try{
+      // ~460 jours calendaires : couvre les 13 mois nécessaires au calcul 12-1.
+      const rows = await eodFetch(`/eod/${encodeURIComponent(tk)}`, `&from=${isoDateDaysAgo(460)}`);
+      if(!Array.isArray(rows) || !rows.length) throw new Error('pas de données');
+      rows.sort((a,b)=> String(a.date).localeCompare(String(b.date)));
+      const p0 = momCloseAu(rows, isoDebut), p1 = momCloseAu(rows, isoFin);
+      if(p0 && p1) lignes.push({tk, nom, perf: (p1/p0 - 1) * 100});
+      else echecs.push(nom);
+    }catch(e){ echecs.push(nom); }
+  }
+  lignes.sort((a,b)=> b.perf - a.perf);
+  momState = {calcule: new Date().toISOString(), debut: isoDebut, fin: isoFin, lignes, echecs};
+  momSauver();
+  momRunning = false;
+  if(btn){ btn.disabled = false; btn.textContent = 'Recalculer'; }
+  renderMomentum();
+  if(typeof renderCroisement === 'function') renderCroisement();
+}
+function renderMomentum(){
+  const box = $('momResults'), meta = $('momMeta');
+  if(!box) return;
+  const rebal = momNextRebal();
+  if(!momState || !momState.lignes || !momState.lignes.length){
+    if(meta) meta.textContent = `Prochain rééquilibrage : clôture du ${momFrDate(rebal)}.`;
+    box.innerHTML = '<div class="empty">Aucun classement en mémoire. Appuie sur « Calculer » (40 valeurs, environ une minute).</div>';
+    return;
+  }
+  const {fin} = momBornes();
+  const perime = momState.fin !== momIso(fin);
+  if(meta){
+    const d0 = new Date(momState.debut + 'T00:00:00'), d1 = new Date(momState.fin + 'T00:00:00');
+    const parts = [
+      `Période mesurée : fin ${momFrMois(d0)} → fin ${momFrMois(d1)}`,
+      `Calculé le ${momFrDate(new Date(momState.calcule))}`,
+      `Prochain rééquilibrage : clôture du ${momFrDate(rebal)}`
+    ];
+    if(momState.echecs && momState.echecs.length) parts.push(`Non classées : ${momState.echecs.join(', ')}`);
+    meta.innerHTML = parts.map(t=>`<div>${t}</div>`).join('')
+      + (perime ? '<div class="mom-stale">⚠ Un nouveau mois est terminé depuis ce calcul : recalcule avant de passer des ordres.</div>' : '');
+  }
+  // Le classement n'est volontairement pas affiché : il est conservé en local (localStorage,
+  // clé MOM_KEY) et reste disponible pour les autres modules via momTop() / momRang().
+  box.innerHTML = `<div class="mom-ok">✓ Classement en mémoire — ${momState.lignes.length} valeurs classées, top ${MOM_TOP} conservé localement.</div>`;
+}
+// Accès au classement pour le reste de l'app (non affiché ici).
+function momTop(n){ return momState && momState.lignes ? momState.lignes.slice(0, n || MOM_TOP).map(l=>l.tk) : []; }
+function momRang(ticker){
+  if(!momState || !momState.lignes) return null;
+  const i = momState.lignes.findIndex(l=>l.tk===ticker);
+  return i<0 ? null : i+1;
+}
+momCharger();
+if($('momRefreshBtn')){
+  $('momRefreshBtn').addEventListener('click', momCalculer);
+  if(momState && momState.lignes && momState.lignes.length) $('momRefreshBtn').textContent = 'Recalculer';
+}
+renderMomentum();
+
+// ---------- Diagnostic d'une grosse baisse (portage de diagnostic_baisse.py) ----------
+// Même logique que le script Python : baisse depuis le plus haut 1 an du titre, de l'indice et
+// du secteur ; écart titre/secteur pour dire si la cause est EXTERNE (marché ou secteur) ou
+// PROPRE à l'entreprise ; puis signaux de stabilisation (plus bas, ATR, moyennes, volumes).
+const DG_SECTEURS = {
+  "Banques / assurance": ["BNP.PA","ACA.PA","GLE.PA","CS.PA"],
+  "Luxe / consommation": ["MC.PA","RMS.PA","KER.PA","OR.PA","EL.PA","RI.PA","BN.PA","CA.PA"],
+  "Industrie / défense": ["AIR.PA","SAF.PA","HO.PA","SU.PA","LR.PA","ML.PA","MT.AS","SGO.PA","AI.PA"],
+  "Techno / services": ["CAP.PA","DSY.PA","STMPA.PA","TEP.PA","PUB.PA","EDEN.PA","ERF.PA","WLN.PA","VIV.PA"],
+  "Énergie / services publics": ["TTE.PA","ENGI.PA","VIE.PA","DG.PA","EN.PA","ORA.PA"],
+  "Auto": ["RNO.PA","STLAP.PA"],
+  "Immobilier": ["URW.PA"],
+  "Santé": ["SAN.PA"]
+};
+const DG_SEUIL_SECTEUR = -15, DG_ECART_PROPRE = -15, DG_ECART_DOUTE = -7;
+let dgRunning = false;
+const dgSerieCache = {};
+
+function dgSecteurDe(tk){
+  for(const [nom, l] of Object.entries(DG_SECTEURS)) if(l.includes(tk)) return {nom, pairs: l.filter(x=>x!==tk)};
+  return {nom: 'Secteur non défini', pairs: []};
+}
+function dgBaisse(closes, n){
+  const seg = closes.slice(-(n||252));
+  if(seg.length < 20) return null;
+  return (seg[seg.length-1] / Math.max(...seg) - 1) * 100;
+}
+function dgMediane(arr){
+  const a = arr.slice().sort((x,y)=>x-y);
+  if(!a.length) return null;
+  const m = Math.floor(a.length/2);
+  return a.length % 2 ? a[m] : (a[m-1]+a[m])/2;
+}
+function dgAtrSerie(highs, lows, closes){
+  const trs = trueRanges(highs, lows, closes);   // aligné sur closes à partir de l'indice 1
+  const out = [];
+  for(let i=13; i<trs.length; i++) out.push(trs.slice(i-13, i+1).reduce((a,b)=>a+b,0)/14);
+  return out;
+}
+async function dgSerie(tk){
+  if(dgSerieCache[tk]) return dgSerieCache[tk];
+  const rows = await eodFetch(`/eod/${encodeURIComponent(tk)}`, `&from=${isoDateDaysAgo(500)}`);
+  if(!Array.isArray(rows) || !rows.length) throw new Error('pas de données pour ' + tk);
+  const parsed = parseEodRows(rows);
+  dgSerieCache[tk] = parsed;
+  return parsed;
+}
+function dgLigne(dir, txt){ return {dir, txt}; }
+function dgBloc(titre, lignes){
+  const dotCls = {bon:'green', moyen:'amber', mauvais:'red', info:'grey'};
+  return `<div class="dg-step">${titre}</div><div class="an-metrics">` + lignes.map(l=>
+    `<div class="an-metric"><div class="an-dot ${dotCls[l.dir]}"></div><div class="an-m-body"><div class="an-m-txt">${l.txt}</div></div></div>`
+  ).join('') + '</div>';
+}
+// Scan complet : les 40 valeurs, regroupées par secteur (portage de scan_secteurs.py).
+// Le marché et les secteurs sont affichés ; la LISTE DES VALEURS retenues n'est pas affichée,
+// elle est conservée en local (localStorage, clé DG_KEY) et accessible aux autres modules via
+// dgCandidats() / dgRetenues().
+const DG_KEY = 'bigdeal-scan-secteurs-v1';
+let dgState = null;
+
+function dgCharger(){
+  try{ const b = localStorage.getItem(DG_KEY); if(b) dgState = JSON.parse(b); }catch(e){}
+}
+function dgSauver(){ try{ localStorage.setItem(DG_KEY, JSON.stringify(dgState)); }catch(e){} }
+// Valeurs retenues par le dernier scan (toutes, ou seulement les candidats).
+function dgRetenues(){ return dgState && dgState.cands ? dgState.cands : []; }
+function dgCandidats(){ return dgRetenues().filter(c=>c.tag === 'CANDIDAT'); }
+
+async function dgScan(){
+  if(dgRunning) return;
+  const box = $('dgResults'), btn = $('dgRunBtn');
+  if(!box) return;
+  const seuil = -Math.abs(parseFloat(($('dgSeuil')||{}).value || 15));
+  dgRunning = true;
+  if(btn){ btn.disabled = true; btn.textContent = 'Scan…'; }
+  try{
+    const series = {};
+    for(let i=0; i<CAC40.length; i++){
+      const [nom, tk] = CAC40[i];
+      box.innerHTML = `<div class="an-loading">Scan — ${i+1}/${CAC40.length} (${nom})…</div>`;
+      try{ series[tk] = await dgSerie(tk); }catch(e){}
+    }
+    let ddIx = null;
+    try{ const cac = await loadCAC(); if(cac && cac.closes) ddIx = dgBaisse(cac.closes); }catch(e){}
+
+    // --- secteurs ---
+    const rangs = [];
+    for(const [nomSect, liste] of Object.entries(DG_SECTEURS)){
+      const vals = [];
+      liste.forEach(tk=>{ const d = series[tk]; if(d){ const b = dgBaisse(d.closes); if(b != null) vals.push({tk, b}); } });
+      if(!vals.length) continue;
+      const med = dgMediane(vals.map(v=>v.b));
+      const pire = vals.slice().sort((a,b)=>a.b-b.b)[0];
+      rangs.push({nomSect, med, n: vals.length, pire: {tk: pire.tk, b: pire.b}, vals});
+    }
+    rangs.sort((a,b)=>a.med-b.med);
+
+    // --- valeurs retenues (non affichées) ---
+    const cands = [];
+    rangs.forEach(r=>{
+      r.vals.forEach(v=>{
+        if(v.b > seuil) return;
+        const ecart = v.b - r.med;
+        let cause, tag;
+        if(r.n < 3){ cause = 'INDÉTERMINÉE'; tag = 'secteur trop petit'; }
+        else if(ecart <= DG_ECART_PROPRE){ cause = 'PROPRE'; tag = 'à écarter'; }
+        else if(ecart <= DG_ECART_DOUTE){ cause = 'DOUTE'; tag = 'à creuser'; }
+        else { cause = 'EXTERNE'; tag = 'à surveiller'; }
+        const d = series[v.tk], closes = d.closes, last = closes[closes.length-1];
+        const bas60 = closes.slice(-60);
+        let iMin = 0; bas60.forEach((x,i)=>{ if(x < bas60[iMin]) iMin = i; });
+        const depuis = bas60.length - 1 - iMin;
+        const atrS = dgAtrSerie(d.highs, d.lows, closes);
+        const atr = atrS.length ? atrS[atrS.length-1] : null;
+        const rat = atr != null ? atr / Math.max(...atrS.slice(-60)) : null;
+        const mm20 = sma(closes, 20);
+        const surMM20 = mm20 != null && last > mm20;
+        if(cause === 'EXTERNE' && depuis >= 5 && rat != null && rat <= .8 && surMM20) tag = 'CANDIDAT';
+        cands.push({tk: v.tk, nom: UNIVERSE[v.tk]||v.tk, sect: r.nomSect, baisse: v.b, ecart, cause, tag,
+                    depuis, atrRatio: rat, surMM20, cours: last, atr, stop: atr != null ? last-3*atr : null});
+      });
+    });
+    cands.sort((a,b)=> (a.tag==='CANDIDAT'?0:1) - (b.tag==='CANDIDAT'?0:1) || a.baisse - b.baisse);
+
+    dgState = {
+      date: new Date().toISOString(), seuil: Math.abs(seuil), ddIx,
+      secteurs: rangs.map(r=>({nomSect: r.nomSect, med: r.med, n: r.n, pire: r.pire})),
+      cands
+    };
+    dgSauver();
+    renderScan();
+    renderCroisement();
+  }catch(e){
+    box.innerHTML = `<div class="an-error">${e.message || 'Scan impossible'}</div>`;
+  }
+  dgRunning = false;
+  if(btn){ btn.disabled = false; btn.textContent = dgState ? 'Relancer le scan' : 'Scanner'; }
+}
+
+function renderScan(){
+  const box = $('dgResults');
+  if(!box) return;
+  if(!dgState){
+    box.innerHTML = '<div class="empty">Aucun scan en mémoire. Lance-le : les 40 valeurs du CAC 40, environ une minute.</div>';
+    return;
+  }
+  const d = new Date(dgState.date);
+  const jour = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+  let h = '<div class="dg-step">1 — Marché</div>';
+  if(dgState.ddIx != null){
+    const dd = dgState.ddIx;
+    const cls = dd <= -15 ? 'red' : dd <= -8 ? 'amber' : 'grey';
+    const txt = dd <= -15
+      ? `CAC 40 à ${dd.toFixed(1)} % de son plus haut 1 an : <b>krach de marché</b>, le cas le plus favorable du process.`
+      : dd <= -8
+        ? `CAC 40 à ${dd.toFixed(1)} % : correction, pas un krach. Une entrée reste possible, mais sans l'appui d'un rebond général.`
+        : `CAC 40 à ${dd.toFixed(1)} % : le marché est haut. Une grosse baisse isolée vient donc du secteur ou de la valeur.`;
+    h += `<div class="an-metrics"><div class="an-metric"><div class="an-dot ${cls}"></div><div class="an-m-body"><div class="an-m-txt">${txt}</div></div></div></div>`;
+  } else {
+    h += '<div class="an-m-txt">Indice CAC 40 indisponible lors du scan.</div>';
+  }
+  h += '<div class="dg-step">2 — Secteurs (baisse médiane depuis le plus haut 1 an)</div>';
+  dgState.secteurs.forEach(r=>{
+    const etat = r.med <= DG_SEUIL_SECTEUR ? ['EN CRISE','crise'] : r.med <= -8 ? ['sous pression','pression'] : ['normal','ok'];
+    const seul = r.n < 3 ? ' · trop peu de valeurs pour conclure' : '';
+    h += `<div class="dg-val" style="padding:9px 0;">
+      <div class="dg-val-head"><div class="dg-val-nom">${r.nomSect}</div><div class="dg-num">${r.med.toFixed(1)} %</div></div>
+      <div class="dg-val-chiffres"><span class="dg-etat ${etat[1]}">${etat[0]}</span> · la plus touchée : ${UNIVERSE[r.pire.tk]||r.pire.tk} ${r.pire.b.toFixed(0)} %${seul}</div>
+    </div>`;
+  });
+  const nCand = dgState.cands.filter(c=>c.tag === 'CANDIDAT').length;
+  h += `<div class="dg-step">3 — Valeurs retenues</div>
+    <div class="mom-ok">✓ ${dgState.cands.length} valeur(s) en baisse d'au moins ${dgState.seuil} %, dont ${nCand} candidat(s) — conservées localement, non affichées.</div>
+    <div class="dg-val-chiffres">Scan du ${jour}. CANDIDAT = baisse comparable au secteur et stabilisation en place (plus bas dépassé depuis 5 séances, ATR sous 80 % de son pic, cours au-dessus de la MM20).</div>
+    <p class="small" style="margin-top:10px;">Ce scan lit des cours : il repère la situation, pas la solidité de l'entreprise — bénéfices, dette et dividende restent à vérifier à la main. Ni prédiction, ni conseil financier.</p>`;
+  box.innerHTML = h;
+}
+dgCharger();
+renderScan();
+if($('dgRunBtn') && dgState) $('dgRunBtn').textContent = 'Relancer le scan';
+if($('dgRunBtn')) $('dgRunBtn').addEventListener('click', dgScan);
+
+// ---------- Sélection externe (valeurs choisies à la main, hors modules automatiques) ----------
+const SX_KEY = 'bigdeal-selection-externe-v1';
+let sxSel = [];
+function sxCharger(){
+  try{ const b = localStorage.getItem(SX_KEY); if(b){ const l = JSON.parse(b); if(Array.isArray(l)) sxSel = l; } }catch(e){}
+}
+function sxSauver(){ try{ localStorage.setItem(SX_KEY, JSON.stringify(sxSel)); }catch(e){} }
+// Accès pour le reste de l'app.
+function sxSelection(){ return sxSel.slice(); }
+function sxToggle(tk){
+  sxSel = sxSel.includes(tk) ? sxSel.filter(x=>x!==tk) : sxSel.concat([tk]);
+  sxSauver();
+  renderSelectionExterne();
+}
+function renderSelectionExterne(){
+  const grid = $('sxGrid'), cpt = $('sxCount'), clr = $('sxClearBtn');
+  if(!grid) return;
+  grid.innerHTML = CAC40.slice().sort((a,b)=>a[0].localeCompare(b[0],'fr'))
+    .map(([nom,tk])=>`<div class="sx-chip${sxSel.includes(tk)?' on':''}" data-tk="${tk}">${nom}</div>`).join('');
+  grid.querySelectorAll('.sx-chip').forEach(c=> c.addEventListener('click', ()=> sxToggle(c.dataset.tk)));
+  if(typeof renderCroisement === 'function' && $('cxResults')) renderCroisement();
+  if(cpt) cpt.innerHTML = sxSel.length
+    ? `<b>${sxSel.length}</b> valeur(s) sélectionnée(s) : ${sxSel.map(tk=>UNIVERSE[tk]||tk).join(', ')}`
+    : 'Aucune valeur sélectionnée.';
+  if(clr) clr.style.display = sxSel.length ? 'block' : 'none';
+}
+sxCharger();
+renderSelectionExterne();
+if($('sxClearBtn')) $('sxClearBtn').addEventListener('click', ()=>{ sxSel = []; sxSauver(); renderSelectionExterne(); });
+
+// ---------- Croisement des trois listes (momentum / scan secteurs / sélection externe) ----------
+// Une valeur n'apparaît que si elle est dans les trois. Côté scan, les valeurs étiquetées
+// "à écarter" (baisse bien plus forte que leur secteur) sont exclues : les retenir irait contre
+// la logique du process.
+function renderCroisement(){
+  const box = $('cxResults');
+  if(!box) return;
+  const top = momTop();                                   // top 20 momentum
+  const scan = dgRetenues().filter(c=>c.tag !== 'à écarter');
+  const scanTk = scan.map(c=>c.tk);
+  const sx = sxSelection();
+
+  const src = [
+    top.length ? `✓ Momentum : top ${top.length}` : `<span class="ko">✗ Momentum : classement non calculé</span>`,
+    scanTk.length ? `✓ Scan secteurs : ${scanTk.length} valeur(s) retenue(s)` : `<span class="ko">✗ Scan secteurs : ${dgRetenues().length ? 'aucune valeur retenue hors « à écarter »' : 'scan non lancé'}</span>`,
+    sx.length ? `✓ Sélection externe : ${sx.length} valeur(s)` : `<span class="ko">✗ Sélection externe : aucune valeur choisie</span>`
+  ];
+  let h = `<div class="cx-src">${src.join('<br>')}</div>`;
+
+  // ligne détaillée d'une valeur (données du scan + rang momentum)
+  const ligne = (tk)=>{
+    const c = scan.find(x=>x.tk===tk);
+    const rang = momRang(tk);
+    return `<div class="dg-val">
+      <div class="dg-val-head"><div class="dg-val-nom">${UNIVERSE[tk]||tk}</div>
+        <div class="dg-tag ${c.tag==='CANDIDAT'?'cand':'surv'}">${c.tag}</div></div>
+      <div class="dg-val-chiffres">
+        momentum : rang ${rang || '—'} sur 40<br>
+        baisse ${c.baisse.toFixed(1)} % · secteur ${c.sect} (écart ${c.ecart>=0?'+':''}${c.ecart.toFixed(0)} pts → cause ${c.cause})<br>
+        plus bas il y a ${c.depuis} séance(s) · ATR ${c.atrRatio!=null?(c.atrRatio*100).toFixed(0)+' % du pic':'—'} · ${c.surMM20?'au-dessus de':'sous'} sa MM20<br>
+        cours ${fmt(c.cours)} · stop 3 × ATR ${c.stop!=null?fmt(c.stop):'—'}
+      </div>
+      <button class="btn ghost cxGoBtn" data-nom="${UNIVERSE[tk]||tk}" style="margin-top:8px;">Analyser dans Préparation →</button>
+    </div>`;
+  };
+
+  // --- 1. momentum ∩ scan ---
+  h += '<div class="dg-step">1 — Momentum ∩ scan des secteurs</div>';
+  let duo = [];
+  if(!top.length || !scanTk.length){
+    h += `<div class="cx-vide">Croisement impossible : il faut les deux listes. Complète celle(s) marquée(s) en orange ci-dessus.</div>`;
+  } else {
+    duo = top.filter(tk => scanTk.includes(tk));
+    if(!duo.length){
+      h += `<div class="cx-vide">Aucune valeur commune. C'est le cas le plus fréquent : les deux modules cherchent des situations opposées — le momentum retient ce qui a le plus monté sur un an, le scan ce qui a le plus chuté.</div>`;
+    } else {
+      duo.forEach(tk=>{ h += ligne(tk); });
+    }
+  }
+
+  // --- 2. + sélection externe ---
+  h += '<div class="dg-step">2 — … et aussi dans ta sélection externe</div>';
+  if(!sx.length){
+    h += `<div class="cx-vide">Aucune valeur choisie dans la sélection externe.</div>`;
+  } else if(!duo.length){
+    h += `<div class="cx-vide">Rien à croiser tant que le premier croisement est vide.</div>`;
+  } else {
+    const trio = duo.filter(tk => sx.includes(tk));
+    if(!trio.length){
+      h += `<div class="cx-vide">Aucune des valeurs ci-dessus n'est dans ta sélection externe.</div>`;
+      const deux = duo.map(tk=>UNIVERSE[tk]||tk);
+      h += `<div class="cx-deux"><b>Pour mémoire, dans deux listes sur trois :</b><br>${deux.join('<br>')}</div>`;
+    } else {
+      trio.forEach(tk=>{ h += ligne(tk); });
+    }
+  }
+
+  h += `<p class="small" style="margin-top:12px;">Être dans plusieurs listes ne vaut pas signal d'achat : le momentum joue la tendance, le scan joue le rebond après excès. Passe par le process d'achat, et rappelle-toi que la règle momentum ne vaut que sur les 20 valeurs détenues ensemble.</p>`;
+  box.innerHTML = h;
+  box.querySelectorAll('.cxGoBtn').forEach(b=>b.addEventListener('click', async ()=>{
+    goTo('preparation');
+    await anAddTickers(b.dataset.nom);
+  }));
+}
+if($('cxRefreshBtn')) $('cxRefreshBtn').addEventListener('click', renderCroisement);
+renderCroisement();
+
+// ---------- Onglet Analyse : tous les indicateurs d'une valeur, avec voyant de couleur ----------
+// Réutilise les séries EOD déjà mises en cache par le scan (dgSerie) : ATR, RSI, moyennes
+// mobiles, volumes, position dans le range, performance relative au CAC 40.
+let anaRunning = false;
+function anaRsi(closes, n){
+  if(closes.length <= n+1) return null;
+  let g = 0, p = 0;
+  for(let i=1; i<=n; i++){ const d = closes[i]-closes[i-1]; if(d>=0) g += d; else p -= d; }
+  g /= n; p /= n;
+  for(let i=n+1; i<closes.length; i++){
+    const d = closes[i]-closes[i-1];
+    g = (g*(n-1) + (d>0?d:0))/n;
+    p = (p*(n-1) + (d<0?-d:0))/n;
+  }
+  if(p === 0) return 100;
+  return 100 - 100/(1 + g/p);
+}
+function anaRow(dir, lab, val, txt){
+  const dot = {bon:'green', moyen:'amber', mauvais:'red', info:'grey'}[dir];
+  return `<div class="an-metric"><div class="an-dot ${dot}"></div><div class="an-m-body">
+    <div class="an-m-top"><div class="an-m-lab">${lab}</div><div class="an-m-val">${val}</div></div>
+    <div class="an-m-txt">${txt}</div></div></div>`;
+}
+async function anaRun(){
+  if(anaRunning) return;
+  const sel = $('anaSelect'), box = $('anaResults'), btn = $('anaRunBtn');
+  if(!sel || !box) return;
+  const tk = sel.value, nom = UNIVERSE[tk] || tk;
+  anaRunning = true;
+  if(btn){ btn.disabled = true; btn.textContent = 'Analyse…'; }
+  box.innerHTML = `<div class="an-loading">Analyse de ${nom}…</div>`;
+  try{
+    const d = await dgSerie(tk);
+    const closes = d.closes, vols = d.volumes, last = closes[closes.length-1];
+    const rows = [];
+    let vert = 0, orange = 0, rouge = 0;
+    const add = (dir, lab, val, txt)=>{
+      rows.push(anaRow(dir, lab, val, txt));
+      if(dir === 'bon') vert++; else if(dir === 'moyen') orange++; else if(dir === 'mauvais') rouge++;
+    };
+
+    // --- ATR ---
+    const atrS = dgAtrSerie(d.highs, d.lows, closes);
+    const aNow = atrS[atrS.length-1];
+    const aPic = Math.max(...atrS.slice(-60));
+    const aAvant = atrS.length > 21 ? atrS[atrS.length-22] : null;
+    const aPct = aNow/last*100, rat = aNow/aPic;
+    const baisseAtr = aAvant != null && aNow < aAvant;
+    add(rat <= .8 ? 'bon' : rat <= .95 ? 'moyen' : 'mauvais', 'ATR 14 jours',
+        `${fmt(aNow)} · ${aPct.toFixed(1)} %`,
+        `Volatilité ${baisseAtr ? 'en baisse' : 'en hausse'}, à ${(rat*100).toFixed(0)} % de son pic sur 3 mois. ` +
+        (rat <= .8 ? '<b>Bon signe</b> : le marché se calme, un stop se place plus serré.'
+                   : '<b>Mauvais signe</b> pour entrer : le titre bouge encore beaucoup, il faut un stop large donc une position réduite.') +
+        ` Le titre est ${aPct < 1.5 ? 'calme' : aPct < 2.5 ? 'de volatilité normale' : 'très agité'}.`);
+
+    // --- RSI 14 ---
+    const r14 = anaRsi(closes, 14);
+    if(r14 != null){
+      const dir = r14 >= 70 ? 'moyen' : r14 >= 50 ? 'bon' : r14 >= 30 ? 'moyen' : 'moyen';
+      add(dir, 'RSI 14', r14.toFixed(0),
+          r14 >= 70 ? 'Zone de surachat. Ce n\'est pas un signal de vente — sur une valeur en tendance, le RSI peut y rester des mois — mais un repli technique est possible avant d\'entrer.'
+        : r14 >= 50 ? 'Au-dessus de 50 : les hausses dominent sur les 14 dernières séances. <b>Signe positif</b>, mais tardif — nos tests ont montré qu\'un croisement au-dessus de 50 ne prédit rien à lui seul.'
+        : r14 >= 30 ? 'Sous 50 : les baisses dominent sur les 14 dernières séances. Dynamique de court terme défavorable.'
+                    : 'Zone de survente : la baisse a été violente. Un rebond est possible, mais le RSI peut rester bas plusieurs semaines si la chute continue.');
+    }
+    // --- RSI 2 ---
+    const r2 = anaRsi(closes, 2);
+    if(r2 != null){
+      add(r2 <= 10 ? 'bon' : r2 >= 90 ? 'moyen' : 'info', 'RSI 2', r2.toFixed(0),
+          r2 <= 10 ? 'Excès de baisse à très court terme. <b>Bon point d\'entrée</b> sur une valeur en tendance haussière : c\'est le seul effet réel trouvé dans nos tests (55,8 % de hausse à 2 jours), mais trop faible pour payer les frais à lui seul.'
+        : r2 >= 90 ? 'Excès de hausse à très court terme : attendre un repli plutôt qu\'acheter maintenant.'
+                   : 'Ni excès de hausse ni excès de baisse à très court terme.');
+    }
+
+    // --- moyennes mobiles ---
+    [[20,'à court terme'],[50,'à moyen terme'],[200,'de fond']].forEach(([n, lib])=>{
+      const mm = sma(closes, n);
+      if(mm == null) return;
+      const au = last > mm;
+      const ecart = (last/mm - 1)*100;
+      add(au ? 'bon' : (n === 20 ? 'mauvais' : 'moyen'), `MM ${n} j`,
+          `${fmt(mm)} · ${ecart>=0?'+':''}${ecart.toFixed(1)} %`,
+          au ? `Cours au-dessus. <b>Bon signe</b> : la tendance ${lib} est haussière.`
+             : `Cours en dessous. <b>Mauvais signe</b> : la tendance ${lib} est baissière.` +
+               (n === 20 ? ' C\'est le critère qui bloque une entrée après une chute.' : ' Après une grosse baisse, c\'est la dernière à se réparer.'));
+    });
+
+    // --- volumes ---
+    if(vols.length > 25){
+      const moy20 = vols.slice(-21,-1).reduce((a,b)=>a+b,0)/20;
+      const rel = vols[vols.length-1]/moy20;
+      const monte = last >= closes[closes.length-2];
+      add(monte ? (rel >= 1.2 ? 'bon' : 'moyen') : (rel >= 1.2 ? 'mauvais' : 'bon'),
+          'Volume du jour', `${rel.toFixed(1)} × moy20`,
+          monte ? (rel >= 1.2 ? 'Hausse portée par des volumes supérieurs à la normale. <b>Bon signe</b> : les acheteurs sont vraiment là.'
+                              : 'Hausse sur volumes faibles. <b>Signe mitigé</b> : un mouvement peu suivi tient rarement.')
+                : (rel >= 1.2 ? 'Baisse sur gros volumes. <b>Mauvais signe</b> : les vendeurs dominent.'
+                              : 'Baisse sur volumes faibles. <b>Bon signe</b> : les vendeurs s\'épuisent.'));
+      const m20 = vols.slice(-20).reduce((a,b)=>a+b,0)/20;
+      const m60 = vols.slice(-60).reduce((a,b)=>a+b,0)/Math.min(60, vols.length);
+      const tend = m20/m60;
+      add(tend <= 1 ? 'bon' : 'moyen', 'Tendance volumes', `${tend.toFixed(2)} × 3 mois`,
+          tend <= 1 ? 'Les volumes du dernier mois retombent sous ceux des trois derniers. <b>Bon signe</b> : le dossier se calme.'
+                    : 'Volumes du dernier mois au-dessus de ceux des trois derniers : le dossier est agité, dans un sens ou dans l\'autre.');
+    }
+
+    // --- position dans le range et baisse depuis le plus haut ---
+    const seg = closes.slice(-60), lo = Math.min(...seg), hi = Math.max(...seg);
+    if(hi > lo){
+      const pos = (last-lo)/(hi-lo)*100;
+      add(pos >= 60 ? 'bon' : pos >= 30 ? 'moyen' : 'mauvais', 'Range 3 mois',
+          `${pos.toFixed(0)} %`,
+          pos >= 60 ? 'Dans le haut de son range : le titre est proche de ses plus hauts récents, signe de force.'
+        : pos >= 30 ? 'Au milieu de son range : pas de direction nette.'
+                    : 'Dans le bas de son range : le titre reste près de ses plus bas récents.');
+    }
+    const dd = dgBaisse(closes);
+    if(dd != null){
+      add(dd >= -10 ? 'bon' : dd >= -25 ? 'moyen' : 'mauvais', 'Baisse / plus haut 1 an',
+          `${dd.toFixed(1)} %`,
+          dd >= -10 ? 'Proche de ses plus hauts sur un an.'
+        : dd >= -25 ? 'Repli marqué : vérifie s\'il vient du marché, du secteur ou de l\'entreprise (scan des secteurs).'
+                    : 'Forte chute : le scan des secteurs dira si la cause est extérieure à l\'entreprise ou si elle lui est propre.');
+    }
+
+    // --- performance relative au CAC 40 ---
+    try{
+      const cac = await loadCAC();
+      if(cac && cac.closes && cac.closes.length > 65 && closes.length > 65){
+        const pv = (closes[closes.length-1]/closes[closes.length-64] - 1)*100;
+        const pi = (cac.closes[cac.closes.length-1]/cac.closes[cac.closes.length-64] - 1)*100;
+        const diff = pv - pi;
+        add(diff >= 2 ? 'bon' : diff >= -2 ? 'moyen' : 'mauvais', 'Perf. 3 mois vs CAC 40',
+            `${diff>=0?'+':''}${diff.toFixed(1)} pts`,
+            `Le titre a fait ${pv.toFixed(1)} % contre ${pi.toFixed(1)} % pour l'indice. ` +
+            (diff >= 2 ? '<b>Bon signe</b> : il fait mieux que le marché.'
+             : diff >= -2 ? 'Il suit le marché, sans avantage.'
+                          : '<b>Mauvais signe</b> : il fait moins bien que le marché.'));
+      }
+    }catch(e){}
+
+    const stop = last - 3*aNow;
+    box.innerHTML = `<div class="card" style="margin-top:12px;">
+      <div class="an-card-head"><div><div class="an-ticker">${nom}</div><div class="an-name">${tk}</div></div><div class="an-price">${fmt(last)}</div></div>
+      <div class="dg-val-chiffres" style="margin-bottom:8px;">${vert} voyant(s) vert · ${orange} orange · ${rouge} rouge — au ${d.dates[d.dates.length-1]}</div>
+      <div class="an-metrics">${rows.join('')}</div>
+      <div class="dg-step">Pour dimensionner la position</div>
+      <div class="dg-chiffres">
+        <div class="dg-chiffre"><div class="dg-c-lab">Cours</div><div class="dg-c-val">${fmt(last)}</div></div>
+        <div class="dg-chiffre"><div class="dg-c-lab">ATR 14 j</div><div class="dg-c-val">${fmt(aNow)}</div></div>
+        <div class="dg-chiffre"><div class="dg-c-lab">Stop 3 × ATR</div><div class="dg-c-val">${fmt(stop)}</div></div>
+      </div>
+      <p class="small" style="margin-top:10px;">Compter les voyants ne fait pas une décision : nos tests ont montré qu'aucun de ces indicateurs ne prédit une hausse. Ils servent à gérer une position — taille et stop — plus qu'à la choisir.</p>
+      <button class="btn ghost anaGoBtn" data-nom="${nom}" style="margin-top:8px;">Préparer l'achat →</button>
+    </div>`;
+    box.querySelectorAll('.anaGoBtn').forEach(b=>b.addEventListener('click', async ()=>{
+      goTo('preparation');
+      await anAddTickers(b.dataset.nom);
+    }));
+  }catch(e){
+    box.innerHTML = `<div class="an-error">${e.message || 'Analyse impossible'}</div>`;
+  }
+  anaRunning = false;
+  if(btn){ btn.disabled = false; btn.textContent = 'Analyser'; }
+}
+if($('anaSelect')){
+  $('anaSelect').innerHTML = CAC40.slice().sort((a,b)=>a[0].localeCompare(b[0],'fr'))
+    .map(([n,tk])=>`<option value="${tk}">${n}</option>`).join('');
+}
+if($('anaRunBtn')) $('anaRunBtn').addEventListener('click', anaRun);
+
+// ---------- Onglet Go : feu vert avant d'acheter, par valeur ----------
+const GO_KEY = 'bigdeal-go-v1';
+let goData = {};   // { 'MC.PA': {q1:'resultats', q2:true, niveau:'', ...} }
+function goCharger(){
+  try{ const b = localStorage.getItem(GO_KEY); if(b) goData = JSON.parse(b) || {}; }catch(e){}
+}
+function goSauver(){ try{ localStorage.setItem(GO_KEY, JSON.stringify(goData)); }catch(e){} }
+function goTicker(){ const s = $('goSelect'); return s ? s.value : null; }
+function goEtatDe(tk){ return goData[tk] || {}; }
+
+const GO_ITEMS = [
+  {k:'q1', t:"Pourquoi j'achète ?",
+   aide:"Une raison, et une seule, écrite avant d'acheter. C'est elle qui dira plus tard si la thèse est fausse.",
+   opts:[['resultats','De bons résultats publiés'],['actu',"Une actualité favorable"],['marche','Une baisse liée au marché ou au secteur, pas à l\'entreprise']]},
+  {k:'q2', t:"J'achète sur un signe de reprise ou au retour sur un niveau clé",
+   aide:"Pas en pleine chute : attendre que le cours repasse au-dessus de sa MM20, ou revienne sur un support identifié à l'avance.",
+   champs:[['niveau','Niveau clé visé (€)','text']]},
+  {k:'q3', t:"Ce n'est pas un rachat réflexe d'une valeur sortie au stop — et j'ai vérifié les actualités",
+   aide:"Après un stop, on ne revient que sur une raison nouvelle, jamais parce que « c'est moins cher ».",
+   champs:[['news','Ce que disent les dernières actus','text']]},
+  {k:'q4', t:"J'ai regardé la tendance de son secteur",
+   aide:"Le scan des secteurs de l'onglet Pépites donne la baisse médiane du secteur et sa situation.",
+   opts:[['sect_h','Secteur bien orienté'],['sect_n','Secteur sans tendance nette'],['sect_b','Secteur en crise — baisse subie par tous']]},
+  {k:'q5', t:"Je connais les prochaines dates : résultats et détachement du dividende",
+   aide:"Acheter juste avant une publication, c'est parier sur elle. Le cours baisse mécaniquement le jour du détachement.",
+   champs:[['dResu','Prochains résultats','date'],['dDiv','Détachement du dividende','date']]}
+];
+
+function goItemFait(e, it){
+  if(it.opts) return !!e[it.k];
+  return e[it.k] === true;
+}
+function renderGo(){
+  const liste = $('goListe'), etat = $('goEtat');
+  if(!liste) return;
+  const tk = goTicker();
+  if(!tk){ liste.innerHTML = '<div class="empty">Choisis une valeur ci-dessus.</div>'; return; }
+  const e = goEtatDe(tk);
+  let h = '';
+  GO_ITEMS.forEach((it, i)=>{
+    const fait = goItemFait(e, it);
+    h += `<div class="go-item${fait?' fait':''}">
+      <label class="go-q"><input type="checkbox" data-k="${it.k}" ${fait?'checked':''} ${it.opts?'disabled':''}>
+        <div class="go-q-txt">${i+1}. ${it.t}</div></label>
+      <div class="go-aide">${it.aide}</div>`;
+    if(it.opts){
+      h += '<div class="go-sub">' + it.opts.map(([v,lab])=>
+        `<label class="go-opt${e[it.k]===v?' on':''}"><input type="radio" name="go-${it.k}" value="${v}" ${e[it.k]===v?'checked':''}><span>${lab}</span></label>`
+      ).join('') + '</div>';
+    }
+    if(it.champs){
+      h += '<div class="go-champ">' + it.champs.map(([n,lab,type])=>
+        `<label>${lab}<input type="${type}"${type==='text'&&n==='niveau'?' inputmode="decimal"':''} data-champ="${n}" value="${e[n]!=null?String(e[n]).replace(/"/g,'&quot;'):''}"></label>`
+      ).join('') + '</div>';
+    }
+    h += '</div>';
+  });
+  liste.innerHTML = h;
+
+  liste.querySelectorAll('input[type=checkbox]').forEach(c=>c.addEventListener('change', ()=>{
+    const d = goData[tk] = goData[tk] || {};
+    d[c.dataset.k] = c.checked;
+    goSauver(); renderGo();
+  }));
+  liste.querySelectorAll('input[type=radio]').forEach(r=>r.addEventListener('change', ()=>{
+    const d = goData[tk] = goData[tk] || {};
+    d[r.name.replace('go-','')] = r.value;
+    goSauver(); renderGo();
+  }));
+  liste.querySelectorAll('input[data-champ]').forEach(inp=>inp.addEventListener('input', ()=>{
+    const d = goData[tk] = goData[tk] || {};
+    d[inp.dataset.champ] = inp.value;
+    goSauver();
+  }));
+
+  if(etat){
+    const faits = GO_ITEMS.filter(it=>goItemFait(e, it)).length;
+    const pret = faits === GO_ITEMS.length;
+    etat.innerHTML = `<div>${UNIVERSE[tk]||tk} — <b class="${pret?'ok':'ko'}">${faits}/${GO_ITEMS.length}</b> point(s) validé(s)</div>`
+      + (pret ? `<div><b class="ok">Feu vert</b> : les cinq points sont cochés. Dimensionne la position dans Préparation, et place le stop dès l'exécution.</div>`
+              : `<div>Tant qu'un point reste ouvert, l'ordre attend.</div>`);
+  }
+}
+if($('goSelect')){
+  $('goSelect').innerHTML = CAC40.slice().sort((a,b)=>a[0].localeCompare(b[0],'fr'))
+    .map(([n,tk])=>`<option value="${tk}">${n}</option>`).join('');
+  $('goSelect').addEventListener('change', ()=>{
+    if($('anaSelect')) $('anaSelect').value = $('goSelect').value;   // garder les deux onglets alignés
+    renderGo();
+  });
+}
+if($('anaSelect')) $('anaSelect').addEventListener('change', ()=>{
+  if($('goSelect')){ $('goSelect').value = $('anaSelect').value; renderGo(); }
+});
+if($('goResetBtn')) $('goResetBtn').addEventListener('click', ()=>{
+  const tk = goTicker();
+  if(!tk || !confirm('Effacer les réponses pour ' + (UNIVERSE[tk]||tk) + ' ?')) return;
+  delete goData[tk];
+  goSauver(); renderGo();
+});
+goCharger();
+renderGo();
+
 function renderPepites(){
   const box = $('pepResults');
   if(!box) return;
