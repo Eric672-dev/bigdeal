@@ -366,8 +366,7 @@
     </div>
     <div class="card" id="goCard">
       <div id="goListe"></div>
-      <button class="btn ghost" id="goDatesBtn" style="margin-top:12px;">Actualiser les dates (EODHD)</button>
-      <p class="small" id="goDatesMsg" style="margin-top:6px;opacity:.8;"></p>
+      <p class="small" id="goDatesMsg" style="margin-top:10px;opacity:.8;"></p>
       <button class="btn ghost" id="goResetBtn" style="margin-top:14px;">Réinitialiser cette valeur</button>
     </div>
   </section>
@@ -716,7 +715,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-20T15:24:00Z';
+const BUILD_TIME_UTC = '2026-09-20T15:31:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -3024,6 +3023,28 @@ renderCroisement();
 // mobiles, volumes, position dans le range, performance relative au CAC 40.
 let anaRunning = false;
 const ANA_KEY = 'bigdeal-analyse-v1';
+// Calcule et mémorise les repères d'une valeur (MM, ATR, stop, baisse) sans passer par
+// l'onglet Analyse : l'onglet Go doit pouvoir se remplir seul, dès la sélection d'une valeur.
+async function anaCalculMemo(tk){
+  const d = await dgSerie(tk);
+  const closes = d.closes, last = closes[closes.length-1];
+  const atrS = dgAtrSerie(d.highs, d.lows, closes);
+  const aNow = atrS[atrS.length-1];
+  const rat = aNow / Math.max(...atrS.slice(-60));
+  const mm20 = sma(closes, 20);
+  const memo = {date: new Date().toISOString(), cours: last, atr: aNow, stop: last - 3*aNow,
+                mm20, mm50: sma(closes,50), mm200: sma(closes,200),
+                rsi14: anaRsi(closes,14), rsi2: anaRsi(closes,2), dd: dgBaisse(closes), atrRatio: rat,
+                decl: (mm20 != null && last <= mm20)
+                        ? `attendre une clôture au-dessus de la MM20, soit ${fmt(mm20)}`
+                        : (rat > .8 ? `attendre que l'ATR retombe sous ${fmt(Math.max(...atrS.slice(-60))*0.8)}` : null)};
+  try{
+    const all = JSON.parse(localStorage.getItem(ANA_KEY) || '{}');
+    all[tk] = memo;
+    localStorage.setItem(ANA_KEY, JSON.stringify(all));
+  }catch(e){}
+  return memo;
+}
 function anaMemo(tk){ try{ return (JSON.parse(localStorage.getItem(ANA_KEY)||'{}'))[tk] || null; }catch(e){ return null; } }
 function anaRsi(closes, n){
   if(closes.length <= n+1) return null;
@@ -3372,6 +3393,13 @@ function renderGo(){
     goSauver();
   }));
 
+  const manque = [];
+  if(!dgRetenues().length) manque.push('le scan des secteurs');
+  if(!momTop().length) manque.push('le classement momentum');
+  const rappel = manque.length
+    ? `<div class="go-ctx" style="margin-left:0;">Pour un contexte complet, lance ${manque.join(' et ')} dans l'onglet Pépites.</div>`
+    : '';
+  liste.insertAdjacentHTML('beforeend', rappel);
   if(etat){
     const faits = GO_ITEMS.filter(it=>goItemFait(e, it)).length;
     const pret = faits === GO_ITEMS.length;
@@ -3396,10 +3424,9 @@ if($('anaSelect')) $('anaSelect').addEventListener('change', ()=>{
 // Mêmes endpoints que « Analyser une valeur », tolérants à l'échec : selon le plan souscrit, le
 // calendrier des résultats peut ne pas être inclus.
 async function goDates(auto){
-  const tk = goTicker(), msg = $('goDatesMsg'), btn = $('goDatesBtn');
+  const tk = goTicker(), msg = $('goDatesMsg');
   if(!tk) return;
-  if(btn){ btn.disabled = true; btn.textContent = 'Récupération…'; }
-  if(msg) msg.textContent = '';
+  if(msg) msg.textContent = 'Récupération des dates…';
   const today = new Date().toISOString().slice(0,10);
   let div = null, earn = null, err = [];
   try{
@@ -3433,17 +3460,31 @@ async function goDates(auto){
     msg.innerHTML = (ok.length ? '✓ ' + ok.join(' · ') : 'Rien récupéré.')
       + (err.length ? `<br>${err.join(' · ')} — complète à la main si besoin, et recoupe avec Boursorama.` : ' — à recouper avec Boursorama.');
   }
-  if(btn){ btn.disabled = false; btn.textContent = 'Actualiser les dates (EODHD)'; }
 }
-if($('goDatesBtn')) $('goDatesBtn').addEventListener('click', ()=>goDates(false));
 // Récupération automatique à l'ouverture de l'onglet ou au changement de valeur, si les dates
 // manquent ou datent de plus de 7 jours. Silencieuse : aucune erreur affichée si le relais refuse.
 async function goDatesAuto(){
   const tk = goTicker();
   if(!tk) return;
+  // Contexte : recalcule les repères de la valeur s'ils manquent ou datent de plus de 12 h.
+  const memo = anaMemo(tk);
+  const memoFrais = memo && (Date.now() - new Date(memo.date).getTime()) < 12*3600000;
+  if(!memoFrais){
+    const ctxMsg = $('goDatesMsg');
+    if(ctxMsg) ctxMsg.textContent = 'Mise à jour du contexte…';
+    try{ await anaCalculMemo(tk); renderGo(); }catch(e){}
+  }
   const d = goData[tk] || {};
-  const frais = d.datesLe && (Date.now() - new Date(d.datesLe).getTime()) < 7*86400000;
-  if((d.dResu && d.dDiv && frais) || goAutoEnCours) return;
+  const frais = d.datesLe && (Date.now() - new Date(d.datesLe).getTime()) < 12*3600000;
+  if(frais || goAutoEnCours){
+    // Déjà à jour : on réaffiche simplement ce qu'on a, sans rappeler EODHD.
+    const msg = $('goDatesMsg');
+    if(msg && (d.dResu || d.dDiv)){
+      const ok = [d.dResu ? `résultats le ${fmtDate(d.dResu)}` : null, d.dDiv ? `détachement le ${fmtDate(d.dDiv)}` : null].filter(Boolean);
+      msg.innerHTML = '✓ ' + ok.join(' · ') + ' — à recouper avec Boursorama.';
+    }
+    return;
+  }
   goAutoEnCours = true;
   try{ await goDates(true); }catch(e){}
   goAutoEnCours = false;
