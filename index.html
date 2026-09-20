@@ -171,6 +171,19 @@
   .cx-src .ko{color:var(--amber);}
   .cx-vide{font-size:12.5px;color:var(--dim);padding:8px 0;line-height:1.5;}
   .cx-deux{font-size:12px;color:var(--dim);line-height:1.5;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);}
+  .ana-note{display:flex;align-items:center;gap:14px;padding:12px;border-radius:10px;margin-bottom:12px;}
+  .ana-note-val{font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:700;line-height:1;white-space:nowrap;}
+  .ana-note-val small{font-size:14px;font-weight:600;opacity:.65;}
+  .ana-note-txt{flex:1;font-size:12.5px;line-height:1.45;}
+  .ana-note-titre{font-weight:700;font-size:14.5px;margin-bottom:2px;}
+  .ana-note.green{background:rgba(43,179,154,.13);} .ana-note.green .ana-note-val,.ana-note.green .ana-note-titre{color:var(--green);}
+  .ana-note.amber{background:rgba(232,166,61,.13);} .ana-note.amber .ana-note-val,.ana-note.amber .ana-note-titre{color:var(--amber);}
+  .ana-note.red{background:rgba(232,93,93,.13);} .ana-note.red .ana-note-val,.ana-note.red .ana-note-titre{color:var(--red);}
+  .ana-jauge{height:6px;border-radius:3px;background:var(--line);margin-top:7px;overflow:hidden;}
+  .ana-jauge i{display:block;height:100%;border-radius:3px;}
+  .ana-note.green .ana-jauge i{background:var(--green);}
+  .ana-note.amber .ana-jauge i{background:var(--amber);}
+  .ana-note.red .ana-jauge i{background:var(--red);}
   .go-etat{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--dim);margin-top:10px;line-height:1.5;}
   .go-etat b.ok{color:var(--green);} .go-etat b.ko{color:var(--amber);}
   .go-item{border-top:1px solid var(--line);padding:13px 0;}
@@ -694,7 +707,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-20T15:05:00Z';
+const BUILD_TIME_UTC = '2026-09-20T15:15:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -2881,9 +2894,11 @@ function renderScan(){
       ${r.moins && r.moins.length ? `<div class="dg-val-chiffres">les moins touchées : ${r.moins.map(m=>`${UNIVERSE[m.tk]||m.tk} ${m.b.toFixed(0)} %`).join(' · ')}</div>` : ''}
     </div>`;
   });
-  const nCand = dgState.cands.filter(c=>c.tag === 'CANDIDAT').length;
+  const cand = dgState.cands.filter(c=>c.tag === 'CANDIDAT');
+  const noms = cand.map(c=>`${c.nom} (${c.baisse.toFixed(0)} %)`).join(' · ');
   h += `<div class="dg-step">3 — Valeurs retenues</div>
-    <div class="mom-ok">✓ ${dgState.cands.length} valeur(s) en baisse d'au moins ${dgState.seuil} %, dont ${nCand} candidat(s) — conservées localement, non affichées.</div>
+    <div class="mom-ok">✓ ${dgState.cands.length} valeur(s) en baisse d'au moins ${dgState.seuil} % — conservées localement, non affichées.<br>
+      ${cand.length ? `Candidat(s) : ${noms}` : 'Aucun candidat : les valeurs en baisse ne sont pas encore stabilisées, ou leur baisse leur est propre.'}</div>
     <div class="dg-val-chiffres">Scan du ${jour}. CANDIDAT = baisse comparable au secteur et stabilisation en place (plus bas dépassé depuis 5 séances, ATR sous 80 % de son pic, cours au-dessus de la MM20).</div>
     <p class="small" style="margin-top:10px;">Ce scan lit des cours : il repère la situation, pas la solidité de l'entreprise — bénéfices, dette et dividende restent à vérifier à la main. Ni prédiction, ni conseil financier.</p>`;
   box.innerHTML = h;
@@ -3012,10 +3027,28 @@ function anaRsi(closes, n){
   if(p === 0) return 100;
   return 100 - 100/(1 + g/p);
 }
-function anaRow(dir, lab, val, txt){
+// Poids de chaque indicateur dans la note globale. Ils viennent de ce que nos backtests ont
+// montré sur le CAC 40 : la tendance de fond et la force relative à l'indice sont les seules
+// mesures qui ont eu un effet mesurable, l'ATR sert au risque, le RSI 14 n'a rien prédit et les
+// volumes sont très bruités. Barème : 2 = déterminant, 1,5 = important, 1 = utile, 0,5 = accessoire.
+const ANA_POIDS = {
+  'MM 200 j': 2,               // tendance de fond : le filtre le plus robuste de tous nos tests
+  'Perf. 3 mois vs CAC 40': 2, // cousin du momentum relatif, la seule approche à avoir battu la référence
+  'ATR 14 jours': 2,           // ne prédit rien mais décide du stop et de la taille : le plus utile en pratique
+  'MM 50 j': 1.5,
+  'MM 20 j': 1.5,              // critère d'entrée après une chute
+  'RSI 2': 1,                  // petit effet réel mesuré (55,8 % de hausse à 2 jours), mais faible
+  'Range 3 mois': 1,
+  'Baisse / plus haut 1 an': 1,
+  'RSI 14': 0.5,               // aucun pouvoir prédictif dans nos tests
+  'Volume du jour': 0.5,       // très bruité au jour le jour
+  'Tendance volumes': 0.5
+};
+function anaRow(dir, lab, val, txt, poids){
   const dot = {bon:'green', moyen:'amber', mauvais:'red', info:'grey'}[dir];
+  const p = poids ? `<span style="opacity:.55;font-weight:400;"> · poids ${String(poids).replace('.', ',')}</span>` : '';
   return `<div class="an-metric"><div class="an-dot ${dot}"></div><div class="an-m-body">
-    <div class="an-m-top"><div class="an-m-lab">${lab}</div><div class="an-m-val">${val}</div></div>
+    <div class="an-m-top"><div class="an-m-lab">${lab}${p}</div><div class="an-m-val">${val}</div></div>
     <div class="an-m-txt">${txt}</div></div></div>`;
 }
 async function anaRun(){
@@ -3030,10 +3063,14 @@ async function anaRun(){
     const d = await dgSerie(tk);
     const closes = d.closes, vols = d.volumes, last = closes[closes.length-1];
     const rows = [];
-    let vert = 0, orange = 0, rouge = 0;
+    let vert = 0, orange = 0, rouge = 0, pTotal = 0, pObtenu = 0;
     const add = (dir, lab, val, txt)=>{
-      rows.push(anaRow(dir, lab, val, txt));
-      if(dir === 'bon') vert++; else if(dir === 'moyen') orange++; else if(dir === 'mauvais') rouge++;
+      const poids = ANA_POIDS[lab] != null ? ANA_POIDS[lab] : 1;
+      rows.push(anaRow(dir, lab, val, txt, poids));
+      if(dir === 'bon'){ vert++; pObtenu += poids; }
+      else if(dir === 'moyen'){ orange++; pObtenu += poids*0.5; }
+      else if(dir === 'mauvais'){ rouge++; }
+      if(dir !== 'info') pTotal += poids;
     };
 
     // --- ATR ---
@@ -3136,10 +3173,26 @@ async function anaRun(){
       }
     }catch(e){}
 
+    // --- note globale : moyenne PONDÉRÉE des voyants (vert = 1, orange = 0,5, rouge = 0) ---
+    const note = pTotal ? pObtenu / pTotal * 10 : 0;
+    const nCls = note >= 7 ? 'green' : note >= 4.5 ? 'amber' : 'red';
+    const nTitre = note >= 7 ? 'Ensemble favorable' : note >= 4.5 ? 'Ensemble mitigé' : 'Ensemble défavorable';
+    const nTxt = note >= 7
+      ? 'La majorité des indicateurs sont au vert : tendance, volatilité et volumes vont dans le même sens. Reste à vérifier ce que les cours ne disent pas — résultats, dette, actualité.'
+      : note >= 4.5
+        ? 'Signaux partagés : autant de feux verts que de réserves. Regarde lesquels comptent pour ton horizon — les moyennes mobiles pour une tendance, l\'ATR et les volumes pour un point d\'entrée.'
+        : 'La plupart des indicateurs sont défavorables à une entrée aujourd\'hui. Attendre un meilleur alignement coûte quelques pourcents de hausse, rarement plus.';
+    const noteHtml = `<div class="ana-note ${nCls}">
+      <div class="ana-note-val">${note.toFixed(1)}<small>/10</small></div>
+      <div class="ana-note-txt"><div class="ana-note-titre">${nTitre}</div>${nTxt}
+        <div class="ana-jauge"><i style="width:${Math.round(note*10)}%"></i></div>
+      </div>
+    </div>`;
     const stop = last - 3*aNow;
     box.innerHTML = `<div class="card" style="margin-top:12px;">
       <div class="an-card-head"><div><div class="an-ticker">${nom}</div><div class="an-name">${tk}</div></div><div class="an-price">${fmt(last)}</div></div>
-      <div class="dg-val-chiffres" style="margin-bottom:8px;">${vert} voyant(s) vert · ${orange} orange · ${rouge} rouge — au ${d.dates[d.dates.length-1]}</div>
+      ${noteHtml}
+      <div class="dg-val-chiffres" style="margin-bottom:8px;">${vert} voyant(s) vert · ${orange} orange · ${rouge} rouge — au ${d.dates[d.dates.length-1]}<br>Note pondérée : chaque indicateur pèse selon son utilité démontrée (2 = déterminant, 0,5 = accessoire).</div>
       <div class="an-metrics">${rows.join('')}</div>
       <div class="dg-step">Pour dimensionner la position</div>
       <div class="dg-chiffres">
@@ -3147,7 +3200,7 @@ async function anaRun(){
         <div class="dg-chiffre"><div class="dg-c-lab">ATR 14 j</div><div class="dg-c-val">${fmt(aNow)}</div></div>
         <div class="dg-chiffre"><div class="dg-c-lab">Stop 3 × ATR</div><div class="dg-c-val">${fmt(stop)}</div></div>
       </div>
-      <p class="small" style="margin-top:10px;">Compter les voyants ne fait pas une décision : nos tests ont montré qu'aucun de ces indicateurs ne prédit une hausse. Ils servent à gérer une position — taille et stop — plus qu'à la choisir.</p>
+      <p class="small" style="margin-top:10px;">La note résume les voyants, rien de plus : c'est une photo de l'état technique du titre, pas une prévision. Nos tests ont montré qu'aucun de ces indicateurs ne prédit une hausse sur le CAC 40 — ils servent surtout à dimensionner une position et à placer un stop.</p>
       <button class="btn ghost anaGoBtn" data-nom="${nom}" style="margin-top:8px;">Préparer l'achat →</button>
     </div>`;
     box.querySelectorAll('.anaGoBtn').forEach(b=>b.addEventListener('click', async ()=>{
