@@ -179,6 +179,13 @@
   .ana-note.green{background:rgba(43,179,154,.13);} .ana-note.green .ana-note-val,.ana-note.green .ana-note-titre{color:var(--green);}
   .ana-note.amber{background:rgba(232,166,61,.13);} .ana-note.amber .ana-note-val,.ana-note.amber .ana-note-titre{color:var(--amber);}
   .ana-note.red{background:rgba(232,93,93,.13);} .ana-note.red .ana-note-val,.ana-note.red .ana-note-titre{color:var(--red);}
+  .ana-decl{border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:8px;
+    padding:11px 13px;margin:0 0 12px;}
+  .ana-decl-lab{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--dim);margin-bottom:5px;}
+  .ana-decl-main{font-size:13.5px;color:var(--text);line-height:1.45;}
+  .ana-decl-main b{color:var(--blue);}
+  .ana-decl-sec{font-size:12px;color:var(--dim);line-height:1.5;margin-top:7px;}
   .ana-jauge{height:6px;border-radius:3px;background:var(--line);margin-top:7px;overflow:hidden;}
   .ana-jauge i{display:block;height:100%;border-radius:3px;}
   .ana-note.green .ana-jauge i{background:var(--green);}
@@ -192,6 +199,8 @@
   .go-q input{width:22px;height:22px;margin:1px 0 0;accent-color:var(--green);flex:none;}
   .go-q-txt{flex:1;font-size:13.5px;color:var(--text);line-height:1.4;}
   .go-item.fait .go-q-txt{color:var(--dim);}
+  .go-ctx{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--blue);line-height:1.55;
+    margin:7px 0 0 33px;padding:7px 9px;background:rgba(91,141,239,.10);border-radius:6px;border-left:2px solid var(--blue);}
   .go-aide{font-size:11.5px;color:var(--dim);line-height:1.5;margin:6px 0 0 33px;}
   .go-sub{margin:9px 0 0 33px;display:flex;flex-direction:column;gap:7px;}
   .go-opt{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);
@@ -357,7 +366,7 @@
     </div>
     <div class="card" id="goCard">
       <div id="goListe"></div>
-      <button class="btn ghost" id="goDatesBtn" style="margin-top:12px;">Récupérer les dates (EODHD)</button>
+      <button class="btn ghost" id="goDatesBtn" style="margin-top:12px;">Actualiser les dates (EODHD)</button>
       <p class="small" id="goDatesMsg" style="margin-top:6px;opacity:.8;"></p>
       <button class="btn ghost" id="goResetBtn" style="margin-top:14px;">Réinitialiser cette valeur</button>
     </div>
@@ -707,7 +716,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-20T15:15:00Z';
+const BUILD_TIME_UTC = '2026-09-20T15:24:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1207,7 +1216,7 @@ function goTo(view){
   if(view==='preparation') resetPreparationForm();
   if(view==='position') renderPosition();
   if(view==='bilan') renderBilan();
-  if(view==='go') renderGo();
+  if(view==='go'){ renderGo(); goDatesAuto(); }
   if(view==='pepites'){ renderMomentum(); renderScan(); renderSelectionExterne(); renderCroisement(); renderPepites(); }
   // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
   // vers Achat avec les données qu'il vient de préparer — on ne touche pas à ce cas), on
@@ -3014,6 +3023,8 @@ renderCroisement();
 // Réutilise les séries EOD déjà mises en cache par le scan (dgSerie) : ATR, RSI, moyennes
 // mobiles, volumes, position dans le range, performance relative au CAC 40.
 let anaRunning = false;
+const ANA_KEY = 'bigdeal-analyse-v1';
+function anaMemo(tk){ try{ return (JSON.parse(localStorage.getItem(ANA_KEY)||'{}'))[tk] || null; }catch(e){ return null; } }
 function anaRsi(closes, n){
   if(closes.length <= n+1) return null;
   let g = 0, p = 0;
@@ -3173,6 +3184,27 @@ async function anaRun(){
       }
     }catch(e){}
 
+    // --- indice pour penser à l'achat : la première condition qui manque, chiffrée ---
+    const decl = [];
+    const mm20v = sma(closes, 20), mm50v = sma(closes, 50), mm200v = sma(closes, 200);
+    if(mm20v != null && last <= mm20v)
+      decl.push(`attendre une clôture au-dessus de la MM20, soit <b>${fmt(mm20v)}</b> (${((mm20v/last-1)*100).toFixed(1)} % au-dessus du cours actuel)`);
+    if(rat > .8)
+      decl.push(`attendre que l'ATR retombe sous <b>${fmt(aPic*0.8)}</b> — il est à ${fmt(aNow)} : tant qu'il reste proche de son pic, le titre bouge trop pour une entrée propre`);
+    if(r2 != null && r2 >= 90 && mm20v != null && last > mm20v)
+      decl.push(`ne pas acheter dans l'excès de hausse : attendre un repli vers la MM20, soit <b>${fmt(mm20v)}</b>`);
+    if(mm50v != null && last <= mm50v)
+      decl.push(`la tendance à moyen terme se répare au-dessus de <b>${fmt(mm50v)}</b> (MM50)`);
+    if(mm200v != null && last <= mm200v)
+      decl.push(`la tendance de fond ne redevient haussière qu'au-dessus de <b>${fmt(mm200v)}</b> (MM200) — c'est long, ce n'est pas une condition d'entrée`);
+    const declHtml = `<div class="ana-decl">
+      <div class="ana-decl-lab">Indice pour penser à l'achat</div>
+      <div class="ana-decl-main">${decl.length ? decl[0].charAt(0).toUpperCase() + decl[0].slice(1) + '.'
+        : `Rien ne bloque aujourd'hui côté cours. Si tu achètes, le stop se place d'emblée à <b>${fmt(last - 3*aNow)}</b> (3 × ATR) : c'est le niveau qui invalide l'idée.`}</div>
+      ${decl.length > 1 ? `<div class="ana-decl-sec">Ensuite : ${decl.slice(1, 3).join(' ; ')}.</div>` : ''}
+      ${decl.length ? `<div class="ana-decl-sec">Et si ça se met en place : stop à ${fmt(last - 3*aNow)} au cours actuel, à recalculer le jour de l'achat.</div>` : ''}
+    </div>`;
+
     // --- note globale : moyenne PONDÉRÉE des voyants (vert = 1, orange = 0,5, rouge = 0) ---
     const note = pTotal ? pObtenu / pTotal * 10 : 0;
     const nCls = note >= 7 ? 'green' : note >= 4.5 ? 'amber' : 'red';
@@ -3189,9 +3221,18 @@ async function anaRun(){
       </div>
     </div>`;
     const stop = last - 3*aNow;
+    // Mémorise l'analyse pour l'onglet Go (pré-remplissage des réponses).
+    try{
+      const memo = JSON.parse(localStorage.getItem(ANA_KEY) || '{}');
+      memo[tk] = {date: new Date().toISOString(), note: +note.toFixed(1), cours: last, atr: aNow, stop,
+                  mm20: sma(closes,20), mm50: sma(closes,50), mm200: sma(closes,200),
+                  rsi14: r14, rsi2: r2, dd: dgBaisse(closes), atrRatio: rat, decl: decl.length ? decl[0].replace(/<[^>]+>/g,'') : null};
+      localStorage.setItem(ANA_KEY, JSON.stringify(memo));
+    }catch(e){}
     box.innerHTML = `<div class="card" style="margin-top:12px;">
       <div class="an-card-head"><div><div class="an-ticker">${nom}</div><div class="an-name">${tk}</div></div><div class="an-price">${fmt(last)}</div></div>
       ${noteHtml}
+      ${declHtml}
       <div class="dg-val-chiffres" style="margin-bottom:8px;">${vert} voyant(s) vert · ${orange} orange · ${rouge} rouge — au ${d.dates[d.dates.length-1]}<br>Note pondérée : chaque indicateur pèse selon son utilité démontrée (2 = déterminant, 0,5 = accessoire).</div>
       <div class="an-metrics">${rows.join('')}</div>
       <div class="dg-step">Pour dimensionner la position</div>
@@ -3251,11 +3292,47 @@ function goItemFait(e, it){
   if(it.opts) return !!e[it.k];
   return e[it.k] === true;
 }
+// Contexte repris des analyses déjà faites (onglet Analyse, scan des secteurs, momentum).
+function goContexte(tk){
+  const c = {};
+  const a = anaMemo(tk);
+  if(a){
+    c.ana = a;
+    c.q2 = `Analyse du ${new Date(a.date).toLocaleDateString('fr-FR')} : MM20 à ${fmt(a.mm20)}, cours ${fmt(a.cours)}, stop 3 × ATR ${fmt(a.stop)}.`
+         + (a.decl ? `<br>Déclencheur retenu : ${a.decl}.` : '');
+  }
+  const sc = dgRetenues().find(x=>x.tk===tk);
+  if(sc){
+    c.scan = sc;
+    c.q1 = `Scan des secteurs : baisse de ${sc.baisse.toFixed(1)} %, écart de ${sc.ecart>=0?'+':''}${sc.ecart.toFixed(0)} pts avec son secteur → cause ${sc.cause}.`;
+  }
+  const rang = momRang(tk);
+  if(rang) c.mom = `Momentum 12-1 : rang ${rang} sur 40${rang<=20?' — dans le top 20':''}.`;
+  if(dgState && dgState.secteurs){
+    const sect = sc ? dgState.secteurs.find(x=>x.nomSect === sc.sect) : null;
+    if(sect){
+      c.sect = sect;
+      const etat = sect.med <= DG_SEUIL_SECTEUR ? 'en crise' : sect.med <= -8 ? 'sous pression' : 'sans baisse marquée';
+      c.q4 = `Scan des secteurs : ${sect.nomSect} ${etat} (baisse médiane ${sect.med.toFixed(1)} %).`;
+    }
+  }
+  return c;
+}
 function renderGo(){
   const liste = $('goListe'), etat = $('goEtat');
   if(!liste) return;
   const tk = goTicker();
   if(!tk){ liste.innerHTML = '<div class="empty">Choisis une valeur ci-dessus.</div>'; return; }
+  const ctx = goContexte(tk);
+  // Pré-remplissage : uniquement des champs encore vides, jamais par-dessus une saisie.
+  const d0 = goData[tk] = goData[tk] || {};
+  let modif = false;
+  if(!d0.niveau && ctx.ana && ctx.ana.mm20){ d0.niveau = fmt(ctx.ana.mm20).replace(/\s?€/, ''); modif = true; }
+  if(!d0.q4 && ctx.sect){
+    d0.q4 = ctx.sect.med <= DG_SEUIL_SECTEUR ? 'sect_b' : ctx.sect.med <= -8 ? 'sect_n' : 'sect_h';
+    modif = true;
+  }
+  if(modif) goSauver();
   const e = goEtatDe(tk);
   let h = '';
   GO_ITEMS.forEach((it, i)=>{
@@ -3263,7 +3340,8 @@ function renderGo(){
     h += `<div class="go-item${fait?' fait':''}">
       <label class="go-q"><input type="checkbox" data-k="${it.k}" ${fait?'checked':''} ${it.opts?'disabled':''}>
         <div class="go-q-txt">${i+1}. ${it.t}</div></label>
-      <div class="go-aide">${it.aide}</div>`;
+      <div class="go-aide">${it.aide}</div>
+      ${ctx[it.k] ? `<div class="go-ctx">${ctx[it.k]}${it.k==='q1' && ctx.mom ? '<br>'+ctx.mom : ''}</div>` : ''}`;
     if(it.opts){
       h += '<div class="go-sub">' + it.opts.map(([v,lab])=>
         `<label class="go-opt${e[it.k]===v?' on':''}"><input type="radio" name="go-${it.k}" value="${v}" ${e[it.k]===v?'checked':''}><span>${lab}</span></label>`
@@ -3308,6 +3386,7 @@ if($('goSelect')){
   $('goSelect').addEventListener('change', ()=>{
     if($('anaSelect')) $('anaSelect').value = $('goSelect').value;   // garder les deux onglets alignés
     renderGo();
+    goDatesAuto();
   });
 }
 if($('anaSelect')) $('anaSelect').addEventListener('change', ()=>{
@@ -3316,7 +3395,7 @@ if($('anaSelect')) $('anaSelect').addEventListener('change', ()=>{
 // Dates à venir pour une valeur : détachement du dividende et prochains résultats (EODHD).
 // Mêmes endpoints que « Analyser une valeur », tolérants à l'échec : selon le plan souscrit, le
 // calendrier des résultats peut ne pas être inclus.
-async function goDates(){
+async function goDates(auto){
   const tk = goTicker(), msg = $('goDatesMsg'), btn = $('goDatesBtn');
   if(!tk) return;
   if(btn){ btn.disabled = true; btn.textContent = 'Récupération…'; }
@@ -3346,16 +3425,30 @@ async function goDates(){
   const d = goData[tk] = goData[tk] || {};
   if(earn) d.dResu = earn;
   if(div) d.dDiv = div;
+  d.datesLe = new Date().toISOString();
   goSauver();
   renderGo();
-  if(msg){
+  if(msg && !(auto && !earn && !div)){
     const ok = [earn ? `résultats le ${fmtDate(earn)}` : null, div ? `détachement le ${fmtDate(div)}` : null].filter(Boolean);
     msg.innerHTML = (ok.length ? '✓ ' + ok.join(' · ') : 'Rien récupéré.')
       + (err.length ? `<br>${err.join(' · ')} — complète à la main si besoin, et recoupe avec Boursorama.` : ' — à recouper avec Boursorama.');
   }
-  if(btn){ btn.disabled = false; btn.textContent = 'Récupérer les dates (EODHD)'; }
+  if(btn){ btn.disabled = false; btn.textContent = 'Actualiser les dates (EODHD)'; }
 }
-if($('goDatesBtn')) $('goDatesBtn').addEventListener('click', goDates);
+if($('goDatesBtn')) $('goDatesBtn').addEventListener('click', ()=>goDates(false));
+// Récupération automatique à l'ouverture de l'onglet ou au changement de valeur, si les dates
+// manquent ou datent de plus de 7 jours. Silencieuse : aucune erreur affichée si le relais refuse.
+async function goDatesAuto(){
+  const tk = goTicker();
+  if(!tk) return;
+  const d = goData[tk] || {};
+  const frais = d.datesLe && (Date.now() - new Date(d.datesLe).getTime()) < 7*86400000;
+  if((d.dResu && d.dDiv && frais) || goAutoEnCours) return;
+  goAutoEnCours = true;
+  try{ await goDates(true); }catch(e){}
+  goAutoEnCours = false;
+}
+let goAutoEnCours = false;
 if($('goResetBtn')) $('goResetBtn').addEventListener('click', ()=>{
   const tk = goTicker();
   if(!tk || !confirm('Effacer les réponses pour ' + (UNIVERSE[tk]||tk) + ' ?')) return;
