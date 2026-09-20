@@ -344,6 +344,8 @@
     </div>
     <div class="card" id="goCard">
       <div id="goListe"></div>
+      <button class="btn ghost" id="goDatesBtn" style="margin-top:12px;">Récupérer les dates (EODHD)</button>
+      <p class="small" id="goDatesMsg" style="margin-top:6px;opacity:.8;"></p>
       <button class="btn ghost" id="goResetBtn" style="margin-top:14px;">Réinitialiser cette valeur</button>
     </div>
   </section>
@@ -411,21 +413,6 @@
     </div>
     <div id="pepResults">
       <div class="empty">Lance le scan ou ajoute une valeur ci-dessus pour évaluer son momentum.</div>
-    </div>
-    <div class="card">
-      <h3>⭐ Valeurs à suivre</h3>
-      <p class="small">Indique les valeurs que tu veux suivre en continu (tes pépites) : je te dis si le moment semble bon pour entrer, notamment selon la proximité d'un support. Contrairement à la liste ci-dessus, cette sélection est sauvegardée automatiquement et affiche toutes les valeurs suivies, quel que soit leur score.</p>
-      <div class="an-input-row">
-        <div class="an-autocomplete" style="flex:1;">
-          <input type="text" id="watchTickerInput" placeholder="Nom(s), ex. LVMH ou LVMH, Air Liquide" autocomplete="off">
-          <div class="an-ac-list" id="watchAutocomplete"></div>
-        </div>
-        <button class="btn primary" id="watchAddBtn" style="width:auto;margin-top:0;">Suivre</button>
-      </div>
-      <div class="an-chips" id="watchChips"></div>
-    </div>
-    <div id="watchResults">
-      <div class="empty">Ajoute une valeur ci-dessus pour la suivre en continu.</div>
     </div>
   </section>
   <!-- ================= PRÉPARATION ================= -->
@@ -707,7 +694,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-13T14:41:00Z';
+const BUILD_TIME_UTC = '2026-09-20T15:05:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -2813,8 +2800,10 @@ async function dgScan(){
       liste.forEach(tk=>{ const d = series[tk]; if(d){ const b = dgBaisse(d.closes); if(b != null) vals.push({tk, b}); } });
       if(!vals.length) continue;
       const med = dgMediane(vals.map(v=>v.b));
-      const pire = vals.slice().sort((a,b)=>a.b-b.b)[0];
-      rangs.push({nomSect, med, n: vals.length, pire: {tk: pire.tk, b: pire.b}, vals});
+      const tri = vals.slice().sort((a,b)=>a.b-b.b);        // de la plus touchée à la moins touchée
+      const pire = tri[0];
+      const moins = tri.slice().reverse().slice(0, 3).map(v=>({tk: v.tk, b: v.b}));
+      rangs.push({nomSect, med, n: vals.length, pire: {tk: pire.tk, b: pire.b}, moins, vals});
     }
     rangs.sort((a,b)=>a.med-b.med);
 
@@ -2847,7 +2836,7 @@ async function dgScan(){
 
     dgState = {
       date: new Date().toISOString(), seuil: Math.abs(seuil), ddIx,
-      secteurs: rangs.map(r=>({nomSect: r.nomSect, med: r.med, n: r.n, pire: r.pire})),
+      secteurs: rangs.map(r=>({nomSect: r.nomSect, med: r.med, n: r.n, pire: r.pire, moins: r.moins})),
       cands
     };
     dgSauver();
@@ -2889,6 +2878,7 @@ function renderScan(){
     h += `<div class="dg-val" style="padding:9px 0;">
       <div class="dg-val-head"><div class="dg-val-nom">${r.nomSect}</div><div class="dg-num">${r.med.toFixed(1)} %</div></div>
       <div class="dg-val-chiffres"><span class="dg-etat ${etat[1]}">${etat[0]}</span> · la plus touchée : ${UNIVERSE[r.pire.tk]||r.pire.tk} ${r.pire.b.toFixed(0)} %${seul}</div>
+      ${r.moins && r.moins.length ? `<div class="dg-val-chiffres">les moins touchées : ${r.moins.map(m=>`${UNIVERSE[m.tk]||m.tk} ${m.b.toFixed(0)} %`).join(' · ')}</div>` : ''}
     </div>`;
   });
   const nCand = dgState.cands.filter(c=>c.tag === 'CANDIDAT').length;
@@ -2965,7 +2955,6 @@ function renderCroisement(){
         plus bas il y a ${c.depuis} séance(s) · ATR ${c.atrRatio!=null?(c.atrRatio*100).toFixed(0)+' % du pic':'—'} · ${c.surMM20?'au-dessus de':'sous'} sa MM20<br>
         cours ${fmt(c.cours)} · stop 3 × ATR ${c.stop!=null?fmt(c.stop):'—'}
       </div>
-      <button class="btn ghost cxGoBtn" data-nom="${UNIVERSE[tk]||tk}" style="margin-top:8px;">Analyser dans Préparation →</button>
     </div>`;
   };
 
@@ -3002,10 +2991,6 @@ function renderCroisement(){
 
   h += `<p class="small" style="margin-top:12px;">Être dans plusieurs listes ne vaut pas signal d'achat : le momentum joue la tendance, le scan joue le rebond après excès. Passe par le process d'achat, et rappelle-toi que la règle momentum ne vaut que sur les 20 valeurs détenues ensemble.</p>`;
   box.innerHTML = h;
-  box.querySelectorAll('.cxGoBtn').forEach(b=>b.addEventListener('click', async ()=>{
-    goTo('preparation');
-    await anAddTickers(b.dataset.nom);
-  }));
 }
 if($('cxRefreshBtn')) $('cxRefreshBtn').addEventListener('click', renderCroisement);
 renderCroisement();
@@ -3275,6 +3260,49 @@ if($('goSelect')){
 if($('anaSelect')) $('anaSelect').addEventListener('change', ()=>{
   if($('goSelect')){ $('goSelect').value = $('anaSelect').value; renderGo(); }
 });
+// Dates à venir pour une valeur : détachement du dividende et prochains résultats (EODHD).
+// Mêmes endpoints que « Analyser une valeur », tolérants à l'échec : selon le plan souscrit, le
+// calendrier des résultats peut ne pas être inclus.
+async function goDates(){
+  const tk = goTicker(), msg = $('goDatesMsg'), btn = $('goDatesBtn');
+  if(!tk) return;
+  if(btn){ btn.disabled = true; btn.textContent = 'Récupération…'; }
+  if(msg) msg.textContent = '';
+  const today = new Date().toISOString().slice(0,10);
+  let div = null, earn = null, err = [];
+  try{
+    const dv = await eodFetch(`/div/${encodeURIComponent(tk)}`);
+    if(Array.isArray(dv) && dv.length){
+      const avecDate = dv.filter(x=>x.date).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+      const futur = avecDate.filter(x=>x.date >= today);
+      div = futur.length ? futur[0].date : null;
+      if(!div && avecDate.length) err.push(`dernier détachement connu : ${fmtDate(avecDate[avecDate.length-1].date)} (pas de date future publiée)`);
+    }
+  }catch(e){ err.push('dividende indisponible'); }
+  try{
+    const ec = await eodFetch(`/calendar/earnings`, `&symbols=${encodeURIComponent(tk)}&from=${today}&to=${isoDateDaysAgo(-180)}`);
+    const list = ec && ec.earnings;
+    if(Array.isArray(list) && list.length){
+      const futur = list.map(x=>({date: x.report_date || x.date})).filter(x=>x.date && x.date >= today)
+        .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+      earn = futur.length ? futur[0].date : null;
+    }
+    if(!earn) err.push('aucune date de résultats publiée sur les 6 prochains mois');
+  }catch(e){ err.push('calendrier des résultats non inclus dans ton plan EODHD'); }
+
+  const d = goData[tk] = goData[tk] || {};
+  if(earn) d.dResu = earn;
+  if(div) d.dDiv = div;
+  goSauver();
+  renderGo();
+  if(msg){
+    const ok = [earn ? `résultats le ${fmtDate(earn)}` : null, div ? `détachement le ${fmtDate(div)}` : null].filter(Boolean);
+    msg.innerHTML = (ok.length ? '✓ ' + ok.join(' · ') : 'Rien récupéré.')
+      + (err.length ? `<br>${err.join(' · ')} — complète à la main si besoin, et recoupe avec Boursorama.` : ' — à recouper avec Boursorama.');
+  }
+  if(btn){ btn.disabled = false; btn.textContent = 'Récupérer les dates (EODHD)'; }
+}
+if($('goDatesBtn')) $('goDatesBtn').addEventListener('click', goDates);
 if($('goResetBtn')) $('goResetBtn').addEventListener('click', ()=>{
   const tk = goTicker();
   if(!tk || !confirm('Effacer les réponses pour ' + (UNIVERSE[tk]||tk) + ' ?')) return;
@@ -3511,106 +3539,6 @@ pepTInput.addEventListener('keydown', e=>{
   }
 });
 // =====================================================================
-// ============= VALEURS À SUIVRE — watchlist persistée ================
-// =====================================================================
-// Contrairement à pepList (scratchpad du scan, jamais persisté), cette liste-ci répond à la
-// demande explicite "une rubrique valeur à suivre où je te donne des valeurs, mes pépites, et tu
-// me dis si c'est le bon moment d'entrée en fonction des supports" : seuls les TICKERS sont
-// persistés (appState.watchTickers, via saveWatchTickers()) ; les données techniques, elles, sont
-// toujours rechargées en direct (jamais mises en cache) pour ne jamais afficher un signal périmé.
-// Le "bon moment selon les supports" vient du nouveau pattern "Rebond sur support" dans
-// detectPatterns(), qui alimente pepiteVerdict() — donc pepCardHTML() est réutilisé tel quel.
-let watchList = [];
-function renderWatchChips(){
-  const box = $('watchChips');
-  if(!box) return;
-  box.innerHTML = watchList.map(e=>`<div class="an-chip" data-ticker="${e.ticker}">${UNIVERSE[e.ticker]||e.ticker} ✕</div>`).join('');
-  box.querySelectorAll('.an-chip').forEach(c=>{
-    c.onclick = async ()=>{
-      watchList = watchList.filter(e=>e.ticker!==c.dataset.ticker);
-      renderWatchChips();
-      renderWatchResults();
-      await saveWatchTickers(watchList.map(e=>e.ticker));
-    };
-  });
-}
-function renderWatchResults(){
-  const box = $('watchResults');
-  if(!box) return;
-  if(watchList.length===0){ box.innerHTML = '<div class="empty">Ajoute une valeur ci-dessus pour la suivre en continu.</div>'; return; }
-  // Contrairement au scan Pépites (filtré au vert), la watchlist affiche TOUTES les valeurs suivies
-  // quel que soit leur score : ce sont des valeurs choisies par l'utilisateur, pas un dépistage.
-  box.innerHTML = watchList.map(e=>pepCardHTML(e)).join('');
-  box.querySelectorAll('.pepDetailBtn').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      goTo('preparation');
-      await anAddTickers(btn.dataset.nom);
-    });
-  });
-}
-async function watchAddTickers(raw){
-  const parts = raw.split(/[,;\n]+/).map(t=>t.trim()).filter(Boolean);
-  let added = false;
-  for(let part of parts){
-    const t = resolveTicker(part);
-    if(!t) continue;
-    if(watchList.some(e=>e.ticker===t)) continue;
-    const entry = {ticker:t, state:'loading'};
-    watchList.push(entry);
-    added = true;
-    renderWatchChips();
-    renderWatchResults();
-    try{
-      entry.data = await loadStock(t);
-      entry.state = 'done';
-    }catch(e){
-      entry.state = 'error'; entry.msg = e.message;
-    }
-    renderWatchResults();
-  }
-  $('watchTickerInput').value = '';
-  if(added) await saveWatchTickers(watchList.map(e=>e.ticker));
-}
-$('watchAddBtn').addEventListener('click', ()=>{ $('watchAutocomplete').classList.remove('show'); watchAddTickers($('watchTickerInput').value); });
-// ---------- autocomplétion de la watchlist (même logique que Pépites/Analyse) ----------
-const watchAcBox = $('watchAutocomplete');
-const watchTInput = $('watchTickerInput');
-function watchRenderAC(){
-  const frag = anCurrentFragment(watchTInput.value).trim();
-  const list = anSuggestions(frag);
-  if(!list.length){ watchAcBox.classList.remove('show'); watchAcBox.innerHTML=''; return; }
-  watchAcBox.innerHTML = list.map(([code,name])=>
-    `<div class="an-ac-item" data-name="${name.replace(/"/g,'&quot;')}"><span class="an-ac-name">${name}</span><span class="an-ac-code">${code}</span></div>`
-  ).join('');
-  watchAcBox.classList.add('show');
-  watchAcBox.querySelectorAll('.an-ac-item').forEach(el=>{
-    el.onclick = ()=>{
-      const val = watchTInput.value;
-      const idx = Math.max(val.lastIndexOf(','), val.lastIndexOf(';'));
-      const prefix = idx>=0 ? val.slice(0,idx+1)+' ' : '';
-      watchTInput.value = prefix + el.dataset.name;
-      watchAcBox.classList.remove('show'); watchAcBox.innerHTML='';
-      watchTInput.focus();
-    };
-  });
-}
-watchTInput.addEventListener('input', watchRenderAC);
-watchTInput.addEventListener('focus', watchRenderAC);
-document.addEventListener('click', e=>{
-  if(!watchAcBox.contains(e.target) && e.target!==watchTInput){ watchAcBox.classList.remove('show'); }
-});
-watchTInput.addEventListener('keydown', e=>{
-  if(e.key==='Enter'){
-    const first = watchAcBox.querySelector('.an-ac-item');
-    if(watchAcBox.classList.contains('show') && first){
-      e.preventDefault();
-      first.click();
-    } else {
-      watchAcBox.classList.remove('show');
-      watchAddTickers(watchTInput.value);
-    }
-  }
-});
 // ---------- Init ----------
 loadPositions().then(p=>{
   positions = p;
@@ -3625,19 +3553,6 @@ loadPositions().then(p=>{
   }catch(e){}
 });
 loadApiKey().then(()=>{ renderAnalyse(); });
-// Recharge en direct les tickers de la watchlist persistée (jamais de données mises en cache d'une
-// session à l'autre, pour ne jamais afficher un signal périmé).
-loadWatchTickers().then(async saved=>{
-  saved.forEach(t=>{ if(!watchList.some(e=>e.ticker===t)) watchList.push({ticker:t, state:'loading'}); });
-  if(watchList.length===0) return;
-  renderWatchChips();
-  renderWatchResults();
-  for(const entry of watchList){
-    try{ entry.data = await loadStock(entry.ticker); entry.state = 'done'; }
-    catch(e){ entry.state = 'error'; entry.msg = e.message; }
-    renderWatchResults();
-  }
-});
 })();
 </script>
 </body>
