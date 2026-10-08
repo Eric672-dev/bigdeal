@@ -760,7 +760,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-08T18:55:00Z';
+const BUILD_TIME_UTC = '2026-10-08T19:20:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1767,8 +1767,8 @@ function suiviValHtml(p, key){
   return `<div style="margin-top:10px;padding:10px;border:1px solid var(--amber);border-radius:9px;">
     <p style="margin:0 0 8px;font-weight:700;font-size:14px;">Seuil sélectionné : ${pr.label} → <span class="mono">${fmt(pr.stop)}</span></p>
     ${(!p.historique || !p.historique.length) ? `<p class="small" style="margin:0 0 8px;color:var(--amber);">Aucun cours valeur du jour enregistré : le seuil est calculé sur le cours d'achat. Enregistre d'abord le cours du jour ci-dessus.</p>` : ''}
-    ${deja ? `<p class="small" style="margin:0 0 8px;color:var(--red);font-weight:700;">Rien à enregistrer : le stop actuel (${fmt(p.stop)}) est déjà au même niveau ou plus protecteur que ${fmt(pr.stop)}. Le stop ne peut que monter (cliquet) — choisis un seuil plus haut.</p>` : ''}
-    <button class="btn primary btnValSeuil" style="margin-top:0;" ${deja ? 'disabled' : ''}>✅ Validation — sélection du seuil de protection</button>
+    ${deja ? `<p class="small" style="margin:0 0 8px;color:var(--amber);">Pour info : ce seuil (${fmt(pr.stop)}) n'est pas plus haut que ton stop actuel (${fmt(p.stop)}). Tu peux valider quand même, il sera enregistré tel quel.</p>` : ''}
+    <button class="btn primary btnValSeuil" style="margin-top:0;">✅ Validation — sélection du seuil de protection</button>
   </div>`;
 }
 async function suiviChargerAtr(tickers){
@@ -1895,16 +1895,13 @@ async function renderSuivi(){
         const pr = key ? suiviPropose(pos, key) : null;
         if(!pr){ toast('ATR indisponible pour cette valeur'); return; }
         delete suiviSel[pos.id];
-        if(pr.stop <= pos.stop){
-          await savePositions(positions, `Stop actuel (${fmt(pos.stop)}) déjà plus protecteur — aucun changement (cliquet).`);
-          await renderSuivi();
-          return;
-        }
+        // Aucune condition : le seuil choisi est toujours enregistré (stop de la position + journal du Bilan).
+        const plusBas = pr.stop < (pos.stop || 0);
         pos.lastAdjChoice = key;
         pos.stop = pr.stop;
         if(!Array.isArray(pos.stopHistorique)) pos.stopHistorique = [];
-        pos.stopHistorique.push({date: nowDateTime(), stop: pr.stop, methode: pr.methode});
-        await savePositions(positions, `Nouveau stop : ${fmt(pr.stop)}`);
+        pos.stopHistorique.push({date: nowDateTime(), stop: pr.stop, methode: pr.methode + (plusBas ? ' (stop abaissé)' : '')});
+        await savePositions(positions, `Protection enregistrée : ${fmt(pr.stop)} — visible dans Position et Bilan`);
         await renderSuivi();
       });
     };
@@ -3329,6 +3326,31 @@ function anaRow(dir, lab, val, txt, poids){
     <div class="an-m-txt">${txt}</div></div></div>`;
 }
 // Calcule la note d'une valeur (barème pondéré ci-dessus) et retourne la fiche détaillée en HTML.
+// Mini-graphique des 10 dernières séances : chaque segment est vert si la clôture a monté par rapport à la veille,
+// rouge si elle a baissé (11 clôtures pour avoir 10 variations).
+function spark10(closes, dates){
+  const c = (closes||[]).slice(-11).filter(Number.isFinite);
+  if(c.length < 3) return '';
+  const dts = (dates||[]).slice(-c.length);
+  const W = 260, H = 64, pad = 8;
+  const lo = Math.min(...c), hi = Math.max(...c), rg = (hi-lo) || 1;
+  const x = i => pad + i*(W-2*pad)/(c.length-1);
+  const y = v => H-pad - (v-lo)/rg*(H-2*pad);
+  let seg = '', dots = '', hausses = 0, baisses = 0;
+  for(let i=1;i<c.length;i++){
+    const up = c[i] >= c[i-1];
+    if(up) hausses++; else baisses++;
+    const col = up ? 'var(--green)' : 'var(--red)';
+    seg += `<line x1="${x(i-1).toFixed(1)}" y1="${y(c[i-1]).toFixed(1)}" x2="${x(i).toFixed(1)}" y2="${y(c[i]).toFixed(1)}" stroke="${col}" stroke-width="2.4" stroke-linecap="round"/>`;
+    dots += `<circle cx="${x(i).toFixed(1)}" cy="${y(c[i]).toFixed(1)}" r="3.2" fill="${col}"><title>${dts[i] ? frIso(dts[i]) + ' : ' : ''}${fmt(c[i])} (${up?'hausse':'baisse'})</title></circle>`;
+  }
+  dots += `<circle cx="${x(0).toFixed(1)}" cy="${y(c[0]).toFixed(1)}" r="3" fill="var(--dim)"><title>${dts[0] ? frIso(dts[0]) + ' : ' : ''}${fmt(c[0])} (point de départ)</title></circle>`;
+  const perf = (c[c.length-1]/c[0]-1)*100;
+  return `<div class="spark10" style="margin:-4px 0 12px;">
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Évolution des ${c.length-1} dernières séances" preserveAspectRatio="xMidYMid meet">${seg}${dots}</svg>
+    <div class="small" style="margin-top:2px;">${c.length-1} dernières séances : <b style="color:${perf>=0?'var(--green)':'var(--red)'}">${perf>=0?'+':''}${perf.toFixed(1)} %</b> — <span style="color:var(--green)">${hausses} en hausse</span> · <span style="color:var(--red)">${baisses} en baisse</span></div>
+  </div>`;
+}
 async function anaBuild(tk){
   const nom = UNIVERSE[tk] || tk;
   {
@@ -3480,7 +3502,7 @@ async function anaBuild(tk){
       <div class="ana-note-txt"><div class="ana-note-titre">${nTitre}</div>${nTxt}
         <div class="ana-jauge"><i style="width:${Math.round(note*10)}%"></i></div>
       </div>
-    </div>`;
+    </div>${spark10(closes, d.dates)}`;
     const stop = last - 3*aNow;
     // Mémorise l'analyse pour l'onglet Go (pré-remplissage des réponses).
     try{
