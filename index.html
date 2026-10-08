@@ -448,10 +448,10 @@
       <div class="empty">Lance le scan ou ajoute une valeur ci-dessus pour évaluer son momentum.</div>
     </div>
     <div class="card">
-      <h3>Analyser une valeur</h3>
+      <h3>Analyser et noter les valeurs</h3>
       <p class="small">Analyse les 40 valeurs du CAC 40 avec tous les indicateurs (chacun avec un voyant : vert = favorable à un achat, orange = à surveiller, rouge = défavorable), puis n'affiche que celles notées <b>8/10 ou plus</b>. Environ une minute. Indicatif, et à confirmer par ta propre analyse — ni prédiction, ni conseil financier.</p>
-      <button class="btn primary" id="anaRunBtn" style="margin-top:12px;">Analyser les 40 valeurs</button>
-      <div id="anaResults"><div class="empty">Aucun run en mémoire. Appuie sur « Analyser les 40 valeurs ».</div></div>
+      <button class="btn primary" id="anaRunBtn" style="margin-top:12px;">Analyser et noter les valeurs</button>
+      <div id="anaResults"><div class="empty">Aucun run en mémoire. Appuie sur « Analyser et noter les valeurs ».</div></div>
     </div>
   </section>
   <!-- ================= ANALYSE ================= -->
@@ -760,7 +760,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-08T17:38:00Z';
+const BUILD_TIME_UTC = '2026-10-08T18:03:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1653,6 +1653,8 @@ $('btnEnregistrer').addEventListener('click', async ()=>{
     atr: parseFloat($('achATR').value)||null,
     ma20: parseFloat($('achMA20').value)||null,
     beta: parseFloat($('achBeta').value)||null,
+    dateResultat: ($('prepDateResultat') ? $('prepDateResultat').value.trim() : '') || '',
+    dateDividende: ($('prepDateDividende') ? $('prepDateDividende').value.trim() : '') || '',
     stopType: stopChoice, stop,
     typeAchat,
     historique: [],
@@ -1814,6 +1816,7 @@ async function renderSuivi(){
       <div class="kpi"><span>Coût de revient (CR)</span><span class="v">${fmt(p.CR)}</span></div>
       <div class="kpi"><span>Cours de protection (stop)</span><span class="v">${fmt(p.stop)}</span></div>
       <div class="kpi"><span>Quantité</span><span class="v">${p.qte}</span></div>
+      <div class="kpi" style="align-items:center;"><span>Date annonce résultat</span><span class="v"><input type="text" inputmode="numeric" class="dateResultatInput" placeholder="jj/mm/aaaa" value="${(p.dateResultat||'').replace(/"/g,'&quot;')}" style="width:120px;text-align:right;padding:6px 8px;margin:0;"></span></div>
       <hr class="dash">
       ${priceBar(p.CA, p.CR, p.stop, lastCV, p.ma20)}
       <hr class="dash">
@@ -1825,11 +1828,11 @@ async function renderSuivi(){
       <div class="kpi"><span>Gain net estimé / titre</span><span class="v" style="color:${gainNetUnit>=0?'var(--green)':'var(--red)'}">${fmt(gainNetUnit)} (${fmtPct(gainPct)})</span></div>
       <div class="kpi"><span>Gain net estimé total (${p.qte} titres)</span><span class="v" style="color:${gainNetTotal>=0?'var(--green)':'var(--red)'}">${fmt(gainNetTotal)}</span></div>
       <hr class="dash">
-      <h3 style="font-size:16px;color:var(--text);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">PROCESS À SUIVRE</h3>
+      <h3 style="font-size:18px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">PROCESS À SUIVRE</h3>
       ${!doitIntervenir ? `
-      <p class="small" style="color:var(--green);font-weight:700;">✓ Rien à faire — le cours valeur est encore sous le coût de revient (Cas 1). On n'ajuste le stop que si le cours valeur dépasse le coût de revient.</p>
+      <p style="color:var(--green);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">✓ Rien à faire — le cours valeur est encore sous le coût de revient (Cas 1). On n'ajuste le stop que si le cours valeur dépasse le coût de revient.</p>
       ` : `
-      <p class="small">Cours valeur ≥ coût de revient — ajuste la protection pour sécuriser le gain. Le cliquet n'autorise qu'une remontée du stop.</p>
+      <p style="font-weight:800;font-size:15.5px;line-height:1.45;color:var(--text);margin:6px 0 10px;">Cours valeur ≥ coût de revient — ajuste la protection pour sécuriser le gain. Le cliquet n'autorise qu'une remontée du stop.</p>
       <div class="stopOptions" style="grid-template-columns:1fr 1fr;">
         <div class="stopOpt adj ${choixActuel==='atr'?'selected':''}" data-atr="${SUIVI_ATR_MULT}"><div class="lbl">CV − ${String(SUIVI_ATR_MULT).replace('.',',')} × ATR</div><div class="val">${atrP ? fmt(lastCV - SUIVI_ATR_MULT*atrP) : '—'}</div><div class="small" style="color:var(--dim);margin-top:2px;">${atrP ? `ATR ${fmt(atrP)} × ${String(SUIVI_ATR_MULT).replace('.',',')} = ${fmt(atrP*SUIVI_ATR_MULT)}` : 'ATR indisponible'}</div>${atrP ? `<div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV - SUIVI_ATR_MULT*atrP)-p.CR)*p.qte)}</div>` : ''}</div>
         <div class="stopOpt adj ${choixActuel==='3'?'selected':''}" data-pct="3"><div class="lbl">−3% prudence tendance</div><div class="val">${fmt(lastCV*0.97)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.97)-p.CR)*p.qte)}</div></div>
@@ -1846,6 +1849,10 @@ async function renderSuivi(){
   wrap.querySelectorAll('.card').forEach(card=>{
     const id = card.dataset.id;
     const pos = positions.find(p=>p.id===id);
+    card.querySelector('.dateResultatInput').addEventListener('change', async (ev)=>{
+      pos.dateResultat = ev.target.value.trim();
+      await savePositions(positions, pos.dateResultat ? 'Date d\'annonce enregistrée' : 'Date d\'annonce effacée');
+    });
     card.querySelector('.cvSave').addEventListener('click', async ()=>{
       const cv = parseFloat(card.querySelector('.cvInput').value);
       if(!cv){ toast('Cours invalide'); return; }
@@ -3513,12 +3520,12 @@ async function anaRun(boxId, btnId){
     box.innerHTML = `<div class="an-error">${e.message || 'Analyse impossible'}</div>`;
   }
   anaRunning = false;
-  if(btn){ btn.disabled = false; btn.textContent = 'Analyser les 40 valeurs'; }
+  if(btn){ btn.disabled = false; btn.textContent = (btn.id==='anaRunBtn') ? 'Actualiser et noter les valeurs' : 'Analyser et noter les valeurs'; }
 }
 if($('anaRunBtn')) $('anaRunBtn').addEventListener('click', ()=> anaRun('anaResults','anaRunBtn'));
 try{
   const sv = JSON.parse(localStorage.getItem(ANA_SCAN_KEY)||'null');
-  if(sv && sv.date && Array.isArray(sv.hits) && $('anaResults')) anaRenderScan($('anaResults'), sv);
+  if(sv && sv.date && Array.isArray(sv.hits) && $('anaResults')){ anaRenderScan($('anaResults'), sv); if($('anaRunBtn')) $('anaRunBtn').textContent = 'Actualiser et noter les valeurs'; }
 }catch(e){}
 // Onglet Analyse : une seule valeur, au choix — même fiche et même note que le scan des 40 valeurs.
 async function anaRunOne(){
