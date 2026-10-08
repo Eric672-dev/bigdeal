@@ -337,7 +337,7 @@
     <button data-view="pepites">Pépites</button>
     <button data-view="selection">Valeur</button>
     <button data-view="analyse">Analyse</button>
-    <button data-view="go">Go</button>
+    <button data-view="go">Check</button>
     <button data-view="preparation" class="active">Préparation</button>
     <button data-view="achat">Achat</button>
     <button data-view="suivi">Suivi</button>
@@ -460,6 +460,7 @@
       <div class="sx-grid" id="selGrid"></div>
       <div class="sx-count" id="selCount"></div>
       <button class="btn ghost" id="selRefreshBtn" style="margin-top:10px;">Actualiser les seuils</button>
+      <p class="small" id="selMaj" style="margin-top:8px;font-family:'IBM Plex Mono',monospace;"></p>
     </div>
     <div id="selResults"></div>
   </section>
@@ -741,7 +742,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-08T15:46:00Z';
+const BUILD_TIME_UTC = '2026-10-08T16:18:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1245,7 +1246,7 @@ function goTo(view){
   if(view==='position') renderPosition();
   if(view==='bilan') renderBilan();
   if(view==='go'){ renderGo(); goDatesAuto(); }
-  if(view==='selection') renderSelectionTab();
+  if(view==='selection') renderSelectionTab(true);   // seuils, jauges et cours actualisés à chaque ouverture de l'onglet
   if(view==='pepites'){ renderMomentum(); renderScan(); renderSelectionExterne(); renderCroisement(); renderPepites(); }
   // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
   // vers Achat avec les données qu'il vient de préparer — on ne touche pas à ce cas), on
@@ -2702,7 +2703,6 @@ function pepCardHTML(entry){
     <div class="an-metrics" style="margin-top:10px;">
       ${v.reasons.map(r=>`<div class="an-metric"><div class="an-dot ${dotCls[r.dir]}"></div><div class="an-m-body"><div class="an-m-txt">${r.t}</div></div></div>`).join('')}
     </div>
-    <button class="btn ghost pepDetailBtn" data-ticker="${d.ticker}" data-nom="${UNIVERSE[d.ticker]||d.ticker}" style="margin-top:10px;">Acheter cette valeur (Préparation) →</button>
   </div>`;
 }
 // ---------- Classement momentum 12-1 (module en tête de l'onglet Pépites) ----------
@@ -3484,8 +3484,12 @@ function selToggle(tk){
 }
 // Seuils d'une valeur — mêmes règles que le reste de l'app (MM20/MM50, ATR sous 80 % de son pic,
 // RSI 2, stop à 3 × ATR) : ce sont les niveaux de cours à atteindre, calculés sur les dernières clôtures.
+const selCours = {};   // date du dernier cours par valeur
+const selNotes = {};   // note /10 par valeur, pour trier les cartes de l'onglet Valeur
 async function selCarte(tk){
   const a = await anaBuild(tk);   // même note pondérée /10 que l'onglet Analyse
+  selNotes[tk] = a.note;
+  selCours[tk] = a.lastDate;
   const d = await dgSerie(tk);
   const closes = d.closes, last = closes[closes.length-1];
   const atrS = dgAtrSerie(d.highs, d.lows, closes);
@@ -3544,8 +3548,10 @@ async function renderSelectionTab(refresh){
   grid.querySelectorAll('.sx-chip').forEach(c=> c.addEventListener('click', ()=> selToggle(c.dataset.tk)));
   if(cpt) cpt.innerHTML = `<b>${selList.length}</b>/${SEL_MAX} valeur(s) sélectionnée(s)` + (selList.length ? ' : ' + selList.map(tk=>UNIVERSE[tk]||tk).join(', ') : '');
   if(!box) return;
-  if(!selList.length){ box.innerHTML = '<div class="empty">Choisis jusqu\'à 5 valeurs ci-dessus pour voir leurs seuils.</div>'; return; }
+  if(!selList.length){ box.innerHTML = '<div class="empty">Choisis jusqu\'à 5 valeurs ci-dessus pour voir leurs seuils.</div>'; if($('selMaj')) $('selMaj').textContent=''; return; }
   const token = ++selToken;
+  const majEl = $('selMaj');
+  if(majEl && refresh) majEl.textContent = 'Actualisation en cours…';
   box.innerHTML = selList.map(tk=>`<div class="card" id="selc-${tk.replace(/\W/g,'_')}"><div class="an-loading">Chargement de ${UNIVERSE[tk]||tk}…</div></div>`).join('');
   for(const tk of selList.slice()){
     if(refresh) delete dgSerieCache[tk];
@@ -3554,9 +3560,25 @@ async function renderSelectionTab(refresh){
     catch(e){ h = `<div class="card"><div class="an-error"><b>${UNIVERSE[tk]||tk}</b> — ${e.message || 'données indisponibles'}</div></div>`; }
     if(token !== selToken) return;   // la sélection a changé entre-temps
     const el = $('selc-' + tk.replace(/\W/g,'_'));
-    if(el) el.outerHTML = h;
+    if(el){
+      const n = selNotes[tk];
+      el.outerHTML = `<div class="sel-w" data-note="${n!=null?n:''}">${h}</div>`;
+      // meilleure note en haut ; les cartes en chargement ou en erreur restent en bas
+      const ws = [...box.children];
+      ws.sort((x,y)=>{
+        const nx = parseFloat(x.dataset.note), ny = parseFloat(y.dataset.note);
+        return (isNaN(ny)?-1:ny) - (isNaN(nx)?-1:nx);
+      }).forEach(w=> box.appendChild(w));
+    }
+  }
+  if(refresh || !selMajDate) selMajDate = new Date();
+  if(majEl){
+    const cours = selList.map(tk=>selCours[tk]).filter(Boolean).sort().pop();
+    majEl.textContent = 'Dernière actualisation : ' + selMajDate.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})
+      + ' à ' + selMajDate.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) + (cours ? ' — cours au ' + frIso(cours) : '');
   }
 }
+let selMajDate = null;
 selCharger();
 if($('selRefreshBtn')) $('selRefreshBtn').addEventListener('click', ()=> renderSelectionTab(true));
 
@@ -3812,7 +3834,6 @@ function pepSnapCardHTML(it){
     <div class="an-metrics" style="margin-top:10px;">
       ${it.reasons.map(r=>`<div class="an-metric"><div class="an-dot ${dotCls[r.dir]||'grey'}"></div><div class="an-m-body"><div class="an-m-txt">${r.t}</div></div></div>`).join('')}
     </div>
-    <button class="btn ghost pepDetailBtn" data-ticker="${it.ticker}" data-nom="${nom}" style="margin-top:10px;">Acheter cette valeur (Préparation) →</button>
   </div>`;
 }
 function pepWireDetail(box){
