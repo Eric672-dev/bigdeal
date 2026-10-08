@@ -760,7 +760,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-08T17:22:00Z';
+const BUILD_TIME_UTC = '2026-10-08T17:38:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1740,6 +1740,23 @@ function priceLadder(CA, CR, stop, CV, ma20){
   }).join('')}</div>`;
 }
 // ---------- Suivi quotidien ----------
+// ATR14 actuel par valeur (EODHD), pour le seuil de vente « CV − 1,5 × ATR » du Process à suivre.
+// À défaut, on retombe sur l'ATR enregistré à l'achat (p.atr).
+const suiviAtrCache = {}, suiviAtrEssaye = {};
+const SUIVI_ATR_MULT = 1.5;
+async function suiviChargerAtr(tickers){
+  let nouveau = false;
+  for(const tk of tickers){
+    if(suiviAtrEssaye[tk]) continue;
+    suiviAtrEssaye[tk] = true;
+    try{
+      const d = await dgSerie(tk);
+      const a = atr14Euros(d.highs, d.lows, d.closes);
+      if(a!=null && isFinite(a)){ suiviAtrCache[tk] = a; nouveau = true; }
+    }catch(e){}
+  }
+  return nouveau;
+}
 async function renderSuivi(){
   const wrap = $('positionsWrap');
   try{
@@ -1780,6 +1797,7 @@ async function renderSuivi(){
     const cas = lastCV >= p.CR ? 2 : 1;
     const doitIntervenir = cas === 2; // on n'ajuste le stop que si le cours valeur est >= au coût de revient
     const choixActuel = p.lastAdjChoice || '3';
+    const atrP = suiviAtrCache[p.ticker]!=null ? suiviAtrCache[p.ticker] : (p.atr || null);
     const persCourante = persDe(p);
     const entete = persCourante !== persPrec
       ? `<div class="dg-step" style="margin:${persPrec===null?'4px':'18px'} 0 8px;border-top:none;padding-top:0;font-size:12px;color:var(--text);">${persCourante} — ${nbParPers[persCourante]} position${nbParPers[persCourante]>1?'s':''} ouverte${nbParPers[persCourante]>1?'s':''}</div>`
@@ -1807,12 +1825,13 @@ async function renderSuivi(){
       <div class="kpi"><span>Gain net estimé / titre</span><span class="v" style="color:${gainNetUnit>=0?'var(--green)':'var(--red)'}">${fmt(gainNetUnit)} (${fmtPct(gainPct)})</span></div>
       <div class="kpi"><span>Gain net estimé total (${p.qte} titres)</span><span class="v" style="color:${gainNetTotal>=0?'var(--green)':'var(--red)'}">${fmt(gainNetTotal)}</span></div>
       <hr class="dash">
-      <h3 style="font-size:16px;color:var(--text);text-transform:none;letter-spacing:0;margin-bottom:8px;">Process à suivre avant 17h30 (clôture)</h3>
+      <h3 style="font-size:16px;color:var(--text);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">PROCESS À SUIVRE</h3>
       ${!doitIntervenir ? `
       <p class="small" style="color:var(--green);font-weight:700;">✓ Rien à faire — le cours valeur est encore sous le coût de revient (Cas 1). On n'ajuste le stop que si le cours valeur dépasse le coût de revient.</p>
       ` : `
       <p class="small">Cours valeur ≥ coût de revient — ajuste la protection pour sécuriser le gain. Le cliquet n'autorise qu'une remontée du stop.</p>
-      <div class="stopOptions">
+      <div class="stopOptions" style="grid-template-columns:1fr 1fr;">
+        <div class="stopOpt adj ${choixActuel==='atr'?'selected':''}" data-atr="${SUIVI_ATR_MULT}"><div class="lbl">CV − ${String(SUIVI_ATR_MULT).replace('.',',')} × ATR</div><div class="val">${atrP ? fmt(lastCV - SUIVI_ATR_MULT*atrP) : '—'}</div><div class="small" style="color:var(--dim);margin-top:2px;">${atrP ? `ATR ${fmt(atrP)} × ${String(SUIVI_ATR_MULT).replace('.',',')} = ${fmt(atrP*SUIVI_ATR_MULT)}` : 'ATR indisponible'}</div>${atrP ? `<div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV - SUIVI_ATR_MULT*atrP)-p.CR)*p.qte)}</div>` : ''}</div>
         <div class="stopOpt adj ${choixActuel==='3'?'selected':''}" data-pct="3"><div class="lbl">−3% prudence tendance</div><div class="val">${fmt(lastCV*0.97)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.97)-p.CR)*p.qte)}</div></div>
         <div class="stopOpt adj ${choixActuel==='2'?'selected':''}" data-pct="2"><div class="lbl">−2% prudence</div><div class="val">${fmt(lastCV*0.98)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.98)-p.CR)*p.qte)}</div></div>
         <div class="stopOpt adj ${choixActuel==='1'?'selected':''}" data-pct="1"><div class="lbl">−1% sécuriser</div><div class="val">${fmt(lastCV*0.99)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.99)-p.CR)*p.qte)}</div></div>
@@ -1836,10 +1855,19 @@ async function renderSuivi(){
     });
     card.querySelectorAll('.adj').forEach(el=>{
       el.addEventListener('click', async ()=>{
-        const pct = parseFloat(el.dataset.pct);
-        pos.lastAdjChoice = String(pct);
+        const parAtr = el.dataset.atr != null;
+        const pct = parAtr ? null : parseFloat(el.dataset.pct);
         const lastCV = pos.historique.length ? pos.historique[pos.historique.length-1].cv : pos.CA;
-        const proposed = +(lastCV*(1-pct/100)).toFixed(2);
+        let proposed;
+        if(parAtr){
+          const atrP = suiviAtrCache[pos.ticker]!=null ? suiviAtrCache[pos.ticker] : (pos.atr || null);
+          if(!atrP){ toast('ATR indisponible pour cette valeur'); return; }
+          proposed = +(lastCV - SUIVI_ATR_MULT*atrP).toFixed(2);
+          pos.lastAdjChoice = 'atr';
+        } else {
+          proposed = +(lastCV*(1-pct/100)).toFixed(2);
+          pos.lastAdjChoice = String(pct);
+        }
         if(proposed <= pos.stop){
           await savePositions(positions, `Stop actuel (${fmt(pos.stop)}) déjà plus protecteur — aucun changement (cliquet).`);
           await renderSuivi();
@@ -1847,7 +1875,7 @@ async function renderSuivi(){
         }
         pos.stop = proposed;
         if(!Array.isArray(pos.stopHistorique)) pos.stopHistorique = [];
-        pos.stopHistorique.push({date: nowDateTime(), stop: proposed, methode: `ajustement -${pct}%`});
+        pos.stopHistorique.push({date: nowDateTime(), stop: proposed, methode: parAtr ? `ajustement CV − ${String(SUIVI_ATR_MULT).replace('.',',')}×ATR` : `ajustement -${pct}%`});
         await savePositions(positions, `Nouveau stop : ${fmt(proposed)}`);
         await renderSuivi();
       });
@@ -1870,6 +1898,12 @@ async function renderSuivi(){
   });
   }catch(e){
     wrap.innerHTML = `<div class="empty">Erreur d'affichage des positions.<br><span class="small">${(e&&e.message)||e}</span></div>`;
+    return;
+  }
+  // ATR actuel : récupéré une fois par valeur en arrière-plan, puis les cartes sont réaffichées avec.
+  const manquants = [...new Set(open.map(p=>p.ticker).filter(tk=>tk && !suiviAtrEssaye[tk]))];
+  if(manquants.length){
+    suiviChargerAtr(manquants).then(n=>{ if(n && document.getElementById('view-suivi').classList.contains('active')) renderSuivi(); });
   }
 }
 // ---------- Bilan chiffré par personne ----------
