@@ -335,7 +335,8 @@
   </div>
   <nav class="tabs">
     <button data-view="pepites">Pépites</button>
-    <button data-view="selection">À suivre</button>
+    <button data-view="selection">Valeur</button>
+    <button data-view="analyse">Analyse</button>
     <button data-view="go">Go</button>
     <button data-view="preparation" class="active">Préparation</button>
     <button data-view="achat">Achat</button>
@@ -437,10 +438,22 @@
       <div id="anaResults"><div class="empty">Appuie sur « Analyser » pour noter les 40 valeurs.</div></div>
     </div>
   </section>
+  <!-- ================= ANALYSE ================= -->
+  <section id="view-analyse" class="view">
+    <div class="card">
+      <h3>Analyser une valeur</h3>
+      <p class="small">Choisis une valeur du CAC 40 : tous les indicateurs, chacun avec un voyant (vert = favorable à un achat, orange = à surveiller, rouge = défavorable), et une note sur 10. Indicatif, et à confirmer par ta propre analyse — ni prédiction, ni conseil financier.</p>
+      <div class="an-input-row" style="margin-top:12px;">
+        <select id="anaSelect" style="flex:1;"></select>
+        <button class="btn primary" id="anaRunBtn2" style="width:auto;margin-top:0;">Analyser</button>
+      </div>
+      <div id="anaResults2"><div class="empty">Choisis une valeur puis lance l'analyse.</div></div>
+    </div>
+  </section>
   <!-- ================= SÉLECTION ================= -->
   <section id="view-selection" class="view">
     <div class="card">
-      <h3>À suivre — 5 valeurs maximum</h3>
+      <h3>Valeur — 5 valeurs maximum</h3>
       <p class="small">Choisis jusqu'à 5 valeurs du CAC 40. Pour chacune, tu vois les seuils à atteindre pour passer à l'action : conditions d'entrée, niveaux de cassure et de support, stop. La sélection est conservée sur cet appareil.</p>
       <div class="sx-grid" id="selGrid"></div>
       <div class="sx-count" id="selCount"></div>
@@ -571,9 +584,9 @@
       <div class="checklist">
         <label class="chk"><input type="checkbox" id="dchk1"> Attendre 9h30</label>
         <label class="chk"><input type="checkbox" id="dchk2"> Faire les trois checks (tendance, volume, secteur)</label>
-        <label class="chk"><input type="checkbox" id="dchk3"> Ajuster / confirmer la protection avant clôture</label>
+        <label class="chk"><input type="checkbox" id="dchk3"> Vérification date annonce résultat et dividende</label>
         <label class="chk"><input type="checkbox" id="dchk4"> Recommandation Warren IA</label>
-        <label class="chk"><input type="checkbox" id="dchk5"> Risque géopolitique</label>
+        <label class="chk"><input type="checkbox" id="dchk5"> Contexte géopolitique</label>
       </div>
     </div>
     <div id="processError" class="small" style="color:var(--red);display:none;margin-bottom:6px;font-weight:600;">Erreur : process du jour non complété — coche les 5 cases avant de valider.</div>
@@ -726,7 +739,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-08T14:35:00Z';
+const BUILD_TIME_UTC = '2026-10-08T15:20:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -769,6 +782,7 @@ let appState = (function(){
     };
   }catch(e){ return { positions: [], daily: null, apiKey: '', watchTickers: [] }; }
 })();
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}   // évite l'effacement automatique des positions par le navigateur
 let artifactNS = null;
 let pendingSave = false;
 let downloadsNS = null;
@@ -1685,6 +1699,18 @@ async function renderSuivi(){
   }
   if(!Array.isArray(positions)) positions = [];
   const open = positions.filter(p=> p && !p.cloturee && (suiviFilterPerson==='Tous' || p.personne===suiviFilterPerson));
+  // Toutes les positions ouvertes sont regroupées par personne (Manu, Julien, Antoine, puis les autres) et restent
+  // affichées tant qu'elles ne sont pas clôturées : seule la clôture (« Clôturer la position ») les retire d'ici.
+  const ordrePers = ['Manu','Julien','Antoine'];
+  const persDe = (p)=> p.personne || 'Sans personne';
+  const rangPers = (n)=>{ const i = ordrePers.indexOf(n); return i<0 ? 99 : i; };
+  open.sort((a,b)=>{
+    const na = persDe(a), nb = persDe(b);
+    return rangPers(na)-rangPers(nb) || na.localeCompare(nb,'fr');
+  });
+  const nbParPers = {};
+  open.forEach(p=>{ const n = persDe(p); nbParPers[n] = (nbParPers[n]||0)+1; });
+  let persPrec = null;
   if(open.length===0){
     wrap.innerHTML = `<div class="empty">Aucune position en cours.<br>Passe par l'onglet <b>Achat</b> pour en enregistrer une.</div>`;
     return;
@@ -1703,7 +1729,12 @@ async function renderSuivi(){
     const cas = lastCV >= p.CR ? 2 : 1;
     const doitIntervenir = cas === 2; // on n'ajuste le stop que si le cours valeur est >= au coût de revient
     const choixActuel = p.lastAdjChoice || '3';
-    return `
+    const persCourante = persDe(p);
+    const entete = persCourante !== persPrec
+      ? `<div class="dg-step" style="margin:${persPrec===null?'4px':'18px'} 0 8px;border-top:none;padding-top:0;font-size:12px;color:var(--text);">${persCourante} — ${nbParPers[persCourante]} position${nbParPers[persCourante]>1?'s':''} ouverte${nbParPers[persCourante]>1?'s':''}</div>`
+      : '';
+    persPrec = persCourante;
+    return entete + `
     <div class="card" data-id="${p.id}">
       <div class="posHead">
         <div><span class="nom">${p.nom}</span><span class="tk">${p.ticker}</span>${p.personne ? `<span class="pill person">${p.personne}</span>` : ''}</div>
@@ -2178,7 +2209,7 @@ async function loadStock(ticker, opts={}){
   // "Analyser une valeur" (anAddTickers) le demande, un ticker à la fois.
   let news = null;
   if(opts.news) news = await loadNews(ticker, 3);
-  return { ticker, closes, nextDiv, nextEarn, atrEuros, atrPct, ma20, ma50, volRel, rangePos, relPerf, rsi2, rsi14, maState, maDist20, allCloses: closes, news };
+  return { ticker, lastDate: dates[dates.length-1], closes, nextDiv, nextEarn, atrEuros, atrPct, ma20, ma50, volRel, rangePos, relPerf, rsi2, rsi14, maState, maDist20, allCloses: closes, news };
 }
 // ---------- détection patterns ----------
 function pivots(s, w=3){
@@ -2270,6 +2301,8 @@ function udBars(s, days=14){
   }).join("");
   return { svg:`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><line x1="${pad}" y1="${mid}" x2="${w-pad}" y2="${mid}" stroke="#232B3A" stroke-width="1"/>${bars}</svg>`, up, down, total:n };
 }
+// Date ISO (AAAA-MM-JJ) -> JJ/MM/AAAA, pour dater chaque résultat de liste.
+function frIso(d){ return d ? String(d).slice(0,10).split('-').reverse().join('/') : '—'; }
 function fmtDate(d){
   if(!d) return null;
   const [y,m,day]=d.split('-');
@@ -2661,7 +2694,7 @@ function pepCardHTML(entry){
         <div class="an-ticker">${UNIVERSE[d.ticker]||d.ticker}</div>
         <div class="an-name">${d.ticker}</div>
       </div>
-      <div class="an-price">${fmt(last)}</div>
+      <div><div class="an-price">${fmt(last)}</div><div class="an-name" style="text-align:right;">cours au ${frIso(d.lastDate)}</div></div>
     </div>
     <div class="pepBadge pepBadge-${v.color}">${badgeIcon[v.color]} ${v.verdict}</div>
     <div class="an-metrics" style="margin-top:10px;">
@@ -3322,16 +3355,16 @@ async function anaBuild(tk){
       </div>
       <p class="small" style="margin-top:10px;">La note résume les voyants, rien de plus : c'est une photo de l'état technique du titre, pas une prévision. Nos tests ont montré qu'aucun de ces indicateurs ne prédit une hausse sur le CAC 40 — ils servent surtout à dimensionner une position et à placer un stop.</p>
       <button class="btn ghost anaGoBtn" data-nom="${nom}" style="margin-top:8px;">Préparer l'achat →</button>`;
-    return {tk, nom, note, noteAff: Math.round(note*10)/10, last, vert, orange, rouge, inner};
+    return {tk, nom, note, noteHtml, noteAff: Math.round(note*10)/10, last, lastDate: d.dates[d.dates.length-1], vert, orange, rouge, inner};
   }
 }
 // Seuil d'affichage : seules les valeurs notées 8 ou plus (sur la note affichée, arrondie à 0,1).
 const ANA_SEUIL = 8;
 // Clic sur « Analyser » : passe les 40 valeurs du CAC 40 une à une, puis n'affiche que celles
 // dont la note est supérieure ou égale à 8, de la mieux notée à la moins bien notée.
-async function anaRun(){
+async function anaRun(boxId, btnId){
   if(anaRunning) return;
-  const box = $('anaResults'), btn = $('anaRunBtn');
+  const box = $(boxId || 'anaResults'), btn = $(btnId || 'anaRunBtn');
   if(!box) return;
   anaRunning = true;
   if(btn){ btn.disabled = true; btn.textContent = 'Analyse…'; }
@@ -3345,7 +3378,7 @@ async function anaRun(){
     resultats.sort((a,b)=> b.note - a.note);
     const hits = resultats.filter(r=> r.noteAff >= ANA_SEUIL);
     const meilleure = resultats.length ? resultats[0] : null;
-    let h = `<div class="dg-val-chiffres" style="margin:12px 0 6px;">${hits.length} valeur(s) sur ${resultats.length} analysée(s) avec une note ≥ ${ANA_SEUIL}/10 — ${new Date().toLocaleDateString('fr-FR')}`
+    let h = `<div class="dg-val-chiffres" style="margin:12px 0 6px;">${hits.length} valeur(s) sur ${resultats.length} analysée(s) avec une note ≥ ${ANA_SEUIL}/10 — analyse du ${new Date().toLocaleDateString('fr-FR')}, cours au ${frIso(resultats.map(r=>r.lastDate).filter(Boolean).sort().pop())}`
       + (echecs.length ? `<br><span class="mom-stale">Non analysées : ${echecs.join(', ')}</span>` : '') + '</div>';
     if(!hits.length){
       h += `<div class="empty">Aucune valeur n'atteint ${ANA_SEUIL}/10 aujourd'hui.${meilleure ? `<br>Meilleure note : ${meilleure.nom}, ${meilleure.noteAff.toFixed(1)}/10.` : ''}</div>`;
@@ -3353,7 +3386,7 @@ async function anaRun(){
       h += hits.map(r=>`<details class="card ana-hit">
         <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
           <span class="an-ticker">${r.nom}</span>
-          <span class="mono" style="color:var(--green);font-weight:700;">${r.noteAff.toFixed(1)}/10 <span style="color:var(--dim);font-weight:400;">· ${fmt(r.last)}</span></span>
+          <span class="mono" style="color:var(--green);font-weight:700;">${r.noteAff.toFixed(1)}/10 <span style="color:var(--dim);font-weight:400;">· ${fmt(r.last)} · ${frIso(r.lastDate)}</span></span>
         </summary>
         <div style="margin-top:10px;">${r.inner}</div>
       </details>`).join('');
@@ -3370,7 +3403,34 @@ async function anaRun(){
   anaRunning = false;
   if(btn){ btn.disabled = false; btn.textContent = 'Analyser les 40 valeurs'; }
 }
-if($('anaRunBtn')) $('anaRunBtn').addEventListener('click', anaRun);
+if($('anaRunBtn')) $('anaRunBtn').addEventListener('click', ()=> anaRun('anaResults','anaRunBtn'));
+// Onglet Analyse : une seule valeur, au choix — même fiche et même note que le scan des 40 valeurs.
+async function anaRunOne(){
+  if(anaRunning) return;
+  const sel = $('anaSelect'), box = $('anaResults2'), btn = $('anaRunBtn2');
+  if(!sel || !box || !sel.value) return;
+  const tk = sel.value;
+  anaRunning = true;
+  if(btn){ btn.disabled = true; btn.textContent = 'Analyse…'; }
+  box.innerHTML = `<div class="an-loading">Analyse de ${UNIVERSE[tk]||tk}…</div>`;
+  try{
+    const r = await anaBuild(tk);
+    box.innerHTML = `<div class="card" style="margin-top:12px;">${r.inner}</div>`;
+    box.querySelectorAll('.anaGoBtn').forEach(b=>b.addEventListener('click', async ()=>{
+      goTo('preparation');
+      prepChoisir(resolveTicker(b.dataset.nom));
+    }));
+  }catch(e){
+    box.innerHTML = `<div class="an-error">${e.message || 'Analyse impossible'}</div>`;
+  }
+  anaRunning = false;
+  if(btn){ btn.disabled = false; btn.textContent = 'Analyser'; }
+}
+if($('anaSelect')){
+  $('anaSelect').innerHTML = CAC40.slice().sort((a,b)=>a[0].localeCompare(b[0],'fr'))
+    .map(([n,tk])=>`<option value="${tk}">${n}</option>`).join('');
+}
+if($('anaRunBtn2')) $('anaRunBtn2').addEventListener('click', anaRunOne);
 
 // ---------- Onglet Sélection : 5 valeurs suivies, avec les seuils à atteindre pour agir ----------
 const SEL_KEY = 'bigdeal-selection-suivi-v1', SEL_MAX = 5;
@@ -3391,6 +3451,7 @@ function selToggle(tk){
 // Seuils d'une valeur — mêmes règles que le reste de l'app (MM20/MM50, ATR sous 80 % de son pic,
 // RSI 2, stop à 3 × ATR) : ce sont les niveaux de cours à atteindre, calculés sur les dernières clôtures.
 async function selCarte(tk){
+  const a = await anaBuild(tk);   // même note pondérée /10 que l'onglet Analyse
   const d = await dgSerie(tk);
   const closes = d.closes, last = closes[closes.length-1];
   const atrS = dgAtrSerie(d.highs, d.lows, closes);
@@ -3432,11 +3493,9 @@ async function selCarte(tk){
   ];
   return `<div class="card">
     <div class="an-card-head"><div><div class="an-ticker">${UNIVERSE[tk]||tk}</div><div class="an-name">${tk}</div></div><div class="an-price">${fmt(last)}</div></div>
-    <div class="ana-note ${pret?'green':nOk >= conds.length-1 ? 'amber' : 'red'}" style="margin-bottom:8px;">
-      <div class="ana-note-val">${nOk}<small>/${conds.length}</small></div>
-      <div class="ana-note-txt"><div class="ana-note-titre">${pret ? 'Feu vert côté cours' : 'Pas encore'}</div>${pret ? 'Toutes les conditions d\'entrée sont remplies. Vérifie résultats, actualités et secteur (onglet Go) avant d\'ordonner.' : `Prochain seuil à franchir : ${premier.lab}.`}</div>
-    </div>
-    <div class="dg-step">Conditions d'entrée (toutes requises)</div>
+    ${a.noteHtml}
+    <div class="dg-step">Conditions d'entrée (toutes requises) — ${nOk}/${conds.length} remplies${pret ? ' · feu vert côté cours' : ''}</div>
+    ${pret ? '' : `<p class="small" style="margin:4px 0 6px;">Prochain seuil à franchir : ${premier.lab}.</p>`}
     <div class="an-metrics">${conds.map(c=>anaRow(c.ok?'bon':'moyen', c.lab, c.val, c.txt)).join('')}</div>
     <div class="dg-step">Niveaux à surveiller</div>
     <div class="an-metrics">${niveaux.map(n=>anaRow(n[0], n[1], n[2], n[3])).join('')}</div>
@@ -3698,7 +3757,7 @@ function pepSnapCharger(){
 function pepSnapSauver(analysees, bons, surveiller){
   const items = pepList.filter(e=> e.state==='done' && pepiteVerdict(e.data).color==='green')
     .map(e=>{ const v = pepiteVerdict(e.data);
-      return { ticker:e.ticker, last:e.data.closes[e.data.closes.length-1], score:v.score, reasons:v.reasons }; })
+      return { ticker:e.ticker, last:e.data.closes[e.data.closes.length-1], lastDate:e.data.lastDate, score:v.score, reasons:v.reasons }; })
     .sort((a,b)=> b.score - a.score);
   pepSnap = { date:new Date().toISOString(), analysees, bons, surveiller, items };
   try{ localStorage.setItem(PEP_KEY, JSON.stringify(pepSnap)); }catch(e){}
@@ -3713,7 +3772,7 @@ function pepSnapCardHTML(it){
   return `<div class="card" data-ticker="${it.ticker}">
     <div class="an-card-head">
       <div><div class="an-ticker">${nom}</div><div class="an-name">${it.ticker}</div></div>
-      <div class="an-price">${fmt(it.last)}</div>
+      <div><div class="an-price">${fmt(it.last)}</div><div class="an-name" style="text-align:right;">cours au ${frIso(it.lastDate)}</div></div>
     </div>
     <div class="pepBadge pepBadge-green">🟢 Bon moment</div>
     <div class="an-metrics" style="margin-top:10px;">
@@ -3738,7 +3797,7 @@ function renderPepites(){
     if(pepSnap){
       const jour = new Date(pepSnap.date).toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
       const heure = new Date(pepSnap.date).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
-      box.innerHTML = `<div class="dg-val-chiffres" style="margin:4px 0 8px;">Valeurs retenues au dernier scan (${jour} à ${heure}) : ${pepSnap.items.length} sur ${pepSnap.analysees} analysées. Données mémorisées, à actualiser en relançant le scan.</div>`
+      box.innerHTML = `<div class="dg-val-chiffres" style="margin:4px 0 8px;">Valeurs retenues au dernier scan (${jour} à ${heure}) : ${pepSnap.items.length} sur ${pepSnap.analysees} analysées — cours au ${frIso((pepSnap.items.map(i=>i.lastDate).filter(Boolean).sort().pop()))}. Données mémorisées, à actualiser en relançant le scan.</div>`
         + (pepSnap.items.length ? pepSnap.items.map(pepSnapCardHTML).join('') : '<div class="empty">Aucune valeur avec un signal 🟢 vert lors de ce scan.</div>');
       pepWireDetail(box);
     } else {
@@ -3765,7 +3824,9 @@ function renderPepites(){
     if(b.score===null) return -1;
     return b.score - a.score;
   });
-  box.innerHTML = scored.map(s=>pepCardHTML(s.entry)).join('');
+  const datesOk = pepList.filter(e=>e.state==='done').map(e=>e.data.lastDate).filter(Boolean).sort();
+  const bandeau = datesOk.length ? `<div class="dg-val-chiffres" style="margin:4px 0 8px;">Analyse du ${new Date().toLocaleDateString('fr-FR')} — cours au ${frIso(datesOk[datesOk.length-1])} · ${visible.filter(e=>e.state==='done').length} valeur(s) retenue(s) sur ${datesOk.length} analysée(s).</div>` : '';
+  box.innerHTML = bandeau + scored.map(s=>pepCardHTML(s.entry)).join('');
   pepWireDetail(box);
 }
 function renderPepChips(){
@@ -3829,7 +3890,7 @@ async function pepScanAll(){
   const okDone = pepList.filter(e=>e.state==='done');
   const bons = okDone.filter(e=>pepiteVerdict(e.data).color==='green').length;
   const surveiller = okDone.filter(e=>pepiteVerdict(e.data).color==='amber').length;
-  status.textContent = `Scan terminé — 🟢 ${bons} bon(s) momentum, 🟡 ${surveiller} à surveiller, sur ${okDone.length} valeurs analysées. Valeurs retenues mémorisées.`;
+  status.textContent = `Scan terminé — 🟢 ${bons} bon(s) momentum, 🟡 ${surveiller} à surveiller, sur ${okDone.length} valeurs analysées (scan du ${new Date().toLocaleDateString('fr-FR')}, cours au ${frIso(okDone.map(e=>e.data.lastDate).filter(Boolean).sort().pop())}). Valeurs retenues mémorisées.`;
   pepSnapSauver(okDone.length, bons, surveiller);
   btn.disabled = false;
   pepScanning = false;
@@ -3976,7 +4037,7 @@ loadPositions().then(p=>{
     const postTab = sessionStorage.getItem('bigdeal-post-reload-tab');
     const postToast = sessionStorage.getItem('bigdeal-post-reload-toast');
     if(postToast) sessionStorage.removeItem('bigdeal-post-reload-toast');
-    if(postTab && postTab !== 'preparation'){ goTo(postTab==='analyse' ? 'pepites' : postTab); }
+    if(postTab && postTab !== 'preparation'){ goTo(postTab); }
     if(postToast) toast(postToast);
   }catch(e){}
 });
