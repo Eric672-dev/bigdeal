@@ -160,6 +160,9 @@
   .mom-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);line-height:1.5;margin-top:4px;}
   .mom-stale{color:var(--amber);}
   .mom-ok{font-size:12.5px;color:var(--green);padding:8px 0;}
+  .mom-why{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;}
+  .mom-why summary{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);cursor:pointer;}
+  .mom-why p{font-size:12.5px;color:var(--dim);line-height:1.55;margin:8px 0 0;}
   .dg-badge{display:inline-block;padding:8px 14px;border-radius:10px;font-weight:700;font-size:14px;margin-bottom:4px;}
   .dg-badge-green{background:rgba(43,179,154,.15);color:var(--green);}
   .dg-badge-amber{background:rgba(232,166,61,.15);color:var(--amber);}
@@ -332,7 +335,7 @@
   </div>
   <nav class="tabs">
     <button data-view="pepites">Pépites</button>
-    <button data-view="analyse">Analyse</button>
+    <button data-view="selection">À suivre</button>
     <button data-view="go">Go</button>
     <button data-view="preparation" class="active">Préparation</button>
     <button data-view="achat">Achat</button>
@@ -342,18 +345,6 @@
   </nav>
 </header>
 <main>
-  <!-- ================= ANALYSE ================= -->
-  <section id="view-analyse" class="view">
-    <div class="card">
-      <h3>Analyser une valeur</h3>
-      <p class="small">Tous les indicateurs d'une valeur du CAC 40, chacun avec un voyant : vert = favorable à un achat, orange = à surveiller, rouge = défavorable. Indicatif, et à confirmer par ta propre analyse — ni prédiction, ni conseil financier.</p>
-      <div class="an-input-row" style="margin-top:12px;">
-        <select id="anaSelect" style="flex:1;"></select>
-        <button class="btn primary" id="anaRunBtn" style="width:auto;margin-top:0;">Analyser</button>
-      </div>
-      <div id="anaResults"><div class="empty">Choisis une valeur puis lance l'analyse.</div></div>
-    </div>
-  </section>
 
   <!-- ================= GO ================= -->
   <section id="view-go" class="view">
@@ -381,6 +372,10 @@
       <p class="small">Classe les 40 valeurs par performance sur 12 mois, en excluant le dernier mois, et garde le <b>top 20</b> en mémoire sur cet appareil. Le classement n'est pas affiché : il sert de référence interne, à recalculer à chaque trimestre. Ni prédiction, ni conseil financier.</p>
       <div class="mom-meta" id="momMeta"></div>
       <div id="momResults"><div class="empty">Aucun classement en mémoire. Appuie sur « Calculer » (40 valeurs, environ une minute).</div></div>
+      <details class="mom-why">
+        <summary>Pourquoi classer par performance ?</summary>
+        <p>Ce classement repose sur l'<b style="color:var(--text);">effet momentum</b>, un des phénomènes les plus documentés en finance : les actions qui ont surperformé sur les 3 à 12 derniers mois ont tendance à continuer de surperformer sur les mois suivants (Jegadeesh &amp; Titman, 1993, puis de nombreuses études sur plusieurs marchés). Les explications habituelles sont la sous-réaction lente des investisseurs aux bonnes nouvelles, les effets de troupeau et les flux qui s'auto-entretiennent.</p>
+      </details>
     </div>
     <div class="card">
       <h3>Scanner les secteurs</h3>
@@ -435,6 +430,23 @@
     <div id="pepResults">
       <div class="empty">Lance le scan ou ajoute une valeur ci-dessus pour évaluer son momentum.</div>
     </div>
+    <div class="card">
+      <h3>Analyser une valeur</h3>
+      <p class="small">Analyse les 40 valeurs du CAC 40 avec tous les indicateurs (chacun avec un voyant : vert = favorable à un achat, orange = à surveiller, rouge = défavorable), puis n'affiche que celles notées <b>8/10 ou plus</b>. Environ une minute. Indicatif, et à confirmer par ta propre analyse — ni prédiction, ni conseil financier.</p>
+      <button class="btn primary" id="anaRunBtn" style="margin-top:12px;">Analyser les 40 valeurs</button>
+      <div id="anaResults"><div class="empty">Appuie sur « Analyser » pour noter les 40 valeurs.</div></div>
+    </div>
+  </section>
+  <!-- ================= SÉLECTION ================= -->
+  <section id="view-selection" class="view">
+    <div class="card">
+      <h3>À suivre — 5 valeurs maximum</h3>
+      <p class="small">Choisis jusqu'à 5 valeurs du CAC 40. Pour chacune, tu vois les seuils à atteindre pour passer à l'action : conditions d'entrée, niveaux de cassure et de support, stop. La sélection est conservée sur cet appareil.</p>
+      <div class="sx-grid" id="selGrid"></div>
+      <div class="sx-count" id="selCount"></div>
+      <button class="btn ghost" id="selRefreshBtn" style="margin-top:10px;">Actualiser les seuils</button>
+    </div>
+    <div id="selResults"></div>
   </section>
   <!-- ================= PRÉPARATION ================= -->
   <section id="view-preparation" class="view active">
@@ -466,19 +478,9 @@
       </details>
     </div>
     <div class="card">
-      <h3>Analyser une valeur</h3>
-      <div class="an-input-row">
-        <div class="an-autocomplete" style="flex:1;">
-          <input type="text" id="anTickerInput" placeholder="Nom(s), ex. LVMH ou LVMH, Air Liquide" autocomplete="off">
-          <div class="an-ac-list" id="anAutocomplete"></div>
-        </div>
-        <button class="btn primary" id="anAddBtn" style="width:auto;margin-top:0;">Analyser</button>
-      </div>
-      <p class="small" id="anChipsLabel" style="margin-top:8px;color:var(--dim);"></p>
-      <div class="an-chips" id="anChips"></div>
-    </div>
-    <div id="anResults">
-      <div class="empty">Entre une ou plusieurs valeurs (ex. LVMH).</div>
+      <h3>Valeur à acheter</h3>
+      <p class="small">Choisis une valeur du CAC 40 : l'ATR14, la MA20, le Bêta, les plus hauts et les dates à venir se remplissent automatiquement (EODHD).</p>
+      <select id="prepValeur"></select>
     </div>
     <div id="existingPositionsWrap" style="display:none;"></div>
     <div id="nouvellePositionWrap">
@@ -487,10 +489,19 @@
     <input type="hidden" id="achFraisA" value="0.50">
     <input type="hidden" id="achFraisV" value="0.50">
     <div class="card">
+      <h3>Dates à venir</h3>
+      <p class="small">Remplies automatiquement quand tu choisis la valeur à acheter (EODHD), si une date future est publiée. Modifiables à la main, à recouper avec Boursorama.</p>
+      <label>Date annonce résultat</label>
+      <input type="text" inputmode="numeric" id="prepDateResultat" placeholder="jj/mm/aaaa">
+      <p class="small" id="prepDateResultatHint" style="margin-top:4px;"></p>
+      <label>Date dividende (détachement)</label>
+      <input type="text" inputmode="numeric" id="prepDateDividende" placeholder="jj/mm/aaaa">
+      <p class="small" id="prepDateDividendeHint" style="margin-top:4px;"></p>
+    </div>
+    <div class="card">
       <h3>Données historiques — ATR14, MA20 &amp; Bêta</h3>
-      <p class="small">Valeur retenue pour cette transaction : <b id="selStockLabel" style="color:var(--text);">Aucune — choisis-la dans la section Analyse ci-dessus.</b></p>
-      <p class="small">L'ATR14, la MA20, le Bêta (vs CAC 40) et les plus hauts 1 an / 3 mois se remplissent automatiquement dès que tu choisis une valeur ci-dessus (EODHD). <b>À recouper avec Boursorama avant de valider un stop.</b> Tu peux aussi saisir les valeurs toi-même, ou les actualiser avec le bouton ci-dessous.</p>
-      <button class="btn" id="btnFetchATR">Actualiser (ATR14, MA20, Bêta &amp; plus hauts)</button>
+      <p class="small">Valeur retenue pour cette transaction : <b id="selStockLabel" style="color:var(--text);">Aucune — choisis-la dans « Valeur à acheter » ci-dessus.</b></p>
+      <p class="small">L'ATR14, la MA20, le Bêta (vs CAC 40) et les plus hauts 1 an / 3 mois se remplissent automatiquement dès que tu choisis la valeur à acheter (EODHD), sans rien à faire. <b>À recouper avec Boursorama avant de valider un stop.</b> Tu peux aussi saisir ou corriger les valeurs toi-même ; pour les actualiser, choisis à nouveau la valeur.</p>
       <div id="atrStatus" class="small" style="margin-top:8px;"></div>
       <div class="row" style="margin-top:6px;">
         <div>
@@ -518,7 +529,7 @@
     <div class="card typeScreen" id="typeScreen1">
       <h3>Standard</h3>
       <p class="small">Objectif : très bonne valeur, sous-cotée temporairement.</p>
-      <p class="small">Remplis automatiquement par le bouton de récupération de données réelles de la carte « Données historiques » ci-dessus — ajustables à la main si besoin.</p>
+      <p class="small">Remplis automatiquement au choix de la valeur à acheter (carte « Données historiques » ci-dessus) — ajustables à la main si besoin.</p>
       <label>Plus haut depuis 1 an (€)</label>
       <input type="text" inputmode="decimal" data-decimal="1" id="opt1High1An">
       <label>Plus haut depuis 3 mois (€)</label>
@@ -715,7 +726,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-09-20T15:31:00Z';
+const BUILD_TIME_UTC = '2026-10-08T14:35:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1162,11 +1173,13 @@ $('achatInputCR').addEventListener('input', ()=>{ crManualOverride = true; recom
 // ---------- Réinitialisation complète de Préparation à chaque arrivée sur l'onglet ----------
 async function resetPreparationForm(){
   selectedStock = null;
+  if($('prepValeur')) $('prepValeur').value = '';
   selectedPerson = null;
   stopChoice = 'fixe3';
   typeAchat = '1';
   crManualOverride = false;
-  ['achCA','achATR','achMA20','achBeta','stopFinal','opt1Pct1S','opt1Pct1M'].forEach(id=>$(id).value='');
+  ['achCA','achATR','achMA20','achBeta','stopFinal','opt1Pct1S','opt1Pct1M','prepDateResultat','prepDateDividende'].forEach(id=>$(id).value='');
+  ['prepDateResultatHint','prepDateDividendeHint'].forEach(id=>{ if($(id)) $(id).textContent=''; });
   $('achQte').value = 1;
   document.querySelectorAll('.personOpt').forEach(x=>x.classList.remove('selected'));
   document.querySelectorAll('.typeOpt').forEach(x=>x.classList.remove('selected'));
@@ -1216,6 +1229,7 @@ function goTo(view){
   if(view==='position') renderPosition();
   if(view==='bilan') renderBilan();
   if(view==='go'){ renderGo(); goDatesAuto(); }
+  if(view==='selection') renderSelectionTab();
   if(view==='pepites'){ renderMomentum(); renderScan(); renderSelectionExterne(); renderCroisement(); renderPepites(); }
   // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
   // vers Achat avec les données qu'il vient de préparer — on ne touche pas à ce cas), on
@@ -1229,10 +1243,11 @@ function goTo(view){
 function updateSelStockLabel(){
   const el = $('selStockLabel');
   if(!el) return;
-  el.textContent = selectedStock ? `${selectedStock.nom} (${selectedStock.ticker})` : 'Aucune — choisis-la dans la section Analyse ci-dessus.';
+  el.textContent = selectedStock ? `${selectedStock.nom} (${selectedStock.ticker})` : 'Aucune — choisis-la dans « Valeur à acheter » ci-dessus.';
 }
 function pickStock(nom, tk){
   selectedStock = {nom, ticker:tk};
+  prepLoadDates(tk);
   // On ne garde que la valeur retenue pour la transaction — les autres valeurs
   // analysées dans cette même session sont effacées de la section Analyse.
   anWatch = anWatch.filter(w=> w.ticker === tk);
@@ -1243,6 +1258,56 @@ function pickStock(nom, tk){
   // plus besoin de cliquer sur le bouton (autoFetchATR défini plus bas dans le fichier,
   // mais c'est une déclaration de fonction : elle est déjà disponible à l'exécution).
   autoFetchATR();
+}
+// Dates à venir pour la valeur choisie (détachement du dividende, annonce des résultats) — EODHD,
+// uniquement les dates futures ; un champ non fourni reste vide, à saisir à la main.
+async function prepLoadDates(tk){
+  const today = new Date().toISOString().slice(0,10);
+  const isoFr = (d)=> d ? d.split('-').reverse().join('/') : '';
+  const setHint = (id, txt)=>{ const el = $(id); if(el) el.textContent = txt; };
+  if($('prepDateResultat')) $('prepDateResultat').value = '';
+  if($('prepDateDividende')) $('prepDateDividende').value = '';
+  setHint('prepDateResultatHint', 'Recherche…'); setHint('prepDateDividendeHint', 'Recherche…');
+  let div = null, earn = null;
+  try{
+    const dv = await eodFetch(`/div/${encodeURIComponent(tk)}`);
+    if(Array.isArray(dv)){
+      const f = dv.filter(x=>x.date && x.date >= today).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+      div = f.length ? f[0].date : null;
+    }
+  }catch(e){}
+  try{
+    const ec = await eodFetch(`/calendar/earnings`, `&symbols=${encodeURIComponent(tk)}&from=${today}&to=${isoDateDaysAgo(-180)}`);
+    const list = ec && ec.earnings;
+    if(Array.isArray(list)){
+      const f = list.map(x=>({date: x.report_date || x.date})).filter(x=>x.date && x.date >= today)
+        .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+      earn = f.length ? f[0].date : null;
+    }
+  }catch(e){}
+  if(!selectedStock || selectedStock.ticker !== tk) return;   // une autre valeur a été choisie entre-temps
+  const r = $('prepDateResultat'), d = $('prepDateDividende');
+  if(r && !r.value) r.value = isoFr(earn);
+  if(d && !d.value) d.value = isoFr(div);
+  setHint('prepDateResultatHint', r && r.value ? 'Récupérée via EODHD — à recouper avec Boursorama.' : 'Non fourni par EODHD — à saisir à la main (Boursorama, site de la société).');
+  setHint('prepDateDividendeHint', d && d.value ? 'Récupérée via EODHD — à recouper avec Boursorama.' : 'Non fourni par EODHD — à saisir à la main (Boursorama, site de la société).');
+}
+// Valeur à acheter : liste déroulante des 40 valeurs du CAC 40.
+function prepChoisir(tk){
+  const sel = $('prepValeur');
+  if(!tk || !UNIVERSE[tk]){
+    selectedStock = null; updateSelStockLabel(); updateAchatHeader();
+    ['prepDateResultat','prepDateDividende'].forEach(id=>{ if($(id)) $(id).value=''; });
+    ['prepDateResultatHint','prepDateDividendeHint'].forEach(id=>{ if($(id)) $(id).textContent=''; });
+    return;
+  }
+  if(sel) sel.value = tk;
+  pickStock(UNIVERSE[tk], tk);
+}
+if($('prepValeur')){
+  $('prepValeur').innerHTML = '<option value="">— Choisir une valeur —</option>' +
+    CAC40.slice().sort((a,b)=>a[0].localeCompare(b[0],'fr')).map(([n,tk])=>`<option value="${tk}">${n}</option>`).join('');
+  $('prepValeur').addEventListener('change', ()=> prepChoisir($('prepValeur').value));
 }
 // ---------- Indicateurs techniques (ATR14, MA20) à partir de cours OHLC réels ----------
 function trueRanges(highs, lows, closes){
@@ -1409,10 +1474,6 @@ async function autoFetchATR(){
     if(status) status.textContent = 'Erreur EODHD : ' + ((e&&e.message)||e);
   }
 }
-$('btnFetchATR').addEventListener('click', ()=>{
-  if(!selectedStock){ toast('Choisis d\'abord une valeur'); return; }
-  autoFetchATR();
-});
 // ---------- Stops ----------
 function stopValues(){
   const CA = parseFloat($('achCA').value)||0;
@@ -1485,7 +1546,7 @@ recomputeStopOptions();
 $('btnValider').addEventListener('click', async ()=>{
   const manquants = [];
   if(!selectedPerson) manquants.push('sélectionner qui effectue la transaction');
-  if(!selectedStock) manquants.push('choisir une valeur dans la section Analyse (bouton « Choisir cette valeur pour la transaction »)');
+  if(!selectedStock) manquants.push('choisir une valeur dans « Valeur à acheter »');
   const processOk = ['dchk1','dchk2','dchk3','dchk4','dchk5'].every(id=>$(id).checked);
   if(!processOk) manquants.push('cocher les 5 cases du process du jour');
   if(manquants.length){
@@ -1536,7 +1597,8 @@ $('btnEnregistrer').addEventListener('click', async ()=>{
   positions.push(pos);
   await savePositions(positions, `${pos.nom} — Protection mise en place à ${fmt(stop)}`, 'suivi');
   // reset formulaire
-  ['achCA','achATR','achMA20','achBeta','stopFinal','opt1Pct1S','opt1Pct1M'].forEach(id=>$(id).value='');
+  ['achCA','achATR','achMA20','achBeta','stopFinal','opt1Pct1S','opt1Pct1M','prepDateResultat','prepDateDividende'].forEach(id=>$(id).value='');
+  ['prepDateResultatHint','prepDateDividendeHint'].forEach(id=>{ if($(id)) $(id).textContent=''; });
   $('achQte').value=1; selectedStock=null;
   crManualOverride = false;
   updateAchatHeader();
@@ -2431,6 +2493,7 @@ function anCardHTML(d, isSelected){
 let anWatch = [];
 function renderAnalyse(){
   const box = $('anResults');
+  if(!box) return;
   if(anWatch.length===0){ box.innerHTML='<div class="empty">Entre une ou plusieurs valeurs (ex. LVMH).</div>'; return; }
   box.innerHTML = anWatch.map(w=>{
     if(w.state==='loading') return `<div class="card"><div class="an-loading">Chargement de ${UNIVERSE[w.ticker]||w.ticker}…</div></div>`;
@@ -2461,13 +2524,13 @@ async function anAddTickers(raw){
     }
     renderAnalyse();
   }
-  $('anTickerInput').value='';
+  if($('anTickerInput')) $('anTickerInput').value='';
 }
-$('anAddBtn').addEventListener('click', ()=>{ $('anAutocomplete').classList.remove('show'); anAddTickers($('anTickerInput').value); });
+($('anAddBtn') || document.createElement('button')).addEventListener('click', ()=>{ $('anAutocomplete').classList.remove('show'); anAddTickers($('anTickerInput').value); });
 renderAnChips();
 // ---------- autocomplétion de la section Analyse (Préparation) ----------
-const anAcBox = $('anAutocomplete');
-const anTInput = $('anTickerInput');
+const anAcBox = $('anAutocomplete') || document.createElement('div');   // absents depuis le retrait de « Analyser une valeur » de Préparation
+const anTInput = $('anTickerInput') || document.createElement('input');
 function anCurrentFragment(val){
   const parts = val.split(/[,;]/);
   return parts[parts.length-1];
@@ -2604,7 +2667,7 @@ function pepCardHTML(entry){
     <div class="an-metrics" style="margin-top:10px;">
       ${v.reasons.map(r=>`<div class="an-metric"><div class="an-dot ${dotCls[r.dir]}"></div><div class="an-m-body"><div class="an-m-txt">${r.t}</div></div></div>`).join('')}
     </div>
-    <button class="btn ghost pepDetailBtn" data-ticker="${d.ticker}" data-nom="${UNIVERSE[d.ticker]||d.ticker}" style="margin-top:10px;">Voir l'analyse complète (Préparation) →</button>
+    <button class="btn ghost pepDetailBtn" data-ticker="${d.ticker}" data-nom="${UNIVERSE[d.ticker]||d.ticker}" style="margin-top:10px;">Acheter cette valeur (Préparation) →</button>
   </div>`;
 }
 // ---------- Classement momentum 12-1 (module en tête de l'onglet Pépites) ----------
@@ -3083,15 +3146,10 @@ function anaRow(dir, lab, val, txt, poids){
     <div class="an-m-top"><div class="an-m-lab">${lab}${p}</div><div class="an-m-val">${val}</div></div>
     <div class="an-m-txt">${txt}</div></div></div>`;
 }
-async function anaRun(){
-  if(anaRunning) return;
-  const sel = $('anaSelect'), box = $('anaResults'), btn = $('anaRunBtn');
-  if(!sel || !box) return;
-  const tk = sel.value, nom = UNIVERSE[tk] || tk;
-  anaRunning = true;
-  if(btn){ btn.disabled = true; btn.textContent = 'Analyse…'; }
-  box.innerHTML = `<div class="an-loading">Analyse de ${nom}…</div>`;
-  try{
+// Calcule la note d'une valeur (barème pondéré ci-dessus) et retourne la fiche détaillée en HTML.
+async function anaBuild(tk){
+  const nom = UNIVERSE[tk] || tk;
+  {
     const d = await dgSerie(tk);
     const closes = d.closes, vols = d.volumes, last = closes[closes.length-1];
     const rows = [];
@@ -3250,7 +3308,7 @@ async function anaRun(){
                   rsi14: r14, rsi2: r2, dd: dgBaisse(closes), atrRatio: rat, decl: decl.length ? decl[0].replace(/<[^>]+>/g,'') : null};
       localStorage.setItem(ANA_KEY, JSON.stringify(memo));
     }catch(e){}
-    box.innerHTML = `<div class="card" style="margin-top:12px;">
+    const inner = `
       <div class="an-card-head"><div><div class="an-ticker">${nom}</div><div class="an-name">${tk}</div></div><div class="an-price">${fmt(last)}</div></div>
       ${noteHtml}
       ${declHtml}
@@ -3263,23 +3321,151 @@ async function anaRun(){
         <div class="dg-chiffre"><div class="dg-c-lab">Stop 3 × ATR</div><div class="dg-c-val">${fmt(stop)}</div></div>
       </div>
       <p class="small" style="margin-top:10px;">La note résume les voyants, rien de plus : c'est une photo de l'état technique du titre, pas une prévision. Nos tests ont montré qu'aucun de ces indicateurs ne prédit une hausse sur le CAC 40 — ils servent surtout à dimensionner une position et à placer un stop.</p>
-      <button class="btn ghost anaGoBtn" data-nom="${nom}" style="margin-top:8px;">Préparer l'achat →</button>
-    </div>`;
+      <button class="btn ghost anaGoBtn" data-nom="${nom}" style="margin-top:8px;">Préparer l'achat →</button>`;
+    return {tk, nom, note, noteAff: Math.round(note*10)/10, last, vert, orange, rouge, inner};
+  }
+}
+// Seuil d'affichage : seules les valeurs notées 8 ou plus (sur la note affichée, arrondie à 0,1).
+const ANA_SEUIL = 8;
+// Clic sur « Analyser » : passe les 40 valeurs du CAC 40 une à une, puis n'affiche que celles
+// dont la note est supérieure ou égale à 8, de la mieux notée à la moins bien notée.
+async function anaRun(){
+  if(anaRunning) return;
+  const box = $('anaResults'), btn = $('anaRunBtn');
+  if(!box) return;
+  anaRunning = true;
+  if(btn){ btn.disabled = true; btn.textContent = 'Analyse…'; }
+  const resultats = [], echecs = [];
+  try{
+    for(let i=0; i<CAC40.length; i++){
+      const [nom, tk] = CAC40[i];
+      box.innerHTML = `<div class="an-loading">Analyse en cours — ${i+1}/${CAC40.length} (${nom})…</div>`;
+      try{ resultats.push(await anaBuild(tk)); }catch(e){ echecs.push(nom); }
+    }
+    resultats.sort((a,b)=> b.note - a.note);
+    const hits = resultats.filter(r=> r.noteAff >= ANA_SEUIL);
+    const meilleure = resultats.length ? resultats[0] : null;
+    let h = `<div class="dg-val-chiffres" style="margin:12px 0 6px;">${hits.length} valeur(s) sur ${resultats.length} analysée(s) avec une note ≥ ${ANA_SEUIL}/10 — ${new Date().toLocaleDateString('fr-FR')}`
+      + (echecs.length ? `<br><span class="mom-stale">Non analysées : ${echecs.join(', ')}</span>` : '') + '</div>';
+    if(!hits.length){
+      h += `<div class="empty">Aucune valeur n'atteint ${ANA_SEUIL}/10 aujourd'hui.${meilleure ? `<br>Meilleure note : ${meilleure.nom}, ${meilleure.noteAff.toFixed(1)}/10.` : ''}</div>`;
+    } else {
+      h += hits.map(r=>`<details class="card ana-hit">
+        <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+          <span class="an-ticker">${r.nom}</span>
+          <span class="mono" style="color:var(--green);font-weight:700;">${r.noteAff.toFixed(1)}/10 <span style="color:var(--dim);font-weight:400;">· ${fmt(r.last)}</span></span>
+        </summary>
+        <div style="margin-top:10px;">${r.inner}</div>
+      </details>`).join('');
+    }
+    h += `<p class="small" style="margin-top:6px;">Touche une valeur pour voir le détail des indicateurs. Une note élevée décrit l'état technique du titre aujourd'hui, pas une prévision.</p>`;
+    box.innerHTML = h;
     box.querySelectorAll('.anaGoBtn').forEach(b=>b.addEventListener('click', async ()=>{
       goTo('preparation');
-      await anAddTickers(b.dataset.nom);
+      prepChoisir(resolveTicker(b.dataset.nom));
     }));
   }catch(e){
     box.innerHTML = `<div class="an-error">${e.message || 'Analyse impossible'}</div>`;
   }
   anaRunning = false;
-  if(btn){ btn.disabled = false; btn.textContent = 'Analyser'; }
-}
-if($('anaSelect')){
-  $('anaSelect').innerHTML = CAC40.slice().sort((a,b)=>a[0].localeCompare(b[0],'fr'))
-    .map(([n,tk])=>`<option value="${tk}">${n}</option>`).join('');
+  if(btn){ btn.disabled = false; btn.textContent = 'Analyser les 40 valeurs'; }
 }
 if($('anaRunBtn')) $('anaRunBtn').addEventListener('click', anaRun);
+
+// ---------- Onglet Sélection : 5 valeurs suivies, avec les seuils à atteindre pour agir ----------
+const SEL_KEY = 'bigdeal-selection-suivi-v1', SEL_MAX = 5;
+let selList = [], selToken = 0;
+function selCharger(){
+  try{ const b = localStorage.getItem(SEL_KEY); if(b){ const l = JSON.parse(b); if(Array.isArray(l)) selList = l.filter(t=>UNIVERSE[t]).slice(0, SEL_MAX); } }catch(e){}
+}
+function selSauver(){ try{ localStorage.setItem(SEL_KEY, JSON.stringify(selList)); }catch(e){} }
+function selToggle(tk){
+  if(selList.includes(tk)) selList = selList.filter(x=>x!==tk);
+  else {
+    if(selList.length >= SEL_MAX){ toast(`${SEL_MAX} valeurs maximum — retire-en une d'abord.`); return; }
+    selList.push(tk);
+  }
+  selSauver();
+  renderSelectionTab();
+}
+// Seuils d'une valeur — mêmes règles que le reste de l'app (MM20/MM50, ATR sous 80 % de son pic,
+// RSI 2, stop à 3 × ATR) : ce sont les niveaux de cours à atteindre, calculés sur les dernières clôtures.
+async function selCarte(tk){
+  const d = await dgSerie(tk);
+  const closes = d.closes, last = closes[closes.length-1];
+  const atrS = dgAtrSerie(d.highs, d.lows, closes);
+  const aNow = atrS[atrS.length-1], aPic = Math.max(...atrS.slice(-60));
+  const mm20 = sma(closes,20), mm50 = sma(closes,50);
+  const r2 = anaRsi(closes,2);
+  const seg = closes.slice(-60), haut = Math.max(...seg), bas = Math.min(...seg);
+  const ec = (v)=> { const x = (v/last-1)*100; return `${x>=0?'+':''}${x.toFixed(1)} % vs cours`; };
+  const conds = [];
+  if(mm20 != null){
+    const ok = last > mm20;
+    conds.push({ok, lab:'Clôture au-dessus de la MM20', val: fmt(mm20),
+      txt: ok ? `Atteint : le cours est au-dessus (${ec(mm20)}).` : `Pas encore : il faut une clôture au-dessus de ${fmt(mm20)} (${ec(mm20)}).`});
+  }
+  if(mm50 != null){
+    const ok = last > mm50;
+    conds.push({ok, lab:'Cours au-dessus de la MM50', val: fmt(mm50),
+      txt: ok ? `Atteint : tendance à moyen terme haussière (${ec(mm50)}).` : `Pas encore : la tendance à moyen terme se répare au-dessus de ${fmt(mm50)} (${ec(mm50)}).`});
+  }
+  {
+    const seuil = aPic*0.8, ok = aNow <= seuil;
+    conds.push({ok, lab:'Volatilité calmée (ATR)', val: `${fmt(aNow)} / seuil ${fmt(seuil)}`,
+      txt: ok ? 'Atteint : l\'ATR est sous 80 % de son pic des 3 derniers mois, le stop peut être serré.' : `Pas encore : l'ATR doit retomber sous ${fmt(seuil)} (il est à ${fmt(aNow)}).`});
+  }
+  if(r2 != null){
+    const ok = r2 < 90;
+    conds.push({ok, lab:'Pas d\'excès de hausse (RSI 2)', val: r2.toFixed(0),
+      txt: ok ? (r2 <= 10 ? 'Atteint, et excès de baisse : un rebond à très court terme est possible.' : 'Atteint : pas de tension à la hausse (seuil : sous 90).')
+              : 'Pas encore : RSI 2 au-dessus de 90 — attendre un repli plutôt qu\'acheter maintenant' + (mm20 != null ? ` (vers la MM20, ${fmt(mm20)}).` : '.')});
+  }
+  const nOk = conds.filter(c=>c.ok).length;
+  const pret = nOk === conds.length;
+  const premier = conds.find(c=>!c.ok);
+  const stop = last - 3*aNow;
+  const niveaux = [
+    ['moyen','Cassure : plus haut 3 mois', fmt(haut), last >= haut ? 'Cours sur ses plus hauts 3 mois : cassure en cours.' : `Une clôture au-dessus de ${fmt(haut)} (${ec(haut)}) confirme un momentum haussier.`],
+    ['info','Stop à placer à l\'achat (3 × ATR)', fmt(stop), `${ec(stop)} au cours actuel — à recalculer le jour de l'achat.`],
+    ['mauvais','Support : plus bas 3 mois', fmt(bas), `Sous ${fmt(bas)} (${ec(bas)}), l'idée d'entrée est invalidée.`]
+  ];
+  return `<div class="card">
+    <div class="an-card-head"><div><div class="an-ticker">${UNIVERSE[tk]||tk}</div><div class="an-name">${tk}</div></div><div class="an-price">${fmt(last)}</div></div>
+    <div class="ana-note ${pret?'green':nOk >= conds.length-1 ? 'amber' : 'red'}" style="margin-bottom:8px;">
+      <div class="ana-note-val">${nOk}<small>/${conds.length}</small></div>
+      <div class="ana-note-txt"><div class="ana-note-titre">${pret ? 'Feu vert côté cours' : 'Pas encore'}</div>${pret ? 'Toutes les conditions d\'entrée sont remplies. Vérifie résultats, actualités et secteur (onglet Go) avant d\'ordonner.' : `Prochain seuil à franchir : ${premier.lab}.`}</div>
+    </div>
+    <div class="dg-step">Conditions d'entrée (toutes requises)</div>
+    <div class="an-metrics">${conds.map(c=>anaRow(c.ok?'bon':'moyen', c.lab, c.val, c.txt)).join('')}</div>
+    <div class="dg-step">Niveaux à surveiller</div>
+    <div class="an-metrics">${niveaux.map(n=>anaRow(n[0], n[1], n[2], n[3])).join('')}</div>
+    <p class="small" style="margin-top:8px;">Seuils calculés sur les clôtures du ${d.dates[d.dates.length-1]}. Indicatif : ni prédiction, ni conseil financier.</p>
+  </div>`;
+}
+async function renderSelectionTab(refresh){
+  const grid = $('selGrid'), cpt = $('selCount'), box = $('selResults');
+  if(!grid) return;
+  grid.innerHTML = CAC40.slice().sort((a,b)=>a[0].localeCompare(b[0],'fr'))
+    .map(([nom,tk])=>`<div class="sx-chip${selList.includes(tk)?' on':''}" data-tk="${tk}">${nom}</div>`).join('');
+  grid.querySelectorAll('.sx-chip').forEach(c=> c.addEventListener('click', ()=> selToggle(c.dataset.tk)));
+  if(cpt) cpt.innerHTML = `<b>${selList.length}</b>/${SEL_MAX} valeur(s) sélectionnée(s)` + (selList.length ? ' : ' + selList.map(tk=>UNIVERSE[tk]||tk).join(', ') : '');
+  if(!box) return;
+  if(!selList.length){ box.innerHTML = '<div class="empty">Choisis jusqu\'à 5 valeurs ci-dessus pour voir leurs seuils.</div>'; return; }
+  const token = ++selToken;
+  box.innerHTML = selList.map(tk=>`<div class="card" id="selc-${tk.replace(/\W/g,'_')}"><div class="an-loading">Chargement de ${UNIVERSE[tk]||tk}…</div></div>`).join('');
+  for(const tk of selList.slice()){
+    if(refresh) delete dgSerieCache[tk];
+    let h;
+    try{ h = await selCarte(tk); }
+    catch(e){ h = `<div class="card"><div class="an-error"><b>${UNIVERSE[tk]||tk}</b> — ${e.message || 'données indisponibles'}</div></div>`; }
+    if(token !== selToken) return;   // la sélection a changé entre-temps
+    const el = $('selc-' + tk.replace(/\W/g,'_'));
+    if(el) el.outerHTML = h;
+  }
+}
+selCharger();
+if($('selRefreshBtn')) $('selRefreshBtn').addEventListener('click', ()=> renderSelectionTab(true));
 
 // ---------- Onglet Go : feu vert avant d'acheter, par valeur ----------
 const GO_KEY = 'bigdeal-go-v1';
@@ -3499,10 +3685,67 @@ if($('goResetBtn')) $('goResetBtn').addEventListener('click', ()=>{
 goCharger();
 renderGo();
 
+// ---------- Mémoire du dernier scan : les valeurs retenues (🟢) restent à l'écran et en mémoire ----------
+// Sur demande explicite : après « Scanner tout le CAC 40 », les valeurs sélectionnées sont conservées
+// sur cet appareil (localStorage) avec leur score, leur cours et leurs raisons, et réaffichées à la
+// réouverture de l'app — datées, puisqu'un signal mémorisé vieillit : relancer le scan l'actualise.
+const PEP_KEY = 'bigdeal-pepites-scan-v1';
+let pepSnap = null;
+function pepSnapCharger(){
+  try{ const b = localStorage.getItem(PEP_KEY); if(b){ const o = JSON.parse(b); if(o && Array.isArray(o.items)) return o; } }catch(e){}
+  return null;
+}
+function pepSnapSauver(analysees, bons, surveiller){
+  const items = pepList.filter(e=> e.state==='done' && pepiteVerdict(e.data).color==='green')
+    .map(e=>{ const v = pepiteVerdict(e.data);
+      return { ticker:e.ticker, last:e.data.closes[e.data.closes.length-1], score:v.score, reasons:v.reasons }; })
+    .sort((a,b)=> b.score - a.score);
+  pepSnap = { date:new Date().toISOString(), analysees, bons, surveiller, items };
+  try{ localStorage.setItem(PEP_KEY, JSON.stringify(pepSnap)); }catch(e){}
+}
+function pepSnapEffacer(){
+  pepSnap = null;
+  try{ localStorage.removeItem(PEP_KEY); }catch(e){}
+}
+function pepSnapCardHTML(it){
+  const dotCls = {bull:'green', bear:'red', neut:'grey', warn:'amber'};
+  const nom = UNIVERSE[it.ticker] || it.ticker;
+  return `<div class="card" data-ticker="${it.ticker}">
+    <div class="an-card-head">
+      <div><div class="an-ticker">${nom}</div><div class="an-name">${it.ticker}</div></div>
+      <div class="an-price">${fmt(it.last)}</div>
+    </div>
+    <div class="pepBadge pepBadge-green">🟢 Bon moment</div>
+    <div class="an-metrics" style="margin-top:10px;">
+      ${it.reasons.map(r=>`<div class="an-metric"><div class="an-dot ${dotCls[r.dir]||'grey'}"></div><div class="an-m-body"><div class="an-m-txt">${r.t}</div></div></div>`).join('')}
+    </div>
+    <button class="btn ghost pepDetailBtn" data-ticker="${it.ticker}" data-nom="${nom}" style="margin-top:10px;">Acheter cette valeur (Préparation) →</button>
+  </div>`;
+}
+function pepWireDetail(box){
+  box.querySelectorAll('.pepDetailBtn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      goTo('preparation');
+      prepChoisir(resolveTicker(btn.dataset.nom));
+    });
+  });
+}
+pepSnap = pepSnapCharger();
 function renderPepites(){
   const box = $('pepResults');
   if(!box) return;
-  if(pepList.length===0){ box.innerHTML = '<div class="empty">Lance le scan ou ajoute une valeur ci-dessus pour évaluer son momentum.</div>'; return; }
+  if(pepList.length===0){
+    if(pepSnap){
+      const jour = new Date(pepSnap.date).toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'});
+      const heure = new Date(pepSnap.date).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+      box.innerHTML = `<div class="dg-val-chiffres" style="margin:4px 0 8px;">Valeurs retenues au dernier scan (${jour} à ${heure}) : ${pepSnap.items.length} sur ${pepSnap.analysees} analysées. Données mémorisées, à actualiser en relançant le scan.</div>`
+        + (pepSnap.items.length ? pepSnap.items.map(pepSnapCardHTML).join('') : '<div class="empty">Aucune valeur avec un signal 🟢 vert lors de ce scan.</div>');
+      pepWireDetail(box);
+    } else {
+      box.innerHTML = '<div class="empty">Lance le scan ou ajoute une valeur ci-dessus pour évaluer son momentum.</div>';
+    }
+    return;
+  }
   // Sur demande explicite : ne pas noyer l'utilisateur sous les 40 résultats du CAC 40 — seules les
   // valeurs au signal 🟢 vert ("Bon moment") méritent d'être affichées ici, le but de l'onglet étant
   // justement de repérer les bons momentums sans avoir à trier soi-même. Les cartes encore en
@@ -3523,12 +3766,7 @@ function renderPepites(){
     return b.score - a.score;
   });
   box.innerHTML = scored.map(s=>pepCardHTML(s.entry)).join('');
-  box.querySelectorAll('.pepDetailBtn').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      goTo('preparation');
-      await anAddTickers(btn.dataset.nom);
-    });
-  });
+  pepWireDetail(box);
 }
 function renderPepChips(){
   const box = $('pepChips');
@@ -3546,6 +3784,8 @@ function renderPepChips(){
 }
 $('pepClearBtn').addEventListener('click', ()=>{
   pepList = [];
+  pepSnapEffacer();   // « Tout effacer » vide aussi la mémoire du dernier scan
+  if($('pepScanStatus')) $('pepScanStatus').textContent = '';
   renderPepChips();
   renderPepites();
 });
@@ -3589,7 +3829,8 @@ async function pepScanAll(){
   const okDone = pepList.filter(e=>e.state==='done');
   const bons = okDone.filter(e=>pepiteVerdict(e.data).color==='green').length;
   const surveiller = okDone.filter(e=>pepiteVerdict(e.data).color==='amber').length;
-  status.textContent = `Scan terminé — 🟢 ${bons} bon(s) momentum, 🟡 ${surveiller} à surveiller, sur ${okDone.length} valeurs analysées.`;
+  status.textContent = `Scan terminé — 🟢 ${bons} bon(s) momentum, 🟡 ${surveiller} à surveiller, sur ${okDone.length} valeurs analysées. Valeurs retenues mémorisées.`;
+  pepSnapSauver(okDone.length, bons, surveiller);
   btn.disabled = false;
   pepScanning = false;
 }
@@ -3735,7 +3976,7 @@ loadPositions().then(p=>{
     const postTab = sessionStorage.getItem('bigdeal-post-reload-tab');
     const postToast = sessionStorage.getItem('bigdeal-post-reload-toast');
     if(postToast) sessionStorage.removeItem('bigdeal-post-reload-toast');
-    if(postTab && postTab !== 'preparation'){ goTo(postTab); }
+    if(postTab && postTab !== 'preparation'){ goTo(postTab==='analyse' ? 'pepites' : postTab); }
     if(postToast) toast(postToast);
   }catch(e){}
 });
