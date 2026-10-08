@@ -31,9 +31,10 @@
   .brand h1{font-size:19px;margin:0;letter-spacing:.5px;}
   .brand .sub{color:var(--dim);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-left:auto;}
   .brand .ver{color:var(--dim);font-size:9px;opacity:.55;font-family:'IBM Plex Mono',ui-monospace,monospace;}
-  nav.tabs{display:flex;gap:4px;margin:12px 0 4px;background:var(--panel);border:1px solid var(--line);
+  nav.tabs{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 4px;background:var(--panel);border:1px solid var(--line);
     border-radius:10px;padding:3px;}
-  nav.tabs button{flex:1;padding:9px 4px;background:transparent;border:none;color:var(--dim);
+  nav.tabs .tabs-break{flex-basis:100%;height:0;margin:0;padding:0;}
+  nav.tabs button{flex:1 1 0;min-width:0;padding:9px 4px;background:transparent;border:none;color:var(--dim);
     font-size:11px;font-weight:600;border-radius:7px;letter-spacing:.1px;}
   nav.tabs button.active{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line);}
   main{padding:8px 16px 100px;max-width:520px;margin:0 auto;}
@@ -337,7 +338,8 @@
     <button data-view="pepites">Pépites</button>
     <button data-view="selection">Valeur</button>
     <button data-view="analyse">Analyse</button>
-    <button data-view="go">Check</button>
+    <button data-view="go">Check préachat</button>
+    <span class="tabs-break" aria-hidden="true"></span>
     <button data-view="preparation" class="active">Préparation</button>
     <button data-view="achat">Achat</button>
     <button data-view="suivi">Suivi</button>
@@ -351,7 +353,7 @@
   <section id="view-go" class="view">
     <div class="card">
       <h3>Feu vert avant d'acheter</h3>
-      <p class="small">Les cinq points à vérifier avant de passer l'ordre. Les réponses sont enregistrées par valeur sur cet appareil — tu retrouves ta grille en revenant.</p>
+      <p class="small">Les six points à vérifier avant de passer l'ordre. Les réponses sont enregistrées par valeur sur cet appareil — tu retrouves ta grille en revenant.</p>
       <label style="margin-top:12px;">Valeur</label>
       <select id="goSelect"></select>
       <div class="go-etat" id="goEtat"></div>
@@ -497,6 +499,7 @@
       <h3>Valeur à acheter</h3>
       <p class="small">Choisis une valeur du CAC 40 : l'ATR14, la MA20, le Bêta, les plus hauts et les dates à venir se remplissent automatiquement (EODHD).</p>
       <select id="prepValeur"></select>
+      <div id="prepDernierCours" class="small" style="margin-top:8px;font-family:'IBM Plex Mono',monospace;"></div>
     </div>
     <div id="existingPositionsWrap" style="display:none;"></div>
     <div id="nouvellePositionWrap">
@@ -590,9 +593,11 @@
         <label class="chk"><input type="checkbox" id="dchk3"> Vérification date annonce résultat et dividende</label>
         <label class="chk"><input type="checkbox" id="dchk4"> Recommandation Warren IA</label>
         <label class="chk"><input type="checkbox" id="dchk5"> Contexte géopolitique</label>
+        <label class="chk"><input type="checkbox" id="dchk6"> Conviction</label>
+        <label class="chk"><input type="checkbox" id="dchk7"> Achat dans la montée</label>
       </div>
     </div>
-    <div id="processError" class="small" style="color:var(--red);display:none;margin-bottom:6px;font-weight:600;">Erreur : process du jour non complété — coche les 5 cases avant de valider.</div>
+    <div id="processError" class="small" style="color:var(--red);display:none;margin-bottom:6px;font-weight:600;">Erreur : process du jour non complété — coche les 7 cases avant de valider.</div>
     <button class="btn primary" id="btnValider">Valider la préparation</button>
     </div>
   </section>
@@ -742,7 +747,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-08T16:18:00Z';
+const BUILD_TIME_UTC = '2026-10-08T17:06:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -844,7 +849,7 @@ async function saveDailyChecks(state){
   const today = new Date().toISOString().slice(0,10);
   const next = {date:today, ...state};
   const prev = appState.daily;
-  const unchanged = prev && prev.date===next.date && prev.c1===next.c1 && prev.c2===next.c2 && prev.c3===next.c3 && prev.c4===next.c4 && prev.c5===next.c5;
+  const unchanged = prev && prev.date===next.date && prev.c1===next.c1 && prev.c2===next.c2 && prev.c3===next.c3 && prev.c4===next.c4 && prev.c5===next.c5 && prev.c6===next.c6 && prev.c7===next.c7;
   appState.daily = next;
   // Évite de republier (donc de recharger la page) quand rien n'a réellement changé —
   // resetPreparationForm() appelle cette fonction à chaque visite de l'onglet Préparation.
@@ -1082,7 +1087,7 @@ $('importCSVFile').addEventListener('change', async (e)=>{
 });
 let positions = [];
 let selectedStock = null; // {nom, ticker}
-let stopChoice = 'fixe3';
+let stopChoice = 'atr';   // protection par défaut : option 2, CA − k×ATR
 let atrData = {atr:null, ma20:null};
 let typeAchat = '1';
 let selectedPerson = null;
@@ -1191,8 +1196,9 @@ $('achatInputCR').addEventListener('input', ()=>{ crManualOverride = true; recom
 async function resetPreparationForm(){
   selectedStock = null;
   if($('prepValeur')) $('prepValeur').value = '';
+  if($('prepDernierCours')) $('prepDernierCours').textContent = '';
   selectedPerson = null;
-  stopChoice = 'fixe3';
+  stopChoice = 'atr';
   typeAchat = '1';
   crManualOverride = false;
   ['achCA','achATR','achMA20','achBeta','stopFinal','opt1Pct1S','opt1Pct1M','prepDateResultat','prepDateDividende'].forEach(id=>$(id).value='');
@@ -1203,8 +1209,8 @@ async function resetPreparationForm(){
   document.querySelector('.typeOpt[data-type="1"]')?.classList.add('selected');
   document.querySelectorAll('.typeScreen').forEach(s=> s.style.display='none');
   const screen1 = $('typeScreen1'); if(screen1) screen1.style.display='';
-  ['dchk1','dchk2','dchk3','dchk4','dchk5'].forEach(id=>{ if($(id)) $(id).checked=false; });
-  await saveDailyChecks({c1:false,c2:false,c3:false,c4:false,c5:false});
+  ['dchk1','dchk2','dchk3','dchk4','dchk5','dchk6','dchk7'].forEach(id=>{ if($(id)) $(id).checked=false; });
+  await saveDailyChecks({c1:false,c2:false,c3:false,c4:false,c5:false,c6:false,c7:false});
   $('processError').style.display='none';
   // mode nouvelle position par défaut
   document.querySelectorAll('.prepModeOpt').forEach(x=>x.classList.remove('selected'));
@@ -1316,9 +1322,18 @@ function prepChoisir(tk){
     selectedStock = null; updateSelStockLabel(); updateAchatHeader();
     ['prepDateResultat','prepDateDividende'].forEach(id=>{ if($(id)) $(id).value=''; });
     ['prepDateResultatHint','prepDateDividendeHint'].forEach(id=>{ if($(id)) $(id).textContent=''; });
+    if($('prepDernierCours')) $('prepDernierCours').textContent='';
     return;
   }
   if(sel) sel.value = tk;
+  // Dernier cours déjà connu (analyse mémorisée), affiché tout de suite ; remplacé par le cours EODHD dès qu'il arrive.
+  const box = $('prepDernierCours');
+  if(box){
+    const m = (typeof anaMemo === 'function') ? anaMemo(tk) : null;
+    box.textContent = (m && m.cours)
+      ? `Dernier cours connu : ${fmt(m.cours)}${m.date ? ' (analyse du ' + new Date(m.date).toLocaleDateString('fr-FR') + ')' : ''} — actualisation en cours…`
+      : 'Dernier cours : récupération en cours…';
+  }
   pickStock(UNIVERSE[tk], tk);
 }
 if($('prepValeur')){
@@ -1473,7 +1488,8 @@ async function autoFetchATR(){
   const status = $('atrStatus');
   if(status) status.textContent = 'Récupération des données réelles (EODHD)…';
   try{
-    const data = await fetchStockStats(selectedStock.ticker);
+    const tkDemande = selectedStock.ticker;
+    const data = await fetchStockStats(tkDemande);
     if(data.atr!=null) $('achATR').value = data.atr.toFixed(2);
     if(data.ma20!=null) $('achMA20').value = data.ma20.toFixed(2);
     if(data.beta!=null) $('achBeta').value = data.beta.toFixed(2);
@@ -1481,6 +1497,7 @@ async function autoFetchATR(){
     if(data.high3m!=null) $('opt1High3M').value = data.high3m.toFixed(2);
     if(data.pct1s!=null) $('opt1Pct1S').value = data.pct1s.toFixed(2);
     if(data.pct1m!=null) $('opt1Pct1M').value = data.pct1m.toFixed(2);
+    if($('prepDernierCours') && selectedStock && selectedStock.ticker===tkDemande) $('prepDernierCours').innerHTML = `Dernier cours : <b>${fmt(data.last)}</b> — clôture du ${frIso(data.lastDate)}`;
     const manques = [];
     if(data.beta==null) manques.push('bêta (pas assez de séances communes avec le CAC 40)');
     if(data.nbSeances < 252) manques.push(`historique limité à ${data.nbSeances} séances — le plus haut 1 an peut être sous-estimé`);
@@ -1489,6 +1506,8 @@ async function autoFetchATR(){
     recomputeStopOptions();
   }catch(e){
     if(status) status.textContent = 'Erreur EODHD : ' + ((e&&e.message)||e);
+    const b = $('prepDernierCours');
+    if(b && /actualisation en cours|récupération en cours/.test(b.textContent)) b.textContent = b.textContent.replace(/ — actualisation en cours…/,' — actualisation impossible pour le moment').replace('Dernier cours : récupération en cours…','Dernier cours : indisponible pour le moment');
   }
 }
 // ---------- Stops ----------
@@ -1528,8 +1547,9 @@ function recomputeStopOptions(){
       recomputeKPI();
     });
   });
-  // Par défaut, le stop retenu est calé sur Fixe -3% tant que l'utilisateur n'a pas choisi une autre méthode
-  if(stopChoice==='fixe3' && v.fixe3!==null) $('stopFinal').value = v.fixe3;
+  // Par défaut, le stop retenu est calé sur CA − k×ATR (option 2) tant que l'utilisateur n'a pas choisi une autre méthode
+  if(stopChoice==='atr' && v.atr!==null) $('stopFinal').value = v.atr;
+  else if(stopChoice==='fixe3' && v.fixe3!==null) $('stopFinal').value = v.fixe3;
   recomputeKPI();
 }
 ['achCA','achATR','achMA20','atrMult','achQte','achFraisA'].forEach(id=>{
@@ -1564,8 +1584,8 @@ $('btnValider').addEventListener('click', async ()=>{
   const manquants = [];
   if(!selectedPerson) manquants.push('sélectionner qui effectue la transaction');
   if(!selectedStock) manquants.push('choisir une valeur dans « Valeur à acheter »');
-  const processOk = ['dchk1','dchk2','dchk3','dchk4','dchk5'].every(id=>$(id).checked);
-  if(!processOk) manquants.push('cocher les 5 cases du process du jour');
+  const processOk = ['dchk1','dchk2','dchk3','dchk4','dchk5','dchk6','dchk7'].every(id=>$(id).checked);
+  if(!processOk) manquants.push('cocher les 7 cases du process du jour');
   if(manquants.length){
     $('processError').style.display='block';
     $('processError').innerHTML = 'Erreur — il manque : ' + manquants.join(', ') + '.';
@@ -2010,15 +2030,15 @@ $('btnResetAll').addEventListener('click', async ()=>{
 // ---------- Checklist du jour : toujours vide au chargement, jamais restaurée cochée ----------
 (async ()=>{
   let dailyCheckSaveTimer = null;
-  ['dchk1','dchk2','dchk3','dchk4','dchk5'].forEach(id=>{
+  ['dchk1','dchk2','dchk3','dchk4','dchk5','dchk6','dchk7'].forEach(id=>{
     $(id).addEventListener('change', ()=>{
-      // Regroupe les coches rapprochées (ex. les 5 cases cochées à la suite) en une
+      // Regroupe les coches rapprochées (ex. les 7 cases cochées à la suite) en une
       // seule sauvegarde/republication au lieu d'une par case.
       clearTimeout(dailyCheckSaveTimer);
       dailyCheckSaveTimer = setTimeout(()=>{
-        saveDailyChecks({c1:$('dchk1').checked, c2:$('dchk2').checked, c3:$('dchk3').checked, c4:$('dchk4').checked, c5:$('dchk5').checked});
+        saveDailyChecks({c1:$('dchk1').checked, c2:$('dchk2').checked, c3:$('dchk3').checked, c4:$('dchk4').checked, c5:$('dchk5').checked, c6:$('dchk6').checked, c7:$('dchk7').checked});
       }, 600);
-      const allChecked = ['dchk1','dchk2','dchk3','dchk4','dchk5'].every(x=>$(x).checked);
+      const allChecked = ['dchk1','dchk2','dchk3','dchk4','dchk5','dchk6','dchk7'].every(x=>$(x).checked);
       if(allChecked) $('processError').style.display='none';
     });
   });
@@ -3607,7 +3627,10 @@ const GO_ITEMS = [
    opts:[['sect_h','Secteur bien orienté'],['sect_n','Secteur sans tendance nette'],['sect_b','Secteur en crise — baisse subie par tous']]},
   {k:'q5', t:"Je connais les prochaines dates : résultats et détachement du dividende",
    aide:"Acheter juste avant une publication, c'est parier sur elle. Le cours baisse mécaniquement le jour du détachement.",
-   champs:[['dResu','Prochains résultats','date'],['dDiv','Détachement du dividende','date']]}
+   champs:[['dResu','Prochains résultats','date'],['dDiv','Détachement du dividende','date']]},
+  {k:'q6', t:"Le potentiel de hausse justifie le risque pris",
+   aide:"Écart entre le cours et un objectif réaliste (objectif des analystes, ou le tien). Il doit être nettement supérieur à la perte si le stop saute.",
+   champs:[['cible','Cours cible (€)','text']]}
 ];
 
 function goItemFait(e, it){
@@ -3663,7 +3686,8 @@ function renderGo(){
       <label class="go-q"><input type="checkbox" data-k="${it.k}" ${fait?'checked':''} ${it.opts?'disabled':''}>
         <div class="go-q-txt">${i+1}. ${it.t}</div></label>
       <div class="go-aide">${it.aide}</div>
-      ${ctx[it.k] ? `<div class="go-ctx">${ctx[it.k]}${it.k==='q1' && ctx.mom ? '<br>'+ctx.mom : ''}</div>` : ''}`;
+      ${ctx[it.k] ? `<div class="go-ctx">${ctx[it.k]}${it.k==='q1' && ctx.mom ? '<br>'+ctx.mom : ''}</div>` : ''}
+      ${it.k==='q6' ? `<div class="go-ctx" id="goPotMsg">${goPotentielHtml(tk)}</div>` : ''}`;
     if(it.opts){
       h += '<div class="go-sub">' + it.opts.map(([v,lab])=>
         `<label class="go-opt${e[it.k]===v?' on':''}"><input type="radio" name="go-${it.k}" value="${v}" ${e[it.k]===v?'checked':''}><span>${lab}</span></label>`
@@ -3671,7 +3695,7 @@ function renderGo(){
     }
     if(it.champs){
       h += '<div class="go-champ">' + it.champs.map(([n,lab,type])=>
-        `<label>${lab}<input type="${type}"${type==='text'&&n==='niveau'?' inputmode="decimal"':''} data-champ="${n}" value="${e[n]!=null?String(e[n]).replace(/"/g,'&quot;'):''}"></label>`
+        `<label>${lab}<input type="${type}"${type==='text'&&(n==='niveau'||n==='cible')?' inputmode="decimal"':''} data-champ="${n}" value="${e[n]!=null?String(e[n]).replace(/"/g,'&quot;'):''}"></label>`
       ).join('') + '</div>';
     }
     h += '</div>';
@@ -3691,7 +3715,9 @@ function renderGo(){
   liste.querySelectorAll('input[data-champ]').forEach(inp=>inp.addEventListener('input', ()=>{
     const d = goData[tk] = goData[tk] || {};
     d[inp.dataset.champ] = inp.value;
+    if(inp.dataset.champ==='cible') d.cibleSrc = 'manuel';
     goSauver();
+    if(inp.dataset.champ==='cible' && $('goPotMsg')) $('goPotMsg').innerHTML = goPotentielHtml(tk);
   }));
 
   const manque = [];
@@ -3705,7 +3731,7 @@ function renderGo(){
     const faits = GO_ITEMS.filter(it=>goItemFait(e, it)).length;
     const pret = faits === GO_ITEMS.length;
     etat.innerHTML = `<div>${UNIVERSE[tk]||tk} — <b class="${pret?'ok':'ko'}">${faits}/${GO_ITEMS.length}</b> point(s) validé(s)</div>`
-      + (pret ? `<div><b class="ok">Feu vert</b> : les cinq points sont cochés. Dimensionne la position dans Préparation, et place le stop dès l'exécution.</div>`
+      + (pret ? `<div><b class="ok">Feu vert</b> : les six points sont cochés. Dimensionne la position dans Préparation, et place le stop dès l'exécution.</div>`
               : `<div>Tant qu'un point reste ouvert, l'ordre attend.</div>`);
   }
 }
@@ -3764,7 +3790,59 @@ async function goDates(auto){
 }
 // Récupération automatique à l'ouverture de l'onglet ou au changement de valeur, si les dates
 // manquent ou datent de plus de 7 jours. Silencieuse : aucune erreur affichée si le relais refuse.
+// Point 6 « Potentiel » : objectif des analystes (EODHD, fondamentaux) rapporté au cours et au risque.
+// Selon le plan EODHD, la donnée peut manquer : le champ reste alors à remplir à la main.
+function goNum(v){ const x = parseFloat(String(v==null?'':v).replace(/\s/g,'').replace(',','.')); return isNaN(x) ? null : x; }
+function goPotentielHtml(tk){
+  const d = goData[tk] || {};
+  const cible = goNum(d.cible), cours = goNum(d.cours);
+  const a = anaMemo(tk);
+  const stop = a && goNum(a.stop);
+  const lignes = [];
+  if(cible && cours){
+    const pot = (cible/cours - 1) * 100;
+    lignes.push(`Potentiel : <b>${pot>=0?'+':''}${pot.toFixed(1)} %</b> (cours ${fmt(cours)} → cible ${fmt(cible)}).`);
+    if(stop && stop < cours){
+      const risque = (1 - stop/cours) * 100;
+      lignes.push(`Risque si le stop (${fmt(stop)}) saute : −${risque.toFixed(1)} %. Rapport gain/risque : <b>${(pot/risque).toFixed(1)}</b>.`);
+    }
+  } else if(cible && !cours){
+    lignes.push('Cible saisie ; le cours n\'a pas pu être récupéré pour calculer le potentiel.');
+  }
+  if(d.cibleSrc === 'eodhd') lignes.push(`Objectif moyen des analystes repris d'EODHD${d.cibleLe ? ' le ' + new Date(d.cibleLe).toLocaleDateString('fr-FR') : ''} — modifiable.`);
+  else if(d.cibleSrc === 'manuel' && cible) lignes.push('Cible saisie à la main.');
+  else if(d.cibleErr) lignes.push('Objectif des analystes non disponible via EODHD (selon ton plan) : saisis ta cible à la main.');
+  return lignes.join('<br>');
+}
+async function goPotentielAuto(){
+  const tk = goTicker();
+  if(!tk) return;
+  const d = goData[tk] = goData[tk] || {};
+  try{ const s = await dgSerie(tk); d.cours = s.closes[s.closes.length-1]; }catch(e){}
+  const deja = d.cibleSrc === 'manuel' || (d.cible && d.cibleSrc !== 'eodhd');
+  const frais = d.cibleLe && (Date.now() - new Date(d.cibleLe).getTime()) < 12*3600000;
+  if(!deja && !frais){
+    let cible = null;
+    for(const f of ['Highlights::WallStreetTargetPrice','AnalystRatings::TargetPrice']){
+      try{
+        const r = await eodFetch(`/fundamentals/${encodeURIComponent(tk)}`, `&filter=${encodeURIComponent(f)}`);
+        const x = goNum(r && typeof r==='object' ? Object.values(r)[0] : r);
+        if(x && x > 0){ cible = x; break; }
+      }catch(e){}
+    }
+    d.cibleLe = new Date().toISOString();
+    if(cible){ d.cible = String(+cible.toFixed(2)); d.cibleSrc = 'eodhd'; delete d.cibleErr; }
+    else if(!d.cible){ d.cibleErr = true; }
+  }
+  goSauver();
+  if(goTicker() === tk){
+    const inp = document.querySelector('#goListe input[data-champ="cible"]');
+    if(inp && document.activeElement !== inp) inp.value = d.cible || '';
+    if($('goPotMsg')) $('goPotMsg').innerHTML = goPotentielHtml(tk);
+  }
+}
 async function goDatesAuto(){
+  goPotentielAuto();
   const tk = goTicker();
   if(!tk) return;
   // Contexte : recalcule les repères de la valeur s'ils manquent ou datent de plus de 12 h.
