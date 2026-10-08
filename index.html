@@ -36,7 +36,19 @@
   nav.tabs .tabs-break{flex-basis:100%;height:0;margin:0;padding:0;}
   nav.tabs button{flex:1 1 0;min-width:0;padding:9px 4px;background:transparent;border:none;color:var(--dim);
     font-size:11px;font-weight:600;border-radius:7px;letter-spacing:.1px;}
-  nav.tabs button.active{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line);}
+  /* Une couleur par onglet : texte et liseré teintés au repos, fond plein teinté quand l'onglet est actif */
+  nav.tabs button{--tc:#9aa4b2;color:var(--tc);box-shadow:inset 0 -3px 0 var(--tc);}
+  nav.tabs button[data-view="pepites"]{--tc:#f5b942;}
+  nav.tabs button[data-view="selection"]{--tc:#4fd1a5;}
+  nav.tabs button[data-view="analyse"]{--tc:#5ea8ff;}
+  nav.tabs button[data-view="go"]{--tc:#c58bff;}
+  nav.tabs button[data-view="preparation"]{--tc:#ff8a5c;}
+  nav.tabs button[data-view="achat"]{--tc:#4cd964;}
+  nav.tabs button[data-view="suivi"]{--tc:#2ec5d8;}
+  nav.tabs button[data-view="position"]{--tc:#ff6f9c;}
+  nav.tabs button[data-view="bilan"]{--tc:#d4d65a;}
+  nav.tabs button.active{background:color-mix(in srgb, var(--tc) 22%, var(--panel2));color:#fff;
+    box-shadow:inset 0 0 0 1.5px var(--tc), inset 0 -3px 0 var(--tc);}
   main{padding:8px 16px 100px;max-width:520px;margin:0 auto;}
   .view{display:none;}
   .view.active{display:block;animation:fade .18s ease;}
@@ -553,10 +565,11 @@
       <input type="text" inputmode="decimal" data-decimal="1" id="opt1High1An">
       <label>Plus haut depuis 3 mois (€)</label>
       <input type="text" inputmode="decimal" data-decimal="1" id="opt1High3M">
-      <label>% baisse depuis 1 semaine</label>
+      <label>% variation depuis 1 semaine (négatif = baisse)</label>
       <input type="text" inputmode="decimal" data-decimal="1" id="opt1Pct1S">
-      <label>% baisse depuis 1 mois</label>
+      <label>% variation depuis 1 mois (négatif = baisse)</label>
       <input type="text" inputmode="decimal" data-decimal="1" id="opt1Pct1M">
+      <p class="small" id="opt1Detail" style="margin-top:8px;"></p>
     </div>
     <div class="card typeScreen" id="typeScreen2" style="display:none;">
       <h3>Publication Résultat</h3>
@@ -747,7 +760,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-08T17:06:00Z';
+const BUILD_TIME_UTC = '2026-10-08T17:22:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1197,6 +1210,7 @@ async function resetPreparationForm(){
   selectedStock = null;
   if($('prepValeur')) $('prepValeur').value = '';
   if($('prepDernierCours')) $('prepDernierCours').textContent = '';
+  if($('opt1Detail')) $('opt1Detail').textContent = '';
   selectedPerson = null;
   stopChoice = 'atr';
   typeAchat = '1';
@@ -1361,7 +1375,7 @@ function atr14Euros(highs, lows, closes){
 function sma(arr, n){ return arr.length>=n ? arr.slice(-n).reduce((a,b)=>a+b,0)/n : null; }
 function maxOverLastN(arr, n){
   if(!arr || !arr.length) return null;
-  const seg = arr.slice(-n);
+  const seg = arr.slice(-n).filter(Number.isFinite);   // ignore les séances sans cours (null/NaN)
   return seg.length ? Math.max(...seg) : null;
 }
 // Bêta = covariance(rendements titre, rendements CAC 40) / variance(rendements CAC 40), sur les séances communes
@@ -1479,6 +1493,11 @@ async function fetchStockStats(ticker){
     // temporairement).
     pct1s: pctChangeOverDays(closes, 5),
     pct1m: pctChangeOverDays(closes, 21),
+    // Repères pour recouper les chiffres à la main : séance de référence et date/valeur du plus haut 3 mois
+    ref1s: closes.length > 5 ? {date: dates[dates.length-1-5], cours: closes[closes.length-1-5]} : null,
+    ref1m: closes.length > 21 ? {date: dates[dates.length-1-21], cours: closes[closes.length-1-21]} : null,
+    date3m: (()=>{ const n=63, h=highs.slice(-n), d=dates.slice(-n); let k=-1, m=-Infinity; h.forEach((v,i)=>{ if(Number.isFinite(v) && v>m){ m=v; k=i; } }); return k>=0 ? d[k] : null; })(),
+    date1y: (()=>{ const n=252, h=highs.slice(-n), d=dates.slice(-n); let k=-1, m=-Infinity; h.forEach((v,i)=>{ if(Number.isFinite(v) && v>m){ m=v; k=i; } }); return k>=0 ? d[k] : null; })(),
     beta: computeBeta(dates, closes, cac),
     nbSeances: dates.length
   };
@@ -1497,6 +1516,15 @@ async function autoFetchATR(){
     if(data.high3m!=null) $('opt1High3M').value = data.high3m.toFixed(2);
     if(data.pct1s!=null) $('opt1Pct1S').value = data.pct1s.toFixed(2);
     if(data.pct1m!=null) $('opt1Pct1M').value = data.pct1m.toFixed(2);
+    if($('opt1Detail')){
+      const L = [];
+      L.push(`Dernière clôture : ${fmt(data.last)} le ${frIso(data.lastDate)}.`);
+      if(data.ref1s) L.push(`1 semaine = 5 séances : clôture du ${frIso(data.ref1s.date)} à ${fmt(data.ref1s.cours)}.`);
+      if(data.ref1m) L.push(`1 mois = 21 séances : clôture du ${frIso(data.ref1m.date)} à ${fmt(data.ref1m.cours)}.`);
+      if(data.high3m!=null) L.push(`Plus haut 3 mois (63 séances, plus haut en séance) : ${fmt(data.high3m)}${data.date3m ? ' le ' + frIso(data.date3m) : ''}.`);
+      if(data.high1y!=null) L.push(`Plus haut 1 an (252 séances) : ${fmt(data.high1y)}${data.date1y ? ' le ' + frIso(data.date1y) : ''}.`);
+      $('opt1Detail').innerHTML = L.join('<br>');
+    }
     if($('prepDernierCours') && selectedStock && selectedStock.ticker===tkDemande) $('prepDernierCours').innerHTML = `Dernier cours : <b>${fmt(data.last)}</b> — clôture du ${frIso(data.lastDate)}`;
     const manques = [];
     if(data.beta==null) manques.push('bêta (pas assez de séances communes avec le CAC 40)');
