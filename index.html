@@ -25,12 +25,12 @@
   h1,h2,h3,.disp{font-family:'Space Grotesk',sans-serif;}
   header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0B0E14 80%,transparent);
     padding:14px 16px 8px;}
-  .brand{display:flex;align-items:baseline;gap:8px;}
+  .brand{display:flex;align-items:baseline;gap:8px;padding-right:18px;}   /* marge à droite : l'écran de l'iPhone ne coupe plus Manu / la version */
   .brand .mark{width:10px;height:10px;background:var(--amber);border-radius:2px;
     box-shadow:0 0 0 3px rgba(232,166,61,.15);}
   .brand h1{font-size:19px;margin:0;letter-spacing:.5px;}
-  .brand .sub{color:var(--dim);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-left:auto;}
-  .brand .ver{color:var(--dim);font-size:9px;opacity:.55;font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  .brand .sub{color:var(--dim);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-left:auto;white-space:nowrap;}
+  .brand .ver{white-space:nowrap;color:var(--dim);font-size:9px;opacity:.55;font-family:'IBM Plex Mono',ui-monospace,monospace;}
   nav.tabs{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 4px;background:var(--panel);border:1px solid var(--line);
     border-radius:10px;padding:3px;}
   nav.tabs .tabs-break{flex-basis:100%;height:0;margin:0;padding:0;}
@@ -760,7 +760,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-08T18:34:00Z';
+const BUILD_TIME_UTC = '2026-10-08T18:55:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1766,8 +1766,9 @@ function suiviValHtml(p, key){
   const deja = pr.stop <= (p.stop || 0);
   return `<div style="margin-top:10px;padding:10px;border:1px solid var(--amber);border-radius:9px;">
     <p style="margin:0 0 8px;font-weight:700;font-size:14px;">Seuil sélectionné : ${pr.label} → <span class="mono">${fmt(pr.stop)}</span></p>
-    ${deja ? `<p class="small" style="margin:0 0 8px;color:var(--amber);">Le stop actuel (${fmt(p.stop)}) est déjà plus protecteur : la validation ne changera rien (cliquet).</p>` : ''}
-    <button class="btn primary btnValSeuil" style="margin-top:0;">✅ Validation — sélection du seuil de protection</button>
+    ${(!p.historique || !p.historique.length) ? `<p class="small" style="margin:0 0 8px;color:var(--amber);">Aucun cours valeur du jour enregistré : le seuil est calculé sur le cours d'achat. Enregistre d'abord le cours du jour ci-dessus.</p>` : ''}
+    ${deja ? `<p class="small" style="margin:0 0 8px;color:var(--red);font-weight:700;">Rien à enregistrer : le stop actuel (${fmt(p.stop)}) est déjà au même niveau ou plus protecteur que ${fmt(pr.stop)}. Le stop ne peut que monter (cliquet) — choisis un seuil plus haut.</p>` : ''}
+    <button class="btn primary btnValSeuil" style="margin-top:0;" ${deja ? 'disabled' : ''}>✅ Validation — sélection du seuil de protection</button>
   </div>`;
 }
 async function suiviChargerAtr(tickers){
@@ -1961,8 +1962,8 @@ function positionGainNet(p){
 // déclenché, la position ne peut plus finir en perte nette. C'est exactement ce que le
 // process de Suivi demande de faire dès que le cours valeur dépasse le CR (Cas 2).
 function protectionMise(p){
-  const CR = p.CR || p.CA || 0;
-  return (p.stop||0) >= CR && CR > 0;
+  // Protection = il y a un stop enregistré pour la position (quel que soit son niveau).
+  return Number(p.stop) > 0;
 }
 async function renderPosition(){
   const wrap = $('positionWrap');
@@ -2011,11 +2012,11 @@ async function renderPosition(){
             <td class="bPersonne">${r.personne}</td>
             <td class="bValeur">${r.p.nom}<span class="tk">${r.p.ticker||''}</span></td>
             <td class="bGain" style="color:${r.gain>=0?'var(--green)':'var(--red)'}">${signe(r.gain)}${fmt(r.gain)}<br><span class="small" style="color:var(--dim);font-weight:400;">${gainDateTxt(r.p)}</span></td>
-            <td class="bProt">${r.ok ? '<span class="okBadge">OK</span>' : '<span class="okBadge non">NON</span>'}<br><span class="small" style="color:var(--dim);">${r.p.stop ? 'stop ' + fmt(r.p.stop) : 'aucun stop'}</span></td>
+            <td class="bProt">${r.ok ? '<span class="okBadge">OUI</span>' : '<span class="okBadge non" style="color:var(--red);font-weight:700;">NON</span>'}<br><span class="small" style="color:var(--dim);">${r.p.stop ? 'stop ' + fmt(r.p.stop) : 'aucun stop'}</span></td>
           </tr>`).join('')}
         </tbody>
       </table>
-      <p class="small" style="margin-top:8px;">Gain = au dernier cours valeur enregistré (date indiquée sous le chiffre). Protection <b>OK</b> : le stop est au niveau du coût de revient ou au-dessus ; <b>NON</b> : le stop est en dessous (ou absent).</p>
+      <p class="small" style="margin-top:8px;">Gain = au dernier cours valeur enregistré (date indiquée sous le chiffre). Protection <b>OUI</b> : un stop est enregistré pour la position ; <b>NON</b> : aucun stop.</p>
     </div>`;
   }catch(e){
     wrap.innerHTML = `<div class="empty">Erreur d'affichage des positions.<br><span class="small">${(e&&e.message)||e}</span></div>`;
