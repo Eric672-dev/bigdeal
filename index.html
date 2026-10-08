@@ -370,7 +370,8 @@
         <h3 style="margin:0;">Classement momentum 12-1</h3>
         <button class="btn ghost" id="momRefreshBtn" style="width:auto;margin:0;padding:6px 12px;font-size:12px;">Calculer</button>
       </div>
-      <p class="small">Classe les 40 valeurs par performance sur 12 mois, en excluant le dernier mois, et garde le <b>top 20</b> en mémoire sur cet appareil. Le classement n'est pas affiché : il sert de référence interne, à recalculer à chaque trimestre. Ni prédiction, ni conseil financier.</p>
+      <div id="momDate" class="small" style="margin:4px 0 8px;font-family:'IBM Plex Mono',monospace;"></div>
+      <p class="small">Classe les 40 valeurs par performance sur 12 mois, en excluant le dernier mois, et garde le <b>top 20</b> en mémoire sur cet appareil. Le classement complet des 40 valeurs est gardé en mémoire et consultable ci-dessous ; à recalculer à chaque trimestre. Ni prédiction, ni conseil financier.</p>
       <div class="mom-meta" id="momMeta"></div>
       <div id="momResults"><div class="empty">Aucun classement en mémoire. Appuie sur « Calculer » (40 valeurs, environ une minute).</div></div>
       <details class="mom-why">
@@ -411,6 +412,7 @@
       <p class="small">Je regarde, pour chaque valeur, la tendance de fond, la performance récente vs le CAC 40, la position dans son range et les figures détectées, pour te dire si le momentum a l'air favorable en ce moment.</p>
       <p class="small" style="opacity:.75;">Signal indicatif basé sur des indicateurs techniques — pas une prédiction ni un conseil financier, à confirmer par ta propre analyse avant d'investir.</p>
       <button class="btn primary" id="pepScanBtn">🔍 Scanner tout le CAC 40 (40 valeurs)</button>
+      <p class="small" id="pepScanDate" style="margin-top:6px;font-family:'IBM Plex Mono',monospace;"></p>
       <p class="small" id="pepScanStatus" style="opacity:.75;margin-top:6px;"></p>
       <hr class="dash">
       <label style="margin-top:12px;">Ou ajoute une valeur précise</label>
@@ -435,7 +437,7 @@
       <h3>Analyser une valeur</h3>
       <p class="small">Analyse les 40 valeurs du CAC 40 avec tous les indicateurs (chacun avec un voyant : vert = favorable à un achat, orange = à surveiller, rouge = défavorable), puis n'affiche que celles notées <b>8/10 ou plus</b>. Environ une minute. Indicatif, et à confirmer par ta propre analyse — ni prédiction, ni conseil financier.</p>
       <button class="btn primary" id="anaRunBtn" style="margin-top:12px;">Analyser les 40 valeurs</button>
-      <div id="anaResults"><div class="empty">Appuie sur « Analyser » pour noter les 40 valeurs.</div></div>
+      <div id="anaResults"><div class="empty">Aucun run en mémoire. Appuie sur « Analyser les 40 valeurs ».</div></div>
     </div>
   </section>
   <!-- ================= ANALYSE ================= -->
@@ -739,7 +741,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-08T15:20:00Z';
+const BUILD_TIME_UTC = '2026-10-08T15:46:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -2791,6 +2793,7 @@ function renderMomentum(){
   if(!momState || !momState.lignes || !momState.lignes.length){
     if(meta) meta.textContent = `Prochain rééquilibrage : clôture du ${momFrDate(rebal)}.`;
     box.innerHTML = '<div class="empty">Aucun classement en mémoire. Appuie sur « Calculer » (40 valeurs, environ une minute).</div>';
+    if($('momDate')) $('momDate').textContent = 'Date dernier run : aucun';
     return;
   }
   const {fin} = momBornes();
@@ -2808,7 +2811,20 @@ function renderMomentum(){
   }
   // Le classement n'est volontairement pas affiché : il est conservé en local (localStorage,
   // clé MOM_KEY) et reste disponible pour les autres modules via momTop() / momRang().
-  box.innerHTML = `<div class="mom-ok">✓ Classement en mémoire — ${momState.lignes.length} valeurs classées, top ${MOM_TOP} conservé localement.</div>`;
+  if($('momDate')){
+    const dr = new Date(momState.calcule);
+    $('momDate').textContent = 'Date dernier run : ' + momFrDate(dr) + ' à ' + dr.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  }
+  const lignesHtml = momState.lignes.map((l,i)=>{
+    const top = i < MOM_TOP;
+    const v = l.perf;
+    return `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;${top?'':'opacity:.7;'}">
+      <span><span style="font-family:'IBM Plex Mono',monospace;color:var(--dim);display:inline-block;width:28px;">${i+1}.</span>${l.nom}${top?' <span style="color:var(--green);font-size:11px;">top '+MOM_TOP+'</span>':''}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;color:${v>=0?'var(--green)':'var(--red)'};">${v>=0?'+':''}${v.toFixed(1)} %</span></div>`;
+  }).join('');
+  const ouvert = box.querySelector('details.mom-liste') && box.querySelector('details.mom-liste').open;
+  box.innerHTML = `<div class="mom-ok">✓ Classement en mémoire — ${momState.lignes.length} valeurs classées, top ${MOM_TOP} conservé localement.</div>
+    <details class="mom-why mom-liste"${ouvert?' open':''}><summary>Voir le classement des ${momState.lignes.length} valeurs</summary>${lignesHtml}</details>`;
 }
 // Accès au classement pour le reste de l'app (non affiché ici).
 function momTop(n){ return momState && momState.lignes ? momState.lignes.slice(0, n || MOM_TOP).map(l=>l.tk) : []; }
@@ -3362,6 +3378,31 @@ async function anaBuild(tk){
 const ANA_SEUIL = 8;
 // Clic sur « Analyser » : passe les 40 valeurs du CAC 40 une à une, puis n'affiche que celles
 // dont la note est supérieure ou égale à 8, de la mieux notée à la moins bien notée.
+// Dernier scan des 40 valeurs : mémorisé sur l'appareil (dates, notes, fiches des valeurs ≥ 8/10).
+const ANA_SCAN_KEY = 'bigdeal-analyse-scan-v1';
+function anaRenderScan(box, snap){
+  const d = new Date(snap.date);
+  const quand = d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' à ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  let h = `<div class="dg-val-chiffres" style="margin:12px 0 6px;"><b>Date du dernier run : ${quand}</b><br>${snap.hits.length} valeur(s) sur ${snap.analysees} analysée(s) avec une note ≥ ${ANA_SEUIL}/10${snap.coursAu ? ` — cours au ${frIso(snap.coursAu)}` : ''}. Données mémorisées, à actualiser en relançant l'analyse.`
+    + (snap.echecs && snap.echecs.length ? `<br><span class="mom-stale">Non analysées : ${snap.echecs.join(', ')}</span>` : '') + '</div>';
+  if(!snap.hits.length){
+    h += `<div class="empty">Aucune valeur n'atteint ${ANA_SEUIL}/10 lors de ce run.${snap.meilleure ? `<br>Meilleure note : ${snap.meilleure.nom}, ${snap.meilleure.noteAff.toFixed(1)}/10.` : ''}</div>`;
+  } else {
+    h += snap.hits.map(r=>`<details class="card ana-hit">
+      <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+        <span class="an-ticker">${r.nom}</span>
+        <span class="mono" style="color:var(--green);font-weight:700;">${r.noteAff.toFixed(1)}/10 <span style="color:var(--dim);font-weight:400;">· ${fmt(r.last)} · ${frIso(r.lastDate)}</span></span>
+      </summary>
+      <div style="margin-top:10px;">${r.inner}</div>
+    </details>`).join('');
+  }
+  h += `<p class="small" style="margin-top:6px;">Touche une valeur pour voir le détail des indicateurs. Une note élevée décrit l'état technique du titre à la date du run, pas une prévision.</p>`;
+  box.innerHTML = h;
+  box.querySelectorAll('.anaGoBtn').forEach(b=>b.addEventListener('click', async ()=>{
+    goTo('preparation');
+    prepChoisir(resolveTicker(b.dataset.nom));
+  }));
+}
 async function anaRun(boxId, btnId){
   if(anaRunning) return;
   const box = $(boxId || 'anaResults'), btn = $(btnId || 'anaRunBtn');
@@ -3378,25 +3419,14 @@ async function anaRun(boxId, btnId){
     resultats.sort((a,b)=> b.note - a.note);
     const hits = resultats.filter(r=> r.noteAff >= ANA_SEUIL);
     const meilleure = resultats.length ? resultats[0] : null;
-    let h = `<div class="dg-val-chiffres" style="margin:12px 0 6px;">${hits.length} valeur(s) sur ${resultats.length} analysée(s) avec une note ≥ ${ANA_SEUIL}/10 — analyse du ${new Date().toLocaleDateString('fr-FR')}, cours au ${frIso(resultats.map(r=>r.lastDate).filter(Boolean).sort().pop())}`
-      + (echecs.length ? `<br><span class="mom-stale">Non analysées : ${echecs.join(', ')}</span>` : '') + '</div>';
-    if(!hits.length){
-      h += `<div class="empty">Aucune valeur n'atteint ${ANA_SEUIL}/10 aujourd'hui.${meilleure ? `<br>Meilleure note : ${meilleure.nom}, ${meilleure.noteAff.toFixed(1)}/10.` : ''}</div>`;
-    } else {
-      h += hits.map(r=>`<details class="card ana-hit">
-        <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
-          <span class="an-ticker">${r.nom}</span>
-          <span class="mono" style="color:var(--green);font-weight:700;">${r.noteAff.toFixed(1)}/10 <span style="color:var(--dim);font-weight:400;">· ${fmt(r.last)} · ${frIso(r.lastDate)}</span></span>
-        </summary>
-        <div style="margin-top:10px;">${r.inner}</div>
-      </details>`).join('');
-    }
-    h += `<p class="small" style="margin-top:6px;">Touche une valeur pour voir le détail des indicateurs. Une note élevée décrit l'état technique du titre aujourd'hui, pas une prévision.</p>`;
-    box.innerHTML = h;
-    box.querySelectorAll('.anaGoBtn').forEach(b=>b.addEventListener('click', async ()=>{
-      goTo('preparation');
-      prepChoisir(resolveTicker(b.dataset.nom));
-    }));
+    const snap = {
+      date: new Date().toISOString(), analysees: resultats.length, echecs,
+      coursAu: resultats.map(r=>r.lastDate).filter(Boolean).sort().pop() || null,
+      meilleure: meilleure ? {nom:meilleure.nom, noteAff:meilleure.noteAff} : null,
+      hits: hits.map(r=>({nom:r.nom, noteAff:r.noteAff, last:r.last, lastDate:r.lastDate, inner:r.inner}))
+    };
+    try{ localStorage.setItem(ANA_SCAN_KEY, JSON.stringify(snap)); }catch(e){}
+    anaRenderScan(box, snap);
   }catch(e){
     box.innerHTML = `<div class="an-error">${e.message || 'Analyse impossible'}</div>`;
   }
@@ -3404,6 +3434,10 @@ async function anaRun(boxId, btnId){
   if(btn){ btn.disabled = false; btn.textContent = 'Analyser les 40 valeurs'; }
 }
 if($('anaRunBtn')) $('anaRunBtn').addEventListener('click', ()=> anaRun('anaResults','anaRunBtn'));
+try{
+  const sv = JSON.parse(localStorage.getItem(ANA_SCAN_KEY)||'null');
+  if(sv && sv.date && Array.isArray(sv.hits) && $('anaResults')) anaRenderScan($('anaResults'), sv);
+}catch(e){}
 // Onglet Analyse : une seule valeur, au choix — même fiche et même note que le scan des 40 valeurs.
 async function anaRunOne(){
   if(anaRunning) return;
@@ -3790,7 +3824,17 @@ function pepWireDetail(box){
   });
 }
 pepSnap = pepSnapCharger();
+function renderPepScanDate(){
+  const el = $('pepScanDate');
+  if(!el) return;
+  if(!pepSnap){ el.textContent = 'Date du dernier run : aucun scan en mémoire'; return; }
+  const d = new Date(pepSnap.date);
+  el.textContent = 'Date du dernier run : ' + d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})
+    + ' à ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})
+    + ' — ' + pepSnap.items.length + ' valeur(s) retenue(s) gardée(s) en mémoire';
+}
 function renderPepites(){
+  renderPepScanDate();
   const box = $('pepResults');
   if(!box) return;
   if(pepList.length===0){
@@ -3892,10 +3936,12 @@ async function pepScanAll(){
   const surveiller = okDone.filter(e=>pepiteVerdict(e.data).color==='amber').length;
   status.textContent = `Scan terminé — 🟢 ${bons} bon(s) momentum, 🟡 ${surveiller} à surveiller, sur ${okDone.length} valeurs analysées (scan du ${new Date().toLocaleDateString('fr-FR')}, cours au ${frIso(okDone.map(e=>e.data.lastDate).filter(Boolean).sort().pop())}). Valeurs retenues mémorisées.`;
   pepSnapSauver(okDone.length, bons, surveiller);
+  renderPepScanDate();
   btn.disabled = false;
   pepScanning = false;
 }
 $('pepScanBtn').addEventListener('click', pepScanAll);
+renderPepScanDate();
 async function pepAddTickers(raw){
   const parts = raw.split(/[,;\n]+/).map(t=>t.trim()).filter(Boolean);
   for(let part of parts){
