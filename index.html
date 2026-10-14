@@ -773,7 +773,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-14T17:00:00Z';
+const BUILD_TIME_UTC = '2026-10-14T17:35:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1814,7 +1814,10 @@ async function suiviChargerAtr(tickers){
       if(a!=null && isFinite(a)){ suiviAtrCache[tk] = a; nouveau = true; }
       // Dernier cours (clôture) EODHD, pour préremplir « Cours valeur du jour »
       const c = d.closes[d.closes.length-1];
-      if(Number.isFinite(c)){ suiviCours[tk] = {cours:c, date:d.dates[d.dates.length-1]}; }
+      if(Number.isFinite(c)){
+        const n = d.closes.length, cp = n>=2 ? d.closes[n-2] : null;
+        suiviCours[tk] = {cours:c, date:d.dates[n-1], prec:(Number.isFinite(cp)?cp:null), datePrec:(n>=2?d.dates[n-2]:null)};
+      }
       else suiviCoursKo[tk] = true;
       nouveau = true;
     }catch(e){ suiviCoursKo[tk] = true; nouveau = true; }
@@ -1873,8 +1876,13 @@ async function renderSuivi(){
       return {val: lastCV, ko:false, hint:'Récupération du cours EODHD…'};
     })();
     // Le cours valeur a-t-il baissé par rapport au cours précédent enregistré ? Alors la protection déjà posée suffit.
-    const cvPrec = p.historique.length >= 2 ? p.historique[p.historique.length-2].cv : null;
-    const cvBaisse = cvPrec != null && Number.isFinite(cvPrec) && lastCV < cvPrec;
+    // Référence = clôtures EODHD (dernière vs veille) : indépendant d'un oubli de saisie. Repli sur les cours enregistrés si EODHD indisponible.
+    const eodS = suiviCours[p.ticker];
+    const eodOk = !!(eodS && eodS.prec != null);
+    const cvNow = eodOk ? eodS.cours : lastCV;
+    const cvPrec = eodOk ? eodS.prec : (p.historique.length >= 2 ? p.historique[p.historique.length-2].cv : null);
+    const cvSrc = eodOk ? `clôtures EODHD du ${frIso(eodS.datePrec)} et du ${frIso(eodS.date)}` : 'cours enregistrés';
+    const cvBaisse = cvPrec != null && Number.isFinite(cvPrec) && cvNow <= cvPrec;   // pas d'augmentation (baisse ou égal)
     const choixActuel = suiviSel[p.id] || '';   // simple sélection : rien n'est enregistré avant « Validation »
     const atrP = suiviAtrCache[p.ticker]!=null ? suiviAtrCache[p.ticker] : (p.atr || null);
     const persCourante = persDe(p);
@@ -1896,7 +1904,7 @@ async function renderSuivi(){
       <div class="kpi" style="align-items:center;"><span class="dateResultatLabel${resultatProche(p.dateResultat)?' resBlink':''}">Date annonce résultat${resultatProche(p.dateResultat) ? ' — ' + (joursAvantResultat(p.dateResultat)===0 ? 'AUJOURD\'HUI' : 'dans ' + joursAvantResultat(p.dateResultat) + ' jour' + (joursAvantResultat(p.dateResultat)>1?'s':'')) : ''}</span><span class="v"><input type="text" inputmode="numeric" class="dateResultatInput${resultatProche(p.dateResultat)?' resBlink':''}" placeholder="jj/mm/aaaa" value="${(p.dateResultat||'').replace(/"/g,'&quot;')}" style="width:120px;text-align:right;padding:6px 8px;margin:0;"></span></div>
       <hr class="dash">
       ${priceBar(p.CA, p.CR, p.stop, lastCV, p.ma20)}
-      <div class="priceLegend" style="margin-top:10px;font-size:12.5px;line-height:1.5;">
+      <div class="priceLegend" style="margin-top:8px;font-size:10px;line-height:1.35;">
         <div><b style="color:var(--dim);">CA</b> — <b>Cours d'achat</b> : le prix auquel tu as acheté l'action.</div>
         <div><b style="color:var(--blue);">CR</b> — <b>Coût de revient</b> : cours d'achat + frais d'achat et de vente. En dessous, la vente se solde par une perte.</div>
         <div><b style="color:var(--amber);">ST</b> — <b>Stop (protection)</b> : le cours auquel tu vends pour limiter la perte ou sécuriser le gain.</div>
@@ -1918,7 +1926,7 @@ async function renderSuivi(){
       ${!doitIntervenir ? `
       <p style="color:var(--green);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">✓ Rien à faire — le cours valeur est encore sous le coût de revient (Cas 1). On n'ajuste le stop que si le cours valeur dépasse le coût de revient.</p>
       ` : (cvBaisse ? `
-      <p style="color:var(--green);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">✓ Rien à changer — le cours valeur a baissé par rapport au dernier cours (${fmt(cvPrec)} → ${fmt(lastCV)}) : la protection est déjà en place (stop ${fmt(p.stop)}), on ne touche à rien.</p>
+      <p style="color:var(--green);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">✓ Rien à changer — le cours valeur n'a pas augmenté par rapport à la veille (${fmt(cvPrec)} → ${fmt(cvNow)}${cvNow===cvPrec?', identique':', en baisse'} — ${cvSrc}) : la protection est déjà en place (stop ${fmt(p.stop)}), on ne change pas le seuil.</p>
       <details style="margin-top:6px;"><summary class="small" style="cursor:pointer;">Ajuster quand même la protection</summary>
       <div class="stopOptions" style="margin-top:8px;grid-template-columns:1fr 1fr;">
         <div class="stopOpt adj ${choixActuel==='atr'?'selected':''}" data-atr="${SUIVI_ATR_MULT}"><div class="lbl">CV − ${String(SUIVI_ATR_MULT).replace('.',',')} × ATR</div><div class="val">${atrP ? fmt(lastCV - SUIVI_ATR_MULT*atrP) : '—'}</div><div class="small" style="color:var(--dim);margin-top:2px;">${atrP ? `ATR ${fmt(atrP)} × ${String(SUIVI_ATR_MULT).replace('.',',')} = ${fmt(atrP*SUIVI_ATR_MULT)}` : 'ATR indisponible'}</div>${atrP ? `<div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV - SUIVI_ATR_MULT*atrP)-p.CR)*p.qte)}</div>` : ''}</div>
@@ -1930,7 +1938,7 @@ async function renderSuivi(){
       <div class="valBox">${suiviValHtml(p, choixActuel)}</div>
       </details>
       ` : `
-      <p style="font-weight:800;font-size:15.5px;line-height:1.45;color:var(--text);margin:6px 0 10px;">Cours valeur ≥ coût de revient — ajuste la protection pour sécuriser le gain (sauf si le cours a baissé par rapport au dernier cours : la protection déjà posée suffit). Le cliquet n'autorise qu'une remontée du stop.</p>
+      <p style="font-weight:800;font-size:15.5px;line-height:1.45;color:var(--text);margin:6px 0 10px;">Cours valeur ≥ coût de revient et cours <u>en hausse</u> par rapport à la veille (clôtures EODHD) — change le seuil de protection pour sécuriser le gain. (S'il n'a pas augmenté ou s'il est identique : on ne change rien, la protection déjà posée suffit.)</p>
       <div class="stopOptions" style="grid-template-columns:1fr 1fr;">
         <div class="stopOpt adj ${choixActuel==='atr'?'selected':''}" data-atr="${SUIVI_ATR_MULT}"><div class="lbl">CV − ${String(SUIVI_ATR_MULT).replace('.',',')} × ATR</div><div class="val">${atrP ? fmt(lastCV - SUIVI_ATR_MULT*atrP) : '—'}</div><div class="small" style="color:var(--dim);margin-top:2px;">${atrP ? `ATR ${fmt(atrP)} × ${String(SUIVI_ATR_MULT).replace('.',',')} = ${fmt(atrP*SUIVI_ATR_MULT)}` : 'ATR indisponible'}</div>${atrP ? `<div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV - SUIVI_ATR_MULT*atrP)-p.CR)*p.qte)}</div>` : ''}</div>
         <div class="stopOpt adj ${choixActuel==='3'?'selected':''}" data-pct="3"><div class="lbl">−3% prudence tendance</div><div class="val">${fmt(lastCV*0.97)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.97)-p.CR)*p.qte)}</div></div>
