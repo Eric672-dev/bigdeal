@@ -453,6 +453,12 @@
       <button class="btn primary" id="anaRunBtn" style="margin-top:12px;">Analyser et noter les valeurs</button>
       <div id="anaResults"><div class="empty">Aucun run en mémoire. Appuie sur « Analyser et noter les valeurs ».</div></div>
     </div>
+    <div class="card">
+      <h3>Croisement de toutes les sélections</h3>
+      <p class="small">Les valeurs qui reviennent dans <b>toutes</b> tes listes en mémoire : momentum (top 20), scan des secteurs, sélection externe, scan « momentum haussier », analyse notée ≥ 8 et onglet Valeur. Une liste jamais lancée ou vide n'est pas comptée.</p>
+      <div id="cxAllResults"></div>
+      <button class="btn ghost" id="cxAllBtn" style="margin-top:10px;">Actualiser le croisement général</button>
+    </div>
   </section>
   <!-- ================= ANALYSE ================= -->
   <section id="view-analyse" class="view">
@@ -608,6 +614,7 @@
         <label class="chk"><input type="checkbox" id="dchk5"> Contexte géopolitique</label>
         <label class="chk"><input type="checkbox" id="dchk6"> Conviction</label>
         <label class="chk"><input type="checkbox" id="dchk7"> Achat dans la montée</label>
+        <div id="prepSpark" style="margin-top:8px;"></div>
       </div>
     </div>
     <div id="processError" class="small" style="color:var(--red);display:none;margin-bottom:6px;font-weight:600;">Erreur : process du jour non complété — coche les 7 cases avant de valider.</div>
@@ -680,6 +687,8 @@
       <h3>Journal des opérations</h3>
       <p class="small">Historique complet de tout ce qui a été enregistré — achats, cours renseignés, ajustements de protection, ventes — toutes personnes et valeurs confondues, du plus récent au plus ancien.</p>
     </div>
+    <button class="btn primary" id="btnExportBilan" style="margin-top:14px;">⬇ Exporter le Bilan (CSV) — Enregistrer dans Fichiers</button>
+    <p class="small" style="margin-top:8px;">Exporte le journal complet (toutes personnes et toutes valeurs). Sur iPhone, un menu de partage s'ouvre : choisis <b>« Enregistrer dans Fichiers »</b>, puis le dossier voulu (par ex. <b>« Sur mon iPhone »</b> ou iCloud Drive). Le fichier se retrouve ensuite dans l'app <b>Fichiers</b>.</p>
     <div id="bilanLogWrap"></div>
   </section>
 
@@ -760,7 +769,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-08T19:20:00Z';
+const BUILD_TIME_UTC = '2026-10-14T16:24:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -895,14 +904,14 @@ function csvEscape(val){
   const s = String(val).replace(/"/g,'""');
   return /[;",\n]/.test(s) ? `"${s}"` : s;
 }
-async function exportCSV(personFilter){
+async function exportCSV(personFilter, toutLeMonde){
   try{
     let allPositions = await loadPositions();
     // Si un filtre "Personne" est actif (dans Suivi, ou passé explicitement lors d'une clôture),
     // on exporte uniquement ses positions. Sinon on exporte tout le monde d'un coup, sans demander
     // de choisir un filtre au préalable — la colonne "Personne" du CSV distingue déjà chaque ligne,
     // donc mélanger plusieurs personnes dans un même fichier ne pose pas de problème.
-    const filtreActif = personFilter || (suiviFilterPerson!=='Tous' ? suiviFilterPerson : null);
+    const filtreActif = personFilter || (!toutLeMonde && suiviFilterPerson!=='Tous' ? suiviFilterPerson : null);
     if(filtreActif){
       allPositions = allPositions.filter(p=> p.personne === filtreActif);
     }
@@ -936,7 +945,7 @@ async function exportCSV(personFilter){
     const now = new Date();
     const dateStr = now.toISOString().slice(0,10);
     const heureStr = String(now.getHours()).padStart(2,'0') + 'h' + String(now.getMinutes()).padStart(2,'0');
-    const personneStr = (filtreActif || selectedPerson || 'Perso').replace(/[^a-zA-Z0-9]/g,'');
+    const personneStr = (filtreActif || (toutLeMonde ? 'Bilan' : selectedPerson) || 'Perso').replace(/[^a-zA-Z0-9]/g,'');
     const statutGlobal = allPositions.some(p=>!p.cloturee) ? 'ouvert' : 'cloture';
     const filename = `${personneStr}-${dateStr}-${heureStr}-${statutGlobal}.csv`;
     // Priorité 1 : capacité "downloads" de la page publiée (BIG DEAL hébergé) — c'est la seule
@@ -984,6 +993,7 @@ async function exportCSV(personFilter){
     toast('Erreur lors de l\'export CSV : ' + ((e&&e.message)||e));
   }
 }
+if($('btnExportBilan')) $('btnExportBilan').addEventListener('click', ()=> exportCSV(null, true));
 $('btnExportCSV').addEventListener('click', async ()=>{
   await exportCSV();
   await renderSuivi();
@@ -1211,6 +1221,7 @@ async function resetPreparationForm(){
   if($('prepValeur')) $('prepValeur').value = '';
   if($('prepDernierCours')) $('prepDernierCours').textContent = '';
   if($('opt1Detail')) $('opt1Detail').textContent = '';
+  if($('prepSpark')) $('prepSpark').innerHTML = '';
   selectedPerson = null;
   stopChoice = 'atr';
   typeAchat = '1';
@@ -1267,7 +1278,7 @@ function goTo(view){
   if(view==='bilan') renderBilan();
   if(view==='go'){ renderGo(); goDatesAuto(); }
   if(view==='selection') renderSelectionTab(true);   // seuils, jauges et cours actualisés à chaque ouverture de l'onglet
-  if(view==='pepites'){ renderMomentum(); renderScan(); renderSelectionExterne(); renderCroisement(); renderPepites(); }
+  if(view==='pepites'){ renderMomentum(); renderScan(); renderSelectionExterne(); renderCroisement(); renderPepites(); try{ renderCroisementTotal(); }catch(e){} }
   // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
   // vers Achat avec les données qu'il vient de préparer — on ne touche pas à ce cas), on
   // réinitialise le formulaire : pas de saisie à moitié faite (valeur choisie, ATR récupéré…)
@@ -1337,6 +1348,7 @@ function prepChoisir(tk){
     ['prepDateResultat','prepDateDividende'].forEach(id=>{ if($(id)) $(id).value=''; });
     ['prepDateResultatHint','prepDateDividendeHint'].forEach(id=>{ if($(id)) $(id).textContent=''; });
     if($('prepDernierCours')) $('prepDernierCours').textContent='';
+    if($('prepSpark')) $('prepSpark').innerHTML='';
     return;
   }
   if(sel) sel.value = tk;
@@ -1348,6 +1360,7 @@ function prepChoisir(tk){
       ? `Dernier cours connu : ${fmt(m.cours)}${m.date ? ' (analyse du ' + new Date(m.date).toLocaleDateString('fr-FR') + ')' : ''} — actualisation en cours…`
       : 'Dernier cours : récupération en cours…';
   }
+  if($('prepSpark')) $('prepSpark').innerHTML = '';
   pickStock(UNIVERSE[tk], tk);
 }
 if($('prepValeur')){
@@ -1491,6 +1504,7 @@ async function fetchStockStats(ticker){
     // relative CAC 40 utilisée ailleurs) — négatif si le cours a baissé sur la période, ce qui
     // est justement ce qu'on veut repérer pour le type d'achat "Standard" (valeur sous-cotée
     // temporairement).
+    closes11: closes.slice(-11), dates11: dates.slice(-11),   // pour le mini-graphique des 10 dernières séances
     pct1s: pctChangeOverDays(closes, 5),
     pct1m: pctChangeOverDays(closes, 21),
     // Repères pour recouper les chiffres à la main : séance de référence et date/valeur du plus haut 3 mois
@@ -1516,6 +1530,7 @@ async function autoFetchATR(){
     if(data.high3m!=null) $('opt1High3M').value = data.high3m.toFixed(2);
     if(data.pct1s!=null) $('opt1Pct1S').value = data.pct1s.toFixed(2);
     if(data.pct1m!=null) $('opt1Pct1M').value = data.pct1m.toFixed(2);
+    if($('prepSpark') && selectedStock && selectedStock.ticker===tkDemande) $('prepSpark').innerHTML = spark10(data.closes11, data.dates11);
     if($('opt1Detail')){
       const L = [];
       L.push(`Dernière clôture : ${fmt(data.last)} le ${frIso(data.lastDate)}.`);
@@ -1745,6 +1760,7 @@ function priceLadder(CA, CR, stop, CV, ma20){
 // ATR14 actuel par valeur (EODHD), pour le seuil de vente « CV − 1,5 × ATR » du Process à suivre.
 // À défaut, on retombe sur l'ATR enregistré à l'achat (p.atr).
 const suiviAtrCache = {}, suiviAtrEssaye = {};
+const suiviCours = {}, suiviCoursKo = {};   // dernier cours EODHD par valeur / échec de récupération
 const SUIVI_ATR_MULT = 1.5;
 // Seuil de protection choisi mais pas encore validé, par position (en mémoire seulement).
 const suiviSel = {};
@@ -1780,7 +1796,12 @@ async function suiviChargerAtr(tickers){
       const d = await dgSerie(tk);
       const a = atr14Euros(d.highs, d.lows, d.closes);
       if(a!=null && isFinite(a)){ suiviAtrCache[tk] = a; nouveau = true; }
-    }catch(e){}
+      // Dernier cours (clôture) EODHD, pour préremplir « Cours valeur du jour »
+      const c = d.closes[d.closes.length-1];
+      if(Number.isFinite(c)){ suiviCours[tk] = {cours:c, date:d.dates[d.dates.length-1]}; }
+      else suiviCoursKo[tk] = true;
+      nouveau = true;
+    }catch(e){ suiviCoursKo[tk] = true; nouveau = true; }
   }
   return nouveau;
 }
@@ -1823,6 +1844,18 @@ async function renderSuivi(){
     const gainPct = p.CR ? (gainNetUnit/p.CR)*100 : 0;
     const cas = lastCV >= p.CR ? 2 : 1;
     const doitIntervenir = cas === 2; // on n'ajuste le stop que si le cours valeur est >= au coût de revient
+    // Cours valeur proposé : dernière clôture EODHD si elle est plus récente que le dernier cours enregistré, sinon le cours enregistré.
+    const cvPropose = (()=>{
+      const dernier = p.historique.length ? p.historique[p.historique.length-1] : null;
+      const jourEnr = dernier ? String(dernier.date).slice(0,10) : '';
+      const e = suiviCours[p.ticker];
+      if(e && (!jourEnr || jourEnr < e.date)){
+        return {val: +e.cours.toFixed(2), ko:false, hint:`Cours récupéré d'EODHD (clôture du ${frIso(e.date)}) — appuie sur Enregistrer pour le valider, ou corrige-le à la main.`};
+      }
+      if(e) return {val: lastCV, ko:false, hint:`Cours enregistré le ${fmtLogDate(dernier && dernier.date)} — EODHD n'a pas de clôture plus récente.`};
+      if(suiviCoursKo[p.ticker]) return {val: lastCV, ko:true, hint:'Cours EODHD indisponible : saisis le cours valeur à la main.'};
+      return {val: lastCV, ko:false, hint:'Récupération du cours EODHD…'};
+    })();
     const choixActuel = suiviSel[p.id] || '';   // simple sélection : rien n'est enregistré avant « Validation »
     const atrP = suiviAtrCache[p.ticker]!=null ? suiviAtrCache[p.ticker] : (p.atr || null);
     const persCourante = persDe(p);
@@ -1847,9 +1880,10 @@ async function renderSuivi(){
       <hr class="dash">
       <label class="cvLabel">✏️ Cours valeur (CV) du jour €</label>
       <div class="row">
-        <input type="text" inputmode="decimal" data-decimal="1" class="cvInput" value="${lastCV}">
+        <input type="text" inputmode="decimal" data-decimal="1" class="cvInput" value="${cvPropose.val}">
         <button class="btn primary cvSave" style="width:auto;margin-top:0;">Enregistrer</button>
       </div>
+      <p class="small cvHint" style="margin:4px 0 8px;${cvPropose.ko?'color:var(--amber);':'opacity:.8;'}">${cvPropose.hint}</p>
       <div class="kpi"><span>Gain net estimé / titre</span><span class="v" style="color:${gainNetUnit>=0?'var(--green)':'var(--red)'}">${fmt(gainNetUnit)} (${fmtPct(gainPct)})</span></div>
       <div class="kpi"><span>Gain net estimé total (${p.qte} titres)</span><span class="v" style="color:${gainNetTotal>=0?'var(--green)':'var(--red)'}">${fmt(gainNetTotal)}</span></div>
       <hr class="dash">
@@ -1992,6 +2026,7 @@ async function renderPosition(){
         return b.gain - a.gain;
       });
     const signe = (n)=> n>=0 ? '+' : '';
+    const gainTotal = rows.reduce((t,r)=> t + (Number.isFinite(r.gain) ? r.gain : 0), 0);   // toutes personnes confondues
     // Date à laquelle le gain affiché a été calculé : dernier cours valeur enregistré, sinon le cours d'achat.
     const gainDateTxt = (p)=>{
       const h = Array.isArray(p.historique) && p.historique.length ? p.historique[p.historique.length-1] : null;
@@ -2012,6 +2047,13 @@ async function renderPosition(){
             <td class="bProt">${r.ok ? '<span class="okBadge">OUI</span>' : '<span class="okBadge non" style="color:var(--red);font-weight:700;">NON</span>'}<br><span class="small" style="color:var(--dim);">${r.p.stop ? 'stop ' + fmt(r.p.stop) : 'aucun stop'}</span></td>
           </tr>`).join('')}
         </tbody>
+        <tfoot>
+          <tr style="border-top:2px solid var(--line);">
+            <td colspan="2" style="font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding-top:10px;">Gain total (${rows.length} position${rows.length>1?'s':''})</td>
+            <td class="bGain" style="color:${gainTotal>=0?'var(--green)':'var(--red)'};font-size:15px;padding-top:10px;">${signe(gainTotal)}${fmt(gainTotal)}</td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
       <p class="small" style="margin-top:8px;">Gain = au dernier cours valeur enregistré (date indiquée sous le chiffre). Protection <b>OUI</b> : un stop est enregistré pour la position ; <b>NON</b> : aucun stop.</p>
     </div>`;
@@ -3544,9 +3586,10 @@ function anaRenderScan(box, snap){
     h += `<div class="empty">Aucune valeur n'atteint ${ANA_SEUIL}/10 lors de ce run.${snap.meilleure ? `<br>Meilleure note : ${snap.meilleure.nom}, ${snap.meilleure.noteAff.toFixed(1)}/10.` : ''}</div>`;
   } else {
     h += snap.hits.map(r=>`<details class="card ana-hit">
-      <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
-        <span class="an-ticker">${r.nom}</span>
-        <span class="mono" style="color:var(--green);font-weight:700;">${r.noteAff.toFixed(1)}/10 <span style="color:var(--dim);font-weight:400;">· ${fmt(r.last)} · ${frIso(r.lastDate)}</span></span>
+      <summary style="cursor:pointer;list-style:none;">
+        <div class="an-ticker">${r.nom}</div>
+        <div class="mono" style="margin-top:4px;color:var(--green);font-weight:800;font-size:22px;line-height:1.1;">${r.noteAff.toFixed(1)}<span style="font-size:13px;opacity:.7;">/10</span></div>
+        <div class="small" style="margin-top:2px;color:var(--dim);">${fmt(r.last)} · cours au ${frIso(r.lastDate)} — touche pour le détail</div>
       </summary>
       <div style="margin-top:10px;">${r.inner}</div>
     </details>`).join('');
@@ -3578,10 +3621,11 @@ async function anaRun(boxId, btnId){
       date: new Date().toISOString(), analysees: resultats.length, echecs,
       coursAu: resultats.map(r=>r.lastDate).filter(Boolean).sort().pop() || null,
       meilleure: meilleure ? {nom:meilleure.nom, noteAff:meilleure.noteAff} : null,
-      hits: hits.map(r=>({nom:r.nom, noteAff:r.noteAff, last:r.last, lastDate:r.lastDate, inner:r.inner}))
+      hits: hits.map(r=>({tk:r.tk, nom:r.nom, noteAff:r.noteAff, last:r.last, lastDate:r.lastDate, inner:r.inner}))
     };
     try{ localStorage.setItem(ANA_SCAN_KEY, JSON.stringify(snap)); }catch(e){}
     anaRenderScan(box, snap);
+    try{ renderCroisementTotal(); }catch(e){}
   }catch(e){
     box.innerHTML = `<div class="an-error">${e.message || 'Analyse impossible'}</div>`;
   }
@@ -3620,6 +3664,53 @@ if($('anaSelect')){
     .map(([n,tk])=>`<option value="${tk}">${n}</option>`).join('');
 }
 if($('anaRunBtn2')) $('anaRunBtn2').addEventListener('click', anaRunOne);
+// ---------- Croisement de toutes les sélections (Pépites, tout en bas) ----------
+// Rassemble toutes les listes gardées en mémoire et cherche les valeurs présentes dans TOUTES celles qui sont renseignées.
+function cxToutesListes(){
+  const nomVersTk = {}; CAC40.forEach(([n,tk])=>{ nomVersTk[n] = tk; });
+  const listes = [];
+  const ajoute = (nom, tks, vide)=> listes.push({nom, tks:[...new Set((tks||[]).filter(t=>t && UNIVERSE[t]))], vide});
+  try{ const t = momTop(); ajoute('Momentum (top 20)', t, 'classement non calculé'); }catch(e){ ajoute('Momentum (top 20)', [], 'classement non calculé'); }
+  try{ const sc = dgRetenues(); ajoute('Scan des secteurs', sc.filter(c=>c.tag!=='à écarter').map(c=>c.tk), sc.length ? 'aucune valeur retenue' : 'scan non lancé'); }catch(e){ ajoute('Scan des secteurs', [], 'scan non lancé'); }
+  try{ ajoute('Sélection externe', sxSelection(), 'aucune valeur choisie'); }catch(e){ ajoute('Sélection externe', [], 'aucune valeur choisie'); }
+  try{ ajoute('Scan « momentum haussier »', pepSnap ? pepSnap.items.map(i=>i.ticker) : [], pepSnap ? 'aucune valeur au vert' : 'scan non lancé'); }catch(e){ ajoute('Scan « momentum haussier »', [], 'scan non lancé'); }
+  try{
+    const sv = JSON.parse(localStorage.getItem(ANA_SCAN_KEY)||'null');
+    ajoute('Analyse notée ≥ 8', sv && Array.isArray(sv.hits) ? sv.hits.map(h=> h.tk || nomVersTk[h.nom]) : [], sv ? 'aucune valeur ≥ 8' : 'analyse non lancée');
+  }catch(e){ ajoute('Analyse notée ≥ 8', [], 'analyse non lancée'); }
+  try{ ajoute('Onglet Valeur', selList, 'aucune valeur choisie'); }catch(e){ ajoute('Onglet Valeur', [], 'aucune valeur choisie'); }
+  return listes;
+}
+function renderCroisementTotal(){
+  const box = $('cxAllResults');
+  if(!box) return;
+  const listes = cxToutesListes();
+  const actives = listes.filter(l=>l.tks.length);
+  let h = '<div class="cx-src">' + listes.map(l=> l.tks.length
+    ? `✓ ${l.nom} : ${l.tks.length} valeur(s)`
+    : `<span class="ko">✗ ${l.nom} : ${l.vide}</span>`).join('<br>') + '</div>';
+  if(actives.length < 2){
+    h += '<div class="cx-vide">Il faut au moins deux listes renseignées pour croiser. Lance les scans ci-dessus.</div>';
+    box.innerHTML = h; return;
+  }
+  const compte = {};
+  actives.forEach(l=> l.tks.forEach(tk=>{ (compte[tk] = compte[tk] || []).push(l.nom); }));
+  const ligne = (tk)=> `<div class="dg-val"><div class="dg-val-head"><div class="dg-val-nom">${UNIVERSE[tk]||tk}</div><div class="dg-tag cand">${compte[tk].length}/${actives.length}</div></div>
+    <div class="dg-val-chiffres">${compte[tk].join(' · ')}</div></div>`;
+  const toutes = Object.keys(compte).filter(tk=> compte[tk].length === actives.length);
+  h += `<div class="dg-step">Dans les ${actives.length} listes renseignées</div>`;
+  h += toutes.length ? toutes.map(ligne).join('')
+    : '<div class="cx-vide">Aucune valeur ne figure dans toutes les listes à la fois.</div>';
+  if(!toutes.length){
+    const max = Math.max(...Object.values(compte).map(v=>v.length));
+    const meilleures = Object.keys(compte).filter(tk=> compte[tk].length === max && max >= 2);
+    if(meilleures.length){
+      h += `<div class="dg-step">Pour mémoire : présentes dans le plus de listes (${max} sur ${actives.length})</div>` + meilleures.map(ligne).join('');
+    }
+  }
+  box.innerHTML = h;
+}
+if($('cxAllBtn')) $('cxAllBtn').addEventListener('click', renderCroisementTotal);
 
 // ---------- Onglet Sélection : 5 valeurs suivies, avec les seuils à atteindre pour agir ----------
 const SEL_KEY = 'bigdeal-selection-suivi-v1', SEL_MAX = 5;
@@ -3748,7 +3839,7 @@ function goTicker(){ const s = $('goSelect'); return s ? s.value : null; }
 function goEtatDe(tk){ return goData[tk] || {}; }
 
 const GO_ITEMS = [
-  {k:'q1', t:"Pourquoi j'achète ?",
+  {k:'q1', t:"Avis de Warren AI",
    aide:"Une raison, et une seule, écrite avant d'acheter. C'est elle qui dira plus tard si la thèse est fausse.",
    opts:[['resultats','De bons résultats publiés'],['actu',"Une actualité favorable"],['marche','Une baisse liée au marché ou au secteur, pas à l\'entreprise']]},
   {k:'q2', t:"J'achète sur un signe de reprise ou au retour sur un niveau clé",
@@ -4171,6 +4262,7 @@ async function pepScanAll(){
   status.textContent = `Scan terminé — 🟢 ${bons} bon(s) momentum, 🟡 ${surveiller} à surveiller, sur ${okDone.length} valeurs analysées (scan du ${new Date().toLocaleDateString('fr-FR')}, cours au ${frIso(okDone.map(e=>e.data.lastDate).filter(Boolean).sort().pop())}). Valeurs retenues mémorisées.`;
   pepSnapSauver(okDone.length, bons, surveiller);
   renderPepScanDate();
+  try{ renderCroisementTotal(); }catch(e){}
   btn.disabled = false;
   pepScanning = false;
 }
