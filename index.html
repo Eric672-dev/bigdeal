@@ -33,6 +33,10 @@
   .brand .ver{white-space:nowrap;color:var(--dim);font-size:9px;opacity:.55;font-family:'IBM Plex Mono',ui-monospace,monospace;}
   nav.tabs{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 4px;background:var(--panel);border:1px solid var(--line);
     border-radius:10px;padding:3px;}
+  @keyframes resBlink{0%,100%{opacity:1;}50%{opacity:.15;}}
+  .resBlink{color:var(--red) !important;font-weight:800 !important;animation:resBlink 1s steps(2,start) infinite;}
+  input.resBlink{border-color:var(--red) !important;}
+  @media (prefers-reduced-motion:reduce){.resBlink{animation:none;}}
   nav.tabs .tabs-break{flex-basis:100%;height:0;margin:0;padding:0;}
   nav.tabs button{flex:1 1 0;min-width:0;padding:9px 4px;background:transparent;border:none;color:var(--dim);
     font-size:11px;font-weight:600;border-radius:7px;letter-spacing:.1px;}
@@ -365,7 +369,7 @@
   <section id="view-go" class="view">
     <div class="card">
       <h3>Feu vert avant d'acheter</h3>
-      <p class="small">Les six points à vérifier avant de passer l'ordre. Les réponses sont enregistrées par valeur sur cet appareil — tu retrouves ta grille en revenant.</p>
+      <p class="small">Les sept points à vérifier avant de passer l'ordre. Les réponses sont enregistrées par valeur sur cet appareil — tu retrouves ta grille en revenant.</p>
       <label style="margin-top:12px;">Valeur</label>
       <select id="goSelect"></select>
       <div class="go-etat" id="goEtat"></div>
@@ -769,7 +773,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-14T16:24:00Z';
+const BUILD_TIME_UTC = '2026-10-14T17:00:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1759,6 +1763,18 @@ function priceLadder(CA, CR, stop, CV, ma20){
 // ---------- Suivi quotidien ----------
 // ATR14 actuel par valeur (EODHD), pour le seuil de vente « CV − 1,5 × ATR » du Process à suivre.
 // À défaut, on retombe sur l'ATR enregistré à l'achat (p.atr).
+// Date d'annonce des résultats « jj/mm/aaaa » (ou aaaa-mm-jj) -> nombre de jours à partir d'aujourd'hui (null si illisible).
+function joursAvantResultat(txt){
+  const m = String(txt||'').trim().match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/) || null;
+  let y,mo,d;
+  if(m){ d=+m[1]; mo=+m[2]; y=+m[3]; }
+  else { const i = String(txt||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})/); if(!i) return null; y=+i[1]; mo=+i[2]; d=+i[3]; }
+  const cible = new Date(y, mo-1, d), now = new Date();
+  const auj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((cible - auj) / 86400000);
+}
+// Rouge + clignotant quand l'annonce tombe aujourd'hui ou dans moins de 3 jours.
+function resultatProche(txt){ const j = joursAvantResultat(txt); return j !== null && j >= 0 && j < 3; }
 const suiviAtrCache = {}, suiviAtrEssaye = {};
 const suiviCours = {}, suiviCoursKo = {};   // dernier cours EODHD par valeur / échec de récupération
 const SUIVI_ATR_MULT = 1.5;
@@ -1856,6 +1872,9 @@ async function renderSuivi(){
       if(suiviCoursKo[p.ticker]) return {val: lastCV, ko:true, hint:'Cours EODHD indisponible : saisis le cours valeur à la main.'};
       return {val: lastCV, ko:false, hint:'Récupération du cours EODHD…'};
     })();
+    // Le cours valeur a-t-il baissé par rapport au cours précédent enregistré ? Alors la protection déjà posée suffit.
+    const cvPrec = p.historique.length >= 2 ? p.historique[p.historique.length-2].cv : null;
+    const cvBaisse = cvPrec != null && Number.isFinite(cvPrec) && lastCV < cvPrec;
     const choixActuel = suiviSel[p.id] || '';   // simple sélection : rien n'est enregistré avant « Validation »
     const atrP = suiviAtrCache[p.ticker]!=null ? suiviAtrCache[p.ticker] : (p.atr || null);
     const persCourante = persDe(p);
@@ -1874,9 +1893,17 @@ async function renderSuivi(){
       <div class="kpi"><span>Coût de revient (CR)</span><span class="v">${fmt(p.CR)}</span></div>
       <div class="kpi"><span>Cours de protection (stop)</span><span class="v">${fmt(p.stop)}</span></div>
       <div class="kpi"><span>Quantité</span><span class="v">${p.qte}</span></div>
-      <div class="kpi" style="align-items:center;"><span>Date annonce résultat</span><span class="v"><input type="text" inputmode="numeric" class="dateResultatInput" placeholder="jj/mm/aaaa" value="${(p.dateResultat||'').replace(/"/g,'&quot;')}" style="width:120px;text-align:right;padding:6px 8px;margin:0;"></span></div>
+      <div class="kpi" style="align-items:center;"><span class="dateResultatLabel${resultatProche(p.dateResultat)?' resBlink':''}">Date annonce résultat${resultatProche(p.dateResultat) ? ' — ' + (joursAvantResultat(p.dateResultat)===0 ? 'AUJOURD\'HUI' : 'dans ' + joursAvantResultat(p.dateResultat) + ' jour' + (joursAvantResultat(p.dateResultat)>1?'s':'')) : ''}</span><span class="v"><input type="text" inputmode="numeric" class="dateResultatInput${resultatProche(p.dateResultat)?' resBlink':''}" placeholder="jj/mm/aaaa" value="${(p.dateResultat||'').replace(/"/g,'&quot;')}" style="width:120px;text-align:right;padding:6px 8px;margin:0;"></span></div>
       <hr class="dash">
       ${priceBar(p.CA, p.CR, p.stop, lastCV, p.ma20)}
+      <div class="priceLegend" style="margin-top:10px;font-size:12.5px;line-height:1.5;">
+        <div><b style="color:var(--dim);">CA</b> — <b>Cours d'achat</b> : le prix auquel tu as acheté l'action.</div>
+        <div><b style="color:var(--blue);">CR</b> — <b>Coût de revient</b> : cours d'achat + frais d'achat et de vente. En dessous, la vente se solde par une perte.</div>
+        <div><b style="color:var(--amber);">ST</b> — <b>Stop (protection)</b> : le cours auquel tu vends pour limiter la perte ou sécuriser le gain.</div>
+        <div><b style="color:${lastCV>=p.CR?'var(--green)':'var(--red)'};">CV</b> — <b>Cours valeur</b> : le dernier cours enregistré de l'action.</div>
+        ${p.ma20!==null && p.ma20!==undefined ? `<div><b style="color:var(--blue);">MA</b> — <b>MA20</b>, moyenne mobile 20 jours : la moyenne des 20 dernières clôtures, qui donne la tendance à court terme (cours au-dessus = tendance haussière).</div>` : ''}
+        <div style="opacity:.8;">Le pourcentage sur la flèche entre CV et ST = la marge avant que le stop (ST) ne se déclenche.</div>
+      </div>
       <hr class="dash">
       <label class="cvLabel">✏️ Cours valeur (CV) du jour €</label>
       <div class="row">
@@ -1890,8 +1917,20 @@ async function renderSuivi(){
       <h3 style="font-size:18px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">PROCESS À SUIVRE</h3>
       ${!doitIntervenir ? `
       <p style="color:var(--green);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">✓ Rien à faire — le cours valeur est encore sous le coût de revient (Cas 1). On n'ajuste le stop que si le cours valeur dépasse le coût de revient.</p>
+      ` : (cvBaisse ? `
+      <p style="color:var(--green);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">✓ Rien à changer — le cours valeur a baissé par rapport au dernier cours (${fmt(cvPrec)} → ${fmt(lastCV)}) : la protection est déjà en place (stop ${fmt(p.stop)}), on ne touche à rien.</p>
+      <details style="margin-top:6px;"><summary class="small" style="cursor:pointer;">Ajuster quand même la protection</summary>
+      <div class="stopOptions" style="margin-top:8px;grid-template-columns:1fr 1fr;">
+        <div class="stopOpt adj ${choixActuel==='atr'?'selected':''}" data-atr="${SUIVI_ATR_MULT}"><div class="lbl">CV − ${String(SUIVI_ATR_MULT).replace('.',',')} × ATR</div><div class="val">${atrP ? fmt(lastCV - SUIVI_ATR_MULT*atrP) : '—'}</div><div class="small" style="color:var(--dim);margin-top:2px;">${atrP ? `ATR ${fmt(atrP)} × ${String(SUIVI_ATR_MULT).replace('.',',')} = ${fmt(atrP*SUIVI_ATR_MULT)}` : 'ATR indisponible'}</div>${atrP ? `<div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV - SUIVI_ATR_MULT*atrP)-p.CR)*p.qte)}</div>` : ''}</div>
+        <div class="stopOpt adj ${choixActuel==='3'?'selected':''}" data-pct="3"><div class="lbl">−3% prudence tendance</div><div class="val">${fmt(lastCV*0.97)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.97)-p.CR)*p.qte)}</div></div>
+        <div class="stopOpt adj ${choixActuel==='2'?'selected':''}" data-pct="2"><div class="lbl">−2% prudence</div><div class="val">${fmt(lastCV*0.98)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.98)-p.CR)*p.qte)}</div></div>
+        <div class="stopOpt adj ${choixActuel==='1'?'selected':''}" data-pct="1"><div class="lbl">−1% sécuriser</div><div class="val">${fmt(lastCV*0.99)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.99)-p.CR)*p.qte)}</div></div>
+      </div>
+      
+      <div class="valBox">${suiviValHtml(p, choixActuel)}</div>
+      </details>
       ` : `
-      <p style="font-weight:800;font-size:15.5px;line-height:1.45;color:var(--text);margin:6px 0 10px;">Cours valeur ≥ coût de revient — ajuste la protection pour sécuriser le gain. Le cliquet n'autorise qu'une remontée du stop.</p>
+      <p style="font-weight:800;font-size:15.5px;line-height:1.45;color:var(--text);margin:6px 0 10px;">Cours valeur ≥ coût de revient — ajuste la protection pour sécuriser le gain (sauf si le cours a baissé par rapport au dernier cours : la protection déjà posée suffit). Le cliquet n'autorise qu'une remontée du stop.</p>
       <div class="stopOptions" style="grid-template-columns:1fr 1fr;">
         <div class="stopOpt adj ${choixActuel==='atr'?'selected':''}" data-atr="${SUIVI_ATR_MULT}"><div class="lbl">CV − ${String(SUIVI_ATR_MULT).replace('.',',')} × ATR</div><div class="val">${atrP ? fmt(lastCV - SUIVI_ATR_MULT*atrP) : '—'}</div><div class="small" style="color:var(--dim);margin-top:2px;">${atrP ? `ATR ${fmt(atrP)} × ${String(SUIVI_ATR_MULT).replace('.',',')} = ${fmt(atrP*SUIVI_ATR_MULT)}` : 'ATR indisponible'}</div>${atrP ? `<div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV - SUIVI_ATR_MULT*atrP)-p.CR)*p.qte)}</div>` : ''}</div>
         <div class="stopOpt adj ${choixActuel==='3'?'selected':''}" data-pct="3"><div class="lbl">−3% prudence tendance</div><div class="val">${fmt(lastCV*0.97)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.97)-p.CR)*p.qte)}</div></div>
@@ -1899,7 +1938,7 @@ async function renderSuivi(){
         <div class="stopOpt adj ${choixActuel==='1'?'selected':''}" data-pct="1"><div class="lbl">−1% sécuriser</div><div class="val">${fmt(lastCV*0.99)}</div><div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV*0.99)-p.CR)*p.qte)}</div></div>
       </div>
       <div class="valBox">${suiviValHtml(p, choixActuel)}</div>
-      `}
+      `)}
       <hr class="dash">
       <p class="small" style="font-weight:700;">Position vendue</p>
       <p class="small" style="opacity:.75;margin-top:-4px;">Clôture la position au cours valeur saisi ci-dessus — ajuste-le d'abord si le cours de vente est différent, un seul champ suffit pour les deux.</p>
@@ -1912,6 +1951,7 @@ async function renderSuivi(){
     card.querySelector('.dateResultatInput').addEventListener('change', async (ev)=>{
       pos.dateResultat = ev.target.value.trim();
       await savePositions(positions, pos.dateResultat ? 'Date d\'annonce enregistrée' : 'Date d\'annonce effacée');
+      await renderSuivi();   // met à jour l'alerte rouge clignotante
     });
     card.querySelector('.cvSave').addEventListener('click', async ()=>{
       const cv = parseFloat(card.querySelector('.cvInput').value);
@@ -3830,7 +3870,7 @@ if($('selRefreshBtn')) $('selRefreshBtn').addEventListener('click', ()=> renderS
 
 // ---------- Onglet Go : feu vert avant d'acheter, par valeur ----------
 const GO_KEY = 'bigdeal-go-v1';
-let goData = {};   // { 'MC.PA': {q1:'resultats', q2:true, niveau:'', ...} }
+let goData = {};   // { 'MC.PA': {q7:'resultats', q2:true, niveau:'', ...} }
 function goCharger(){
   try{ const b = localStorage.getItem(GO_KEY); if(b) goData = JSON.parse(b) || {}; }catch(e){}
 }
@@ -3840,6 +3880,8 @@ function goEtatDe(tk){ return goData[tk] || {}; }
 
 const GO_ITEMS = [
   {k:'q1', t:"Avis de Warren AI",
+   aide:"J'ai demandé son avis à Warren AI sur cette valeur et je l'ai pris en compte avant d'acheter."},
+  {k:'q7', t:"Pourquoi j'achète ?",
    aide:"Une raison, et une seule, écrite avant d'acheter. C'est elle qui dira plus tard si la thèse est fausse.",
    opts:[['resultats','De bons résultats publiés'],['actu',"Une actualité favorable"],['marche','Une baisse liée au marché ou au secteur, pas à l\'entreprise']]},
   {k:'q2', t:"J'achète sur un signe de reprise ou au retour sur un niveau clé",
@@ -3875,7 +3917,7 @@ function goContexte(tk){
   const sc = dgRetenues().find(x=>x.tk===tk);
   if(sc){
     c.scan = sc;
-    c.q1 = `Scan des secteurs : baisse de ${sc.baisse.toFixed(1)} %, écart de ${sc.ecart>=0?'+':''}${sc.ecart.toFixed(0)} pts avec son secteur → cause ${sc.cause}.`;
+    c.q7 = `Scan des secteurs : baisse de ${sc.baisse.toFixed(1)} %, écart de ${sc.ecart>=0?'+':''}${sc.ecart.toFixed(0)} pts avec son secteur → cause ${sc.cause}.`;
   }
   const rang = momRang(tk);
   if(rang) c.mom = `Momentum 12-1 : rang ${rang} sur 40${rang<=20?' — dans le top 20':''}.`;
@@ -3898,6 +3940,7 @@ function renderGo(){
   // Pré-remplissage : uniquement des champs encore vides, jamais par-dessus une saisie.
   const d0 = goData[tk] = goData[tk] || {};
   let modif = false;
+  if(typeof d0.q1 === 'string'){ if(!d0.q7) d0.q7 = d0.q1; delete d0.q1; modif = true; }   // l'ancien « Pourquoi j'achète » devient q7
   if(!d0.niveau && ctx.ana && ctx.ana.mm20){ d0.niveau = fmt(ctx.ana.mm20).replace(/\s?€/, ''); modif = true; }
   if(!d0.q4 && ctx.sect){
     d0.q4 = ctx.sect.med <= DG_SEUIL_SECTEUR ? 'sect_b' : ctx.sect.med <= -8 ? 'sect_n' : 'sect_h';
@@ -3912,7 +3955,7 @@ function renderGo(){
       <label class="go-q"><input type="checkbox" data-k="${it.k}" ${fait?'checked':''} ${it.opts?'disabled':''}>
         <div class="go-q-txt">${i+1}. ${it.t}</div></label>
       <div class="go-aide">${it.aide}</div>
-      ${ctx[it.k] ? `<div class="go-ctx">${ctx[it.k]}${it.k==='q1' && ctx.mom ? '<br>'+ctx.mom : ''}</div>` : ''}
+      ${ctx[it.k] ? `<div class="go-ctx">${ctx[it.k]}${it.k==='q7' && ctx.mom ? '<br>'+ctx.mom : ''}</div>` : ''}
       ${it.k==='q6' ? `<div class="go-ctx" id="goPotMsg">${goPotentielHtml(tk)}</div>` : ''}`;
     if(it.opts){
       h += '<div class="go-sub">' + it.opts.map(([v,lab])=>
@@ -3957,7 +4000,7 @@ function renderGo(){
     const faits = GO_ITEMS.filter(it=>goItemFait(e, it)).length;
     const pret = faits === GO_ITEMS.length;
     etat.innerHTML = `<div>${UNIVERSE[tk]||tk} — <b class="${pret?'ok':'ko'}">${faits}/${GO_ITEMS.length}</b> point(s) validé(s)</div>`
-      + (pret ? `<div><b class="ok">Feu vert</b> : les six points sont cochés. Dimensionne la position dans Préparation, et place le stop dès l'exécution.</div>`
+      + (pret ? `<div><b class="ok">Feu vert</b> : les sept points sont cochés. Dimensionne la position dans Préparation, et place le stop dès l'exécution.</div>`
               : `<div>Tant qu'un point reste ouvert, l'ordre attend.</div>`);
   }
 }
