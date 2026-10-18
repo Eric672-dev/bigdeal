@@ -59,7 +59,12 @@
   .qaItem summary{cursor:pointer;padding:11px 12px;font-weight:700;font-size:14px;line-height:1.35;}
   .qaItem .qaRep{padding:0 12px 12px;font-size:13.5px;line-height:1.5;color:var(--text);}
   .qaItem .qaRep p{margin:6px 0;}
-  .qaTheme{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#ff5ec4;font-weight:800;margin:16px 0 8px;}
+  .qaTheme{font-size:12.5px;letter-spacing:1px;text-transform:uppercase;color:#ff5ec4;font-weight:800;}
+  .qaSection{margin:0 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .qaSection>summary{cursor:pointer;padding:10px 2px;list-style:none;display:flex;align-items:center;gap:8px;}
+  .qaSection>summary::-webkit-details-marker{display:none;}
+  .qaSection>summary::before{content:'▸';display:inline-block;transition:transform .15s;}
+  .qaSection[open]>summary::before{transform:rotate(90deg);}
   nav.tabs button.active{background:color-mix(in srgb, var(--tc) 22%, var(--panel2));color:#fff;
     box-shadow:inset 0 0 0 1.5px var(--tc), inset 0 -3px 0 var(--tc);}
   main{padding:8px 16px 100px;max-width:520px;margin:0 auto;}
@@ -388,6 +393,10 @@
       <h3>🌍 Contexte du marché</h3>
       <div id="goMarcheBody" class="small">Chargement du CAC 40…</div>
     </div>
+    <div class="card" id="goReunions">
+      <h3>📅 Réunions de la semaine</h3>
+      <div id="goReunionsBody" class="small"></div>
+    </div>
     <div class="card" id="goCard">
       <div id="goListe"></div>
       <p class="small" id="goDatesMsg" style="margin-top:10px;opacity:.8;"></p>
@@ -707,32 +716,37 @@
       <input type="text" id="qaSearch" placeholder="🔍 Rechercher (ex : stop, ATR, note…)" style="margin:8px 0 4px;">
     </div>
     <div id="qaList" class="card">
-      <div class="qaTheme">Le process au quotidien</div>
+      <details class="qaSection"><summary class="qaTheme">Le process au quotidien</summary>
       <details class="qaItem"><summary>Que dois-je faire chaque soir ?</summary><div class="qaRep"><p>Va dans <b>Suivi</b> : pour chaque position, enregistre le cours valeur du jour (préremplit depuis EODHD), puis lis <b>PROCESS À SUIVRE</b>. Si l'app dit d'ajuster la protection, choisis un seuil et appuie sur <b>Validation</b>. Sinon, rien à faire.</p></div></details>
       <details class="qaItem"><summary>Quand faut-il changer le seuil de protection ?</summary><div class="qaRep"><p>Quand les deux conditions sont vraies : le cours valeur est <b>≥ au coût de revient</b> ET la clôture du jour est <b>supérieure</b> à celle de la veille (données EODHD). Dans tous les autres cas, on ne touche à rien.</p></div></details>
       <details class="qaItem"><summary>Pourquoi l'app compare avec EODHD et pas avec mes cours saisis ?</summary><div class="qaRep"><p>Si tu oublies de saisir un cours un jour, la comparaison serait faussée. Les clôtures EODHD (dernière et veille) donnent la réalité du marché. Si EODHD ne répond pas, l'app se rabat sur tes deux derniers cours saisis.</p></div></details>
+      <details class="qaItem"><summary>Qu'est-ce que la sortie sur durée ?</summary><div class="qaRep"><p>Si après <b>10 séances</b> le cours n'a pas progressé et reste proche du coût de revient (à ±2 %), tu sors. Le capital immobilisé dans un trade qui n'avance pas manque ailleurs. Suivi affiche alors un encadré rouge « SORTIE SUR DURÉE » et rappelle la durée de détention.</p></div></details>
       <details class="qaItem"><summary>Que se passe-t-il quand je clique sur Validation ?</summary><div class="qaRep"><p>Le seuil est enregistré comme stop de la position, visible dans <b>Position</b> et tracé dans le <b>Bilan</b> avec la date et l'heure. Rien n'est enregistré tant que tu ne cliques pas sur ce bouton.</p></div></details>
       <details class="qaItem"><summary>Comment gérer l'annonce des résultats ?</summary><div class="qaRep"><p><b>1. Ne prendre aucun risque :</b> vendre 48 heures avant l'annonce.</p><p><b>2. Racheter après</b> l'annonce, si le cours monte.</p></div></details>
       <details class="qaItem"><summary>Dois-je acheter quand le CAC 40 est baissier ?</summary><div class="qaRep"><p>Regarde la carte <b>Contexte du marché</b> dans Check préachat : 🟢 CAC 40 au-dessus de ses moyennes 50 et 200 jours = achat possible ; 🟠 sous la 50 jours = prudence, positions réduites ; 🔴 sous la 200 jours = achat déconseillé, même pour une valeur très bien notée.</p></div></details>
-      <div class="qaTheme">Les termes et les chiffres</div>
+      </details>
+      <details class="qaSection"><summary class="qaTheme">Les termes et les chiffres</summary>
       <details class="qaItem"><summary>CA, CR, ST, CV, MA : que veulent-ils dire ?</summary><div class="qaRep"><p><b>CA</b> cours d'achat. <b>CR</b> coût de revient (achat + frais d'achat et de vente) : en dessous, une vente est une perte. <b>ST</b> stop (protection). <b>CV</b> cours valeur, le dernier cours enregistré. <b>MA20</b> moyenne mobile 20 jours, qui donne la tendance à court terme.</p></div></details>
       <details class="qaItem"><summary>C'est quoi l'ATR ? Pourquoi 1,5 × ATR ?</summary><div class="qaRep"><p>L'ATR mesure l'amplitude moyenne des mouvements quotidiens d'une valeur sur 14 jours. Un stop à CV − 1,5 × ATR s'adapte à la volatilité de chaque action : plus large pour une valeur nerveuse, plus serré pour une valeur calme.</p></div></details>
       <details class="qaItem"><summary>Comment est calculée la note /10 ?</summary><div class="qaRep"><p>C'est une note pondérée de plusieurs critères (tendance, momentum, volume, etc.). Une valeur à <b>8 ou plus</b> est considérée comme intéressante. Elle n'est pas validée sur l'historique : elle sert à trier, pas à garantir.</p></div></details>
       <details class="qaItem"><summary>Que signifie le pourcentage entre CV et ST ?</summary><div class="qaRep"><p>C'est la marge avant que le stop se déclenche : de combien le cours peut encore baisser avant la vente.</p></div></details>
       <details class="qaItem"><summary>À quoi correspond le gain net estimé ?</summary><div class="qaRep"><p>Gain en euros si tu vendais au cours valeur, après déduction des frais d'achat et de vente (coût de revient).</p></div></details>
-      <div class="qaTheme">Les onglets</div>
+      </details>
+      <details class="qaSection"><summary class="qaTheme">Les onglets</summary>
       <details class="qaItem"><summary>Pépites</summary><div class="qaRep"><p>Cherche des candidats : classement momentum des valeurs du CAC 40, scan complet, sélections externes, croisement de toutes les listes et analyse notée. Les résultats sont mémorisés avec la date du dernier lancement.</p></div></details>
       <details class="qaItem"><summary>Valeur</summary><div class="qaRep"><p>Liste tes valeurs sélectionnées avec leur note, leurs seuils et un mini-graphique des 10 dernières séances. Triée de la meilleure note à la moins bonne.</p></div></details>
       <details class="qaItem"><summary>Analyse</summary><div class="qaRep"><p>Détail d'une valeur : critères, note, graphique des 10 séances.</p></div></details>
       <details class="qaItem"><summary>Check préachat</summary><div class="qaRep"><p>Les 7 questions à valider avant d'acheter (avis de Warren AI, potentiel, pourquoi j'achète…).</p></div></details>
       <details class="qaItem"><summary>Préparation, Achat</summary><div class="qaRep"><p>Préparation : checklist à vérifier avant l'achat (dont date de résultat, dividende, contexte géopolitique, conviction). Achat : saisie de la position et choix du stop initial (par défaut CA − 1,5 × ATR).</p></div></details>
       <details class="qaItem"><summary>Suivi, Position, Bilan</summary><div class="qaRep"><p>Suivi : le process du soir, position par position. Position : vue d'ensemble avec gain total et présence d'une protection (OUI/NON). Bilan : journal complet des opérations, exportable en CSV dans les fichiers de l'iPhone.</p></div></details>
-      <div class="qaTheme">Données et sécurité</div>
+      </details>
+      <details class="qaSection"><summary class="qaTheme">Données et sécurité</summary>
       <details class="qaItem"><summary>Où sont enregistrées mes données ?</summary><div class="qaRep"><p>Dans le navigateur de ton iPhone (stockage local de l'app). Elles ne sont pas partagées entre appareils. Exporte régulièrement le Bilan en CSV pour avoir une sauvegarde.</p></div></details>
       <details class="qaItem"><summary>Pourquoi la date de résultat clignote en rouge ?</summary><div class="qaRep"><p>Parce que l'annonce des résultats est dans moins de 3 jours : le cours peut faire un gap qui saute ton stop. À décider consciemment.</p></div></details>
       <details class="qaItem"><summary>Les cours sont-ils en temps réel ?</summary><div class="qaRep"><p>Non. EODHD fournit des clôtures de fin de journée, pas de cours en direct. Pour l'intraday, utilise Boursorama.</p></div></details>
       <details class="qaItem"><summary>Que faire si EODHD est indisponible ?</summary><div class="qaRep"><p>Saisis le cours valeur à la main : l'app l'indique en orange et reste utilisable.</p></div></details>
-      <p class="small" id="qaVide" style="display:none;">Aucune question ne correspond.</p>
+            </details>
+<p class="small" id="qaVide" style="display:none;">Aucune question ne correspond.</p>
     </div>
   </section>
   <!-- ================= BILAN (journal des opérations) ================= -->
@@ -823,7 +837,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-18T16:55:00Z';
+const BUILD_TIME_UTC = '2026-10-18T17:30:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1315,10 +1329,10 @@ document.querySelectorAll('nav.tabs button').forEach(b=>{
       const ok = !q || d.textContent.toLowerCase().includes(q);
       d.style.display = ok ? '' : 'none'; if(ok){ n++; if(q) d.open = true; } else d.open = false;
     });
-    document.querySelectorAll('#qaList .qaTheme').forEach(t=>{
-      let el = t.nextElementSibling, vis = false;
-      while(el && !el.classList.contains('qaTheme')){ if(el.classList.contains('qaItem') && el.style.display!=='none') vis = true; el = el.nextElementSibling; }
-      t.style.display = vis ? '' : 'none';
+    document.querySelectorAll('#qaList .qaSection').forEach(sec=>{
+      const vis = [...sec.querySelectorAll('.qaItem')].some(d=>d.style.display!=='none');
+      sec.style.display = vis ? '' : 'none';
+      if(q) sec.open = vis;
     });
     document.getElementById('qaVide').style.display = n ? 'none' : '';
   });
@@ -1346,7 +1360,7 @@ function goTo(view){
   if(view==='preparation') resetPreparationForm();
   if(view==='position') renderPosition();
   if(view==='bilan') renderBilan();
-  if(view==='go'){ renderGo(); renderGoMarche(); goDatesAuto(); }
+  if(view==='go'){ renderGo(); renderGoMarche(); renderGoReunions(); goDatesAuto(); }
   if(view==='selection') renderSelectionTab(true);   // seuils, jauges et cours actualisés à chaque ouverture de l'onglet
   if(view==='pepites'){ renderMomentum(); renderScan(); renderSelectionExterne(); renderCroisement(); renderPepites(); try{ renderCroisementTotal(); }catch(e){} }
   // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
@@ -1843,6 +1857,8 @@ function joursAvantResultat(txt){
 function resultatProche(txt){ const j = joursAvantResultat(txt); return j !== null && j >= 0 && j < 3; }
 const suiviAtrCache = {}, suiviAtrEssaye = {};
 const suiviCours = {}, suiviCoursKo = {};
+const suiviSeances = {};   // dates des séances EODHD par valeur (pour compter la durée de détention)
+const SUIVI_SEANCES_MAX = 10, SUIVI_ZONE_PCT = 2;   // sortie sur durée : 10 séances et cours à ±2 % du coût de revient
 const suiviDiv = {};   // dividende par valeur : {next:'AAAA-MM-JJ'|null, last:'AAAA-MM-JJ'|null, ko:bool}   // dernier cours EODHD par valeur / échec de récupération
 const SUIVI_ATR_MULT = 1.5;
 // Seuil de protection choisi mais pas encore validé, par position (en mémoire seulement).
@@ -1881,6 +1897,7 @@ async function suiviChargerAtr(tickers){
       const a = atr14Euros(d.highs, d.lows, d.closes);
       if(a!=null && isFinite(a)){ suiviAtrCache[tk] = a; nouveau = true; }
       // Dernier cours (clôture) EODHD, pour préremplir « Cours valeur du jour »
+      suiviSeances[tk] = d.dates.slice();
       const c = d.closes[d.closes.length-1];
       if(Number.isFinite(c)){
         const n = d.closes.length, cp = n>=2 ? d.closes[n-2] : null;
@@ -1969,6 +1986,15 @@ async function renderSuivi(){
       ? 'Cours du jour pas encore enregistré : le process sera décidé après « Enregistrer ».'
       : cmpOk ? `Comparaison : cours enregistré = ${fmt(cvNow)} · veille (${cvSrc}) = ${fmt(cvPrec)} → ${cvNow>cvPrec?'hausse':cvNow<cvPrec?'baisse':'identique'}.`
               : (suiviCoursKo[p.ticker] ? 'Clôture de la veille introuvable (EODHD indisponible) : comparaison impossible.' : 'Récupération de la clôture de la veille (EODHD)…');
+    // Sortie sur durée : N séances depuis l'achat et le cours n'a pas progressé (reste proche du coût de revient)
+    const achatIso = String(p.dateAchat||'').slice(0,10);
+    let nbSeances = null;
+    if(achatIso){
+      if(suiviSeances[p.ticker]) nbSeances = suiviSeances[p.ticker].filter(x=>x>achatIso).length;
+      else { let n=0; const dd = new Date(achatIso+'T00:00:00'), fin = new Date(aujourdhui+'T00:00:00'); for(dd.setDate(dd.getDate()+1); dd<=fin; dd.setDate(dd.getDate()+1)){ const w=dd.getDay(); if(w!==0&&w!==6) n++; } nbSeances = n; }
+    }
+    const ecartCR = p.CR ? (lastCV/p.CR - 1)*100 : null;
+    const sortieDuree = nbSeances != null && nbSeances >= SUIVI_SEANCES_MAX && ecartCR != null && Math.abs(ecartCR) <= SUIVI_ZONE_PCT;
     const cvBaisse = cmpOk && cvNow <= cvPrec;   // pas d'augmentation (baisse ou égal)
     const aAjuster = cvNow >= p.CR && !cvBaisse;   // règle : CV ≥ coût de revient ET cours du jour > veille
     const cas = cvNow >= p.CR ? 2 : 1;
@@ -2028,6 +2054,8 @@ async function renderSuivi(){
       <div class="kpi"><span>Gain net estimé total (${p.qte} titres)</span><span class="v" style="color:${gainNetTotal>=0?'var(--green)':'var(--red)'}">${fmt(gainNetTotal)}</span></div>
       <hr class="dash">
       <h3 style="font-size:18px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">PROCESS À SUIVRE</h3>
+      ${sortieDuree ? `<p style="color:var(--red);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;border:2px solid var(--red);border-radius:9px;padding:9px 10px;">⏱ SORTIE SUR DURÉE — ${nbSeances} séances depuis l'achat et le cours (${fmt(lastCV)}) reste proche du coût de revient (${fmt(p.CR)}, ${ecartCR>=0?'+':''}${ecartCR.toFixed(1).replace('.',',')} %) : le trade n'avance pas. Vends et libère le capital pour une meilleure opportunité.</p>` : ''}
+      ${nbSeances != null ? `<p class="small" style="margin:0 0 6px;opacity:.85;">Durée de détention : ${nbSeances} séance${nbSeances>1?'s':''} (sortie sur durée à ${SUIVI_SEANCES_MAX} séances si le cours reste à ±${SUIVI_ZONE_PCT} % du coût de revient).</p>` : ''}
       <p class="small" style="margin:0 0 8px;opacity:.85;">${cmpLigne}</p>
       ${attente ? `
       <p style="color:var(--amber);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">⏳ Enregistre d'abord le cours valeur du jour (bouton « Enregistrer » ci-dessus). Le process sera ensuite décidé en comparant ce cours à la clôture de la veille.</p>
@@ -4287,6 +4315,22 @@ async function renderGoMarche(){
     + `<div class="kpi"><span>Moyenne 50 jours</span><span class="v" style="color:${e.au50?'var(--green)':'var(--red)'};">${fmt(e.m50).replace(' €','')} · ${ecart(e.m50)} ${e.au50?'✓ au-dessus':'✗ en dessous'}</span></div>`
     + `<div class="kpi"><span>Moyenne 200 jours</span><span class="v" style="color:${e.au200?'var(--green)':'var(--red)'};">${fmt(e.m200).replace(' €','')} · ${ecart(e.m200)} ${e.au200?'✓ au-dessus':'✗ en dessous'}</span></div>`
     + `<p style="margin:8px 0 0;">${conseil}</p>`;
+}
+
+// ---- Réunions BCE / Fed : prochaines dates, avec alerte dans la semaine (calendrier à recouper avec les sites officiels) ----
+const GO_REUNIONS = [['Réunion BCE','2026-10-29'],['Réunion Fed','2026-10-28'],['Réunion Fed','2026-12-09'],['Réunion BCE','2026-12-17']];
+function renderGoReunions(){
+  const el = $('goReunionsBody'); if(!el) return;
+  const b = new Date(); b.setHours(0,0,0,0);
+  const L = GO_REUNIONS.map(([t,d])=>({t, d, j: Math.round((new Date(d+'T00:00:00') - b)/86400000)})).filter(x=>x.j >= 0).sort((a,c)=>a.d.localeCompare(c.d));
+  const semaine = L.filter(x=>x.j <= 7);
+  let html = semaine.length
+    ? semaine.map(x=>`<div class="kpi" style="align-items:center;"><span style="font-weight:800;color:${x.j<=2?'var(--red)':'var(--amber)'};">${x.j<=2?'⚠ ':''}${x.t}</span><span class="v" style="color:${x.j<=2?'var(--red)':'var(--amber)'};">${fmtDate(x.d)} · ${x.j===0?"AUJOURD'HUI":x.j===1?'demain':'dans '+x.j+' jours'}</span></div>`).join('')
+        + '<p style="margin:8px 0 0;">Réunion dans la semaine : évite d\'acheter juste avant la décision, le marché peut bouger fort.</p>'
+    : '<p style="margin:0 0 8px;color:var(--green);">✓ Aucune réunion BCE ou Fed dans les 7 prochains jours.</p>';
+  const suiv = L.filter(x=>x.j > 7).slice(0,2);
+  if(suiv.length) html += '<p style="margin:8px 0 0;opacity:.85;">À venir : ' + suiv.map(x=>`${x.t} le ${fmtDate(x.d)} (dans ${x.j} jours)`).join(' · ') + '. Dates à recouper avec les sites de la BCE et de la Fed.</p>';
+  el.innerHTML = html;
 }
 let goAutoEnCours = false;
 if($('goResetBtn')) $('goResetBtn').addEventListener('click', ()=>{
