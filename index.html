@@ -39,7 +39,10 @@
   @media (prefers-reduced-motion:reduce){.resBlink{animation:none;}}
   nav.tabs .tabs-break{flex-basis:100%;height:0;margin:0;padding:0;}
   nav.tabs button{flex:1 1 0;min-width:0;padding:9px 4px;background:transparent;border:none;color:var(--dim);
-    font-size:11px;font-weight:600;border-radius:7px;letter-spacing:.1px;}
+    font-size:10.5px;font-weight:600;border-radius:7px;letter-spacing:0;overflow:hidden;white-space:nowrap;}
+  nav.tabs button[data-view="go"]{white-space:normal;line-height:1.1;}
+  nav.tabs button[data-view="preparation"]{flex-grow:1.6;}
+  nav.tabs button[data-view="bilan"],nav.tabs button[data-view="qa"],nav.tabs button[data-view="achat"]{flex-grow:.8;}
   /* Une couleur par onglet : texte et liseré teintés au repos, fond plein teinté quand l'onglet est actif */
   nav.tabs button{--tc:#9aa4b2;color:var(--tc);box-shadow:inset 0 -3px 0 var(--tc);}
   nav.tabs button[data-view="pepites"]{--tc:#f5b942;}
@@ -361,13 +364,13 @@
     <button data-view="selection">Valeur</button>
     <button data-view="analyse">Analyse</button>
     <button data-view="go">Check préachat</button>
-    <button data-view="qa">Q&amp;A</button>
     <span class="tabs-break" aria-hidden="true"></span>
     <button data-view="preparation" class="active">Préparation</button>
     <button data-view="achat">Achat</button>
     <button data-view="suivi">Suivi</button>
     <button data-view="position">Position</button>
     <button data-view="bilan">Bilan</button>
+    <button data-view="qa">Q&amp;A</button>
   </nav>
 </header>
 <main>
@@ -384,19 +387,6 @@
     <div class="card" id="goMarche">
       <h3>🌍 Contexte du marché</h3>
       <div id="goMarcheBody" class="small">Chargement du CAC 40…</div>
-    </div>
-    <div class="card" id="goMacro">
-      <h3>📅 Dates importantes à venir</h3>
-      <p class="small">Événements qui peuvent faire bouger tout le marché (inflation, BCE, Fed, emploi US…). Un événement dans les 2 jours s'affiche en rouge : évite d'acheter juste avant. Les dates de réunion BCE et Fed sont préremplies — recoupe-les et ajoute les autres (inflation, emploi) à la main.</p>
-      <div id="goMacroListe"></div>
-      <div class="row" style="margin-top:10px;gap:6px;flex-wrap:wrap;">
-        <select id="goMacroType" style="flex:1 1 150px;">
-          <option>Inflation France (INSEE)</option><option>Inflation zone euro (Eurostat)</option><option>Inflation US (CPI)</option>
-          <option>Réunion BCE</option><option>Réunion Fed</option><option>Emploi US (NFP)</option><option>Autre</option>
-        </select>
-        <input type="date" id="goMacroDate" style="flex:1 1 140px;">
-        <button class="btn ghost" id="goMacroAdd" style="width:auto;margin-top:0;">Ajouter</button>
-      </div>
     </div>
     <div class="card" id="goCard">
       <div id="goListe"></div>
@@ -833,7 +823,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-18T16:05:00Z';
+const BUILD_TIME_UTC = '2026-10-18T16:55:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1356,7 +1346,7 @@ function goTo(view){
   if(view==='preparation') resetPreparationForm();
   if(view==='position') renderPosition();
   if(view==='bilan') renderBilan();
-  if(view==='go'){ renderGo(); renderGoMacro(); renderGoMarche(); goDatesAuto(); }
+  if(view==='go'){ renderGo(); renderGoMarche(); goDatesAuto(); }
   if(view==='selection') renderSelectionTab(true);   // seuils, jauges et cours actualisés à chaque ouverture de l'onglet
   if(view==='pepites'){ renderMomentum(); renderScan(); renderSelectionExterne(); renderCroisement(); renderPepites(); try{ renderCroisementTotal(); }catch(e){} }
   // Si on QUITTE Préparation sans passer par "Valider la préparation" (qui amène directement
@@ -1852,7 +1842,8 @@ function joursAvantResultat(txt){
 // Rouge + clignotant quand l'annonce tombe aujourd'hui ou dans moins de 3 jours.
 function resultatProche(txt){ const j = joursAvantResultat(txt); return j !== null && j >= 0 && j < 3; }
 const suiviAtrCache = {}, suiviAtrEssaye = {};
-const suiviCours = {}, suiviCoursKo = {};   // dernier cours EODHD par valeur / échec de récupération
+const suiviCours = {}, suiviCoursKo = {};
+const suiviDiv = {};   // dividende par valeur : {next:'AAAA-MM-JJ'|null, last:'AAAA-MM-JJ'|null, ko:bool}   // dernier cours EODHD par valeur / échec de récupération
 const SUIVI_ATR_MULT = 1.5;
 // Seuil de protection choisi mais pas encore validé, par position (en mémoire seulement).
 const suiviSel = {};
@@ -1898,6 +1889,25 @@ async function suiviChargerAtr(tickers){
       else suiviCoursKo[tk] = true;
       nouveau = true;
     }catch(e){ suiviCoursKo[tk] = true; nouveau = true; }
+    // Prochaine date de détachement du dividende (EODHD) : remplit la date de la position si elle est vide ou dépassée.
+    try{
+      const dv = await eodFetch(`/div/${encodeURIComponent(tk)}`);
+      const today = new Date().toISOString().slice(0,10);
+      const dates = (Array.isArray(dv) ? dv : []).map(x=>x.date).filter(Boolean).sort();
+      const next = dates.find(x=>x >= today) || null;
+      suiviDiv[tk] = {next, last: dates.length ? dates[dates.length-1] : null, ko:false};
+      if(next){
+        let change = false;
+        (appState.positions||[]).forEach(pp=>{
+          if(pp.ticker !== tk || pp.cloturee) return;
+          const m = String(pp.dateDividende||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          const actuelle = m ? `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : '';
+          if(!actuelle || actuelle < today){ pp.dateDividende = frIso(next); change = true; }
+        });
+        if(change){ try{ saveToLocalStorage(appState); }catch(e){} }
+      }
+      nouveau = true;
+    }catch(e){ suiviDiv[tk] = {next:null, last:null, ko:true}; nouveau = true; }
   }
   return nouveau;
 }
@@ -1938,19 +1948,29 @@ async function renderSuivi(){
     const gainNetUnit = lastCV*(1-p.fraisV/100) - p.CR;
     const gainNetTotal = gainNetUnit * p.qte;
     const gainPct = p.CR ? (gainNetUnit/p.CR)*100 : 0;
-    // Référence = clôtures EODHD (dernière vs veille) : indépendant d'un oubli de saisie. Repli sur les cours enregistrés si EODHD indisponible.
+    // Le process n'est décidé qu'APRÈS « Enregistrer » : on compare le cours valeur enregistré aujourd'hui à la clôture de la veille (EODHD).
+    const aujourdhui = nowDateTime().slice(0,10);
+    const dernierEnr = p.historique.length ? p.historique[p.historique.length-1] : null;
+    const attente = !(dernierEnr && String(dernierEnr.date).slice(0,10) === aujourdhui);   // cours du jour pas encore enregistré
     const eodS = suiviCours[p.ticker];
-    const eodOk = !!(eodS && eodS.prec != null);
-    const cvNow = eodOk ? eodS.cours : lastCV;
-    const cvPrec = eodOk ? eodS.prec : (p.historique.length >= 2 ? p.historique[p.historique.length-2].cv : null);
-    const cvSrc = eodOk ? `clôtures EODHD du ${frIso(eodS.datePrec)} et du ${frIso(eodS.date)}` : 'cours enregistrés';
+    const eodOk = !!eodS;
+    const cvNow = lastCV;
+    let cvPrec = null, cvSrc = '';
+    if(eodS){
+      // Si le cours enregistré est la clôture EODHD la plus récente (ou si celle d'aujourd'hui est publiée), la veille = clôture d'avant ;
+      // sinon (cours saisi en séance) la veille = dernière clôture EODHD.
+      const memeSeance = eodS.date >= aujourdhui || Math.abs(lastCV - eodS.cours) < 0.005;
+      if(memeSeance && eodS.prec != null){ cvPrec = eodS.prec; cvSrc = `clôture EODHD du ${frIso(eodS.datePrec)}`; }
+      else if(!memeSeance){ cvPrec = eodS.cours; cvSrc = `clôture EODHD du ${frIso(eodS.date)}`; }
+    }
+    if(cvPrec == null && p.historique.length >= 2){ cvPrec = p.historique[p.historique.length-2].cv; cvSrc = 'cours précédemment enregistré'; }
     const cmpOk = cvPrec != null && Number.isFinite(cvPrec);
-    const cmpLigne = eodOk
-      ? `Comparaison EODHD : clôture du ${frIso(eodS.datePrec)} = ${fmt(eodS.prec)} → clôture du ${frIso(eodS.date)} = ${fmt(eodS.cours)} (${eodS.cours>eodS.prec?'hausse':eodS.cours<eodS.prec?'baisse':'identique'}).`
-      : cmpOk ? `EODHD indisponible : comparaison de tes deux derniers cours saisis (${fmt(cvPrec)} → ${fmt(cvNow)}).`
-      : (suiviCoursKo[p.ticker] ? 'EODHD indisponible et moins de deux cours saisis : comparaison impossible.' : 'Récupération des clôtures EODHD en cours…');
-    const cvBaisse = cvPrec != null && Number.isFinite(cvPrec) && cvNow <= cvPrec;   // pas d'augmentation (baisse ou égal)
-    const aAjuster = cvNow >= p.CR && !cvBaisse;   // règle : CV ≥ coût de revient ET cours du jour > cours précédent
+    const cmpLigne = attente
+      ? 'Cours du jour pas encore enregistré : le process sera décidé après « Enregistrer ».'
+      : cmpOk ? `Comparaison : cours enregistré = ${fmt(cvNow)} · veille (${cvSrc}) = ${fmt(cvPrec)} → ${cvNow>cvPrec?'hausse':cvNow<cvPrec?'baisse':'identique'}.`
+              : (suiviCoursKo[p.ticker] ? 'Clôture de la veille introuvable (EODHD indisponible) : comparaison impossible.' : 'Récupération de la clôture de la veille (EODHD)…');
+    const cvBaisse = cmpOk && cvNow <= cvPrec;   // pas d'augmentation (baisse ou égal)
+    const aAjuster = cvNow >= p.CR && !cvBaisse;   // règle : CV ≥ coût de revient ET cours du jour > veille
     const cas = cvNow >= p.CR ? 2 : 1;
     const doitIntervenir = cas === 2; // on n'ajuste le stop que si le cours valeur est >= au coût de revient
     // Cours valeur proposé : dernière clôture EODHD si elle est plus récente que le dernier cours enregistré, sinon le cours enregistré.
@@ -1986,6 +2006,7 @@ async function renderSuivi(){
       <div class="kpi"><span>Quantité</span><span class="v">${p.qte}</span></div>
       <div class="kpi" style="align-items:center;"><span class="dateResultatLabel${resultatProche(p.dateResultat)?' resBlink':''}">Date annonce résultat${resultatProche(p.dateResultat) ? ' — ' + (joursAvantResultat(p.dateResultat)===0 ? 'AUJOURD\'HUI' : 'dans ' + joursAvantResultat(p.dateResultat) + ' jour' + (joursAvantResultat(p.dateResultat)>1?'s':'')) : ''}</span><span class="v"><input type="text" inputmode="numeric" class="dateResultatInput${resultatProche(p.dateResultat)?' resBlink':''}" placeholder="jj/mm/aaaa" value="${(p.dateResultat||'').replace(/"/g,'&quot;')}" style="width:120px;text-align:right;padding:6px 8px;margin:0;"></span></div>
       <div class="kpi" style="align-items:center;"><span>Date détachement dividende</span><span class="v"><input type="text" inputmode="numeric" class="dateDividendeInput" placeholder="jj/mm/aaaa" value="${(p.dateDividende||'').replace(/"/g,'&quot;')}" style="width:120px;text-align:right;padding:6px 8px;margin:0;"></span></div>
+      ${(()=>{ const dv = suiviDiv[p.ticker]; if(!dv) return ''; const t = dv.ko ? 'Dividende EODHD indisponible : saisis la date à la main.' : dv.next ? '' : (dv.last ? `EODHD : pas de date future publiée (dernier détachement connu : ${frIso(dv.last)}).` : 'EODHD : aucun dividende connu pour cette valeur.'); return t ? `<p class="small" style="margin:0 0 6px;opacity:.8;">${t}</p>` : ''; })()}
       <hr class="dash">
       ${priceBar(p.CA, p.CR, p.stop, lastCV, p.ma20)}
       <div class="priceLegend" style="margin-top:8px;font-size:10px;line-height:1.35;">
@@ -2008,10 +2029,12 @@ async function renderSuivi(){
       <hr class="dash">
       <h3 style="font-size:18px;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">PROCESS À SUIVRE</h3>
       <p class="small" style="margin:0 0 8px;opacity:.85;">${cmpLigne}</p>
-      ${!doitIntervenir ? `
+      ${attente ? `
+      <p style="color:var(--amber);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">⏳ Enregistre d'abord le cours valeur du jour (bouton « Enregistrer » ci-dessus). Le process sera ensuite décidé en comparant ce cours à la clôture de la veille.</p>
+      ` : !doitIntervenir ? `
       <p style="color:var(--green);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">✓ Rien à faire — le cours valeur est encore sous le coût de revient (Cas 1). On n'ajuste le stop que si le cours valeur dépasse le coût de revient.</p>
       ` : (cvBaisse ? `
-      <p style="color:var(--green);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">✓ Rien à changer — le cours valeur n'a pas augmenté par rapport à la veille (${fmt(cvPrec)} → ${fmt(cvNow)}${cvNow===cvPrec?', identique':', en baisse'} — ${cvSrc}) : la protection est déjà en place (stop ${fmt(p.stop)}), on ne change pas le seuil.</p>
+      <p style="color:var(--green);font-weight:800;font-size:15.5px;line-height:1.45;margin:6px 0 10px;">✓ Rien à changer — le cours valeur n'a pas augmenté par rapport à la veille (${fmt(cvPrec)} → ${fmt(cvNow)}${cvNow===cvPrec?', identique':', en baisse'}) : la protection est déjà en place (stop ${fmt(p.stop)}), on ne change pas le seuil.</p>
       <details style="margin-top:6px;"><summary class="small" style="cursor:pointer;">Ajuster quand même la protection</summary>
       <div class="stopOptions" style="margin-top:8px;grid-template-columns:1fr 1fr;">
         <div class="stopOpt adj ${choixActuel==='atr'?'selected':''}" data-atr="${SUIVI_ATR_MULT}"><div class="lbl">CV − ${String(SUIVI_ATR_MULT).replace('.',',')} × ATR</div><div class="val">${atrP ? fmt(lastCV - SUIVI_ATR_MULT*atrP) : '—'}</div><div class="small" style="color:var(--dim);margin-top:2px;">${atrP ? `ATR ${fmt(atrP)} × ${String(SUIVI_ATR_MULT).replace('.',',')} = ${fmt(atrP*SUIVI_ATR_MULT)}` : 'ATR indisponible'}</div>${atrP ? `<div class="small" style="color:var(--green);margin-top:2px;">Gain potentiel : ${fmt(((lastCV - SUIVI_ATR_MULT*atrP)-p.CR)*p.qte)}</div>` : ''}</div>
@@ -3990,8 +4013,8 @@ const GO_ITEMS = [
   {k:'q4', t:"J'ai regardé la tendance de son secteur",
    aide:"Le scan des secteurs de l'onglet Pépites donne la baisse médiane du secteur et sa situation.",
    opts:[['sect_h','Secteur bien orienté'],['sect_n','Secteur sans tendance nette'],['sect_b','Secteur en crise — baisse subie par tous']]},
-  {k:'q5', t:"Je connais les prochaines dates : résultats, détachement du dividende et événements macro (inflation, BCE…)",
-   aide:"Acheter juste avant une publication, c'est parier sur elle. Le cours baisse mécaniquement le jour du détachement. Consulte aussi la carte « Dates importantes à venir » ci-dessus (inflation, BCE, Fed, emploi US).",
+  {k:'q5', t:"Je connais les prochaines dates : résultats et détachement du dividende",
+   aide:"Acheter juste avant une publication, c'est parier sur elle. Le cours baisse mécaniquement le jour du détachement.",
    champs:[['dResu','Prochains résultats','date'],['dDiv','Détachement du dividende','date']]},
   {k:'q6', t:"Le potentiel de hausse justifie le risque pris",
    aide:"Écart entre le cours et un objectif réaliste (objectif des analystes, ou le tien). Il doit être nettement supérieur à la perte si le stop saute.",
@@ -4265,50 +4288,6 @@ async function renderGoMarche(){
     + `<div class="kpi"><span>Moyenne 200 jours</span><span class="v" style="color:${e.au200?'var(--green)':'var(--red)'};">${fmt(e.m200).replace(' €','')} · ${ecart(e.m200)} ${e.au200?'✓ au-dessus':'✗ en dessous'}</span></div>`
     + `<p style="margin:8px 0 0;">${conseil}</p>`;
 }
-// ---- Dates macro (inflation, BCE, Fed…) : globales, enregistrées sur l'appareil ----
-const GO_MACRO_KEY = 'bigdeal-dates-macro-v1';
-let goMacro = null;
-function goMacroCharger(){
-  try{ const b = localStorage.getItem(GO_MACRO_KEY); if(b) goMacro = JSON.parse(b); }catch(e){}
-  if(!goMacro || !Array.isArray(goMacro.items)){
-    // Préremplissage : calendrier des décisions de politique monétaire (à recouper avec les sites officiels).
-    const bce = ['2026-10-29','2026-12-17'], fed = ['2026-10-28','2026-12-09'];
-    goMacro = {items: [
-      ...bce.map(d=>({id:'bce'+d, type:'Réunion BCE', date:d})),
-      ...fed.map(d=>({id:'fed'+d, type:'Réunion Fed', date:d}))
-    ]};
-    goMacroSauver();
-  }
-}
-function goMacroSauver(){ try{ localStorage.setItem(GO_MACRO_KEY, JSON.stringify(goMacro)); }catch(e){} }
-function goMacroJours(iso){
-  const a = new Date(iso + 'T00:00:00'), b = new Date(); b.setHours(0,0,0,0);
-  return Math.round((a - b) / 86400000);
-}
-function renderGoMacro(){
-  const el = $('goMacroListe'); if(!el) return;
-  if(!goMacro) goMacroCharger();
-  const futurs = goMacro.items.filter(x=>x.date && goMacroJours(x.date) >= 0).sort((a,b)=>a.date.localeCompare(b.date));
-  if(!futurs.length){ el.innerHTML = '<div class="empty small">Aucune date à venir : ajoute-en ci-dessous.</div>'; return; }
-  el.innerHTML = futurs.map(x=>{
-    const j = goMacroJours(x.date);
-    const col = j <= 2 ? 'var(--red)' : j <= 7 ? 'var(--amber)' : 'var(--dim)';
-    const txt = j === 0 ? "AUJOURD'HUI" : j === 1 ? 'demain' : 'dans ' + j + ' jours';
-    return `<div class="kpi" style="align-items:center;gap:6px;"><span style="flex:1 1 auto;min-width:0;${j<=2?'color:var(--red);font-weight:800;':''}">${j<=2?'⚠ ':''}${x.type}</span>`
-      + `<span style="flex:0 0 auto;text-align:right;font-size:12px;line-height:1.3;color:${col};">${fmtDate(x.date)}<br>${txt}</span>`
-      + `<button class="btn ghost goMacroDel" data-id="${x.id}" style="flex:0 0 auto;width:auto;margin:0;padding:4px 9px;" aria-label="Supprimer">✕</button></div>`;
-  }).join('');
-  el.querySelectorAll('.goMacroDel').forEach(b=>b.addEventListener('click', ()=>{
-    goMacro.items = goMacro.items.filter(x=>x.id !== b.dataset.id); goMacroSauver(); renderGoMacro();
-  }));
-}
-if($('goMacroAdd')) $('goMacroAdd').addEventListener('click', ()=>{
-  const d = $('goMacroDate').value;
-  if(!d){ toast('Choisis une date'); return; }
-  if(!goMacro) goMacroCharger();
-  goMacro.items.push({id:'m'+Date.now(), type:$('goMacroType').value, date:d});
-  goMacroSauver(); $('goMacroDate').value = ''; renderGoMacro();
-});
 let goAutoEnCours = false;
 if($('goResetBtn')) $('goResetBtn').addEventListener('click', ()=>{
   const tk = goTicker();
