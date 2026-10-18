@@ -502,8 +502,12 @@
   <!-- ================= SÉLECTION ================= -->
   <section id="view-selection" class="view">
     <div class="card">
-      <h3>Valeur — 5 valeurs maximum</h3>
-      <p class="small">Choisis jusqu'à 5 valeurs du CAC 40. Pour chacune, tu vois les seuils à atteindre pour passer à l'action : conditions d'entrée, niveaux de cassure et de support, stop. La sélection est conservée sur cet appareil.</p>
+      <h3>Valeur à suivre</h3>
+      <p class="small">Choisis autant de valeurs du CAC 40 que tu veux. Pour chacune, tu vois les seuils à atteindre pour passer à l'action : conditions d'entrée, niveaux de cassure et de support, stop. La sélection est conservée sur cet appareil.</p>
+      <div class="row" style="gap:6px;margin:0 0 8px;">
+        <button class="btn ghost" id="selToutBtn" style="margin-top:0;">Tout sélectionner (40)</button>
+        <button class="btn ghost" id="selRienBtn" style="margin-top:0;">Tout désélectionner</button>
+      </div>
       <div class="sx-grid" id="selGrid"></div>
       <div class="sx-count" id="selCount"></div>
       <button class="btn ghost" id="selRefreshBtn" style="margin-top:10px;">Actualiser les seuils</button>
@@ -837,7 +841,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-18T17:30:00Z';
+const BUILD_TIME_UTC = '2026-10-18T17:50:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -3900,17 +3904,18 @@ function renderCroisementTotal(){
 }
 if($('cxAllBtn')) $('cxAllBtn').addEventListener('click', renderCroisementTotal);
 
-// ---------- Onglet Sélection : 5 valeurs suivies, avec les seuils à atteindre pour agir ----------
-const SEL_KEY = 'bigdeal-selection-suivi-v1', SEL_MAX = 5;
+// ---------- Onglet Sélection : valeurs à suivre (nombre illimité), avec les seuils à atteindre pour agir ----------
+const SEL_KEY = 'bigdeal-selection-suivi-v1';
 let selList = [], selToken = 0;
 function selCharger(){
-  try{ const b = localStorage.getItem(SEL_KEY); if(b){ const l = JSON.parse(b); if(Array.isArray(l)) selList = l.filter(t=>UNIVERSE[t]).slice(0, SEL_MAX); } }catch(e){}
+  try{ const b = localStorage.getItem(SEL_KEY); if(b){ const l = JSON.parse(b); if(Array.isArray(l)) selList = l.filter(t=>UNIVERSE[t]); } }catch(e){}
 }
 function selSauver(){ try{ localStorage.setItem(SEL_KEY, JSON.stringify(selList)); }catch(e){} }
+if($('selToutBtn')) $('selToutBtn').addEventListener('click', ()=>{ selList = Object.keys(UNIVERSE); selSauver(); renderSelectionTab(); });
+if($('selRienBtn')) $('selRienBtn').addEventListener('click', ()=>{ selList = []; selSauver(); renderSelectionTab(); });
 function selToggle(tk){
   if(selList.includes(tk)) selList = selList.filter(x=>x!==tk);
   else {
-    if(selList.length >= SEL_MAX){ toast(`${SEL_MAX} valeurs maximum — retire-en une d'abord.`); return; }
     selList.push(tk);
   }
   selSauver();
@@ -3980,9 +3985,9 @@ async function renderSelectionTab(refresh){
   grid.innerHTML = CAC40.slice().sort((a,b)=>a[0].localeCompare(b[0],'fr'))
     .map(([nom,tk])=>`<div class="sx-chip${selList.includes(tk)?' on':''}" data-tk="${tk}">${nom}</div>`).join('');
   grid.querySelectorAll('.sx-chip').forEach(c=> c.addEventListener('click', ()=> selToggle(c.dataset.tk)));
-  if(cpt) cpt.innerHTML = `<b>${selList.length}</b>/${SEL_MAX} valeur(s) sélectionnée(s)` + (selList.length ? ' : ' + selList.map(tk=>UNIVERSE[tk]||tk).join(', ') : '');
+  if(cpt) cpt.innerHTML = `<b>${selList.length}</b> valeur(s) sélectionnée(s)` + (selList.length ? ' : ' + selList.map(tk=>UNIVERSE[tk]||tk).join(', ') : '');
   if(!box) return;
-  if(!selList.length){ box.innerHTML = '<div class="empty">Choisis jusqu\'à 5 valeurs ci-dessus pour voir leurs seuils.</div>'; if($('selMaj')) $('selMaj').textContent=''; return; }
+  if(!selList.length){ box.innerHTML = '<div class="empty">Choisis des valeurs ci-dessus pour voir leurs seuils.</div>'; if($('selMaj')) $('selMaj').textContent=''; return; }
   const token = ++selToken;
   const majEl = $('selMaj');
   if(majEl && refresh) majEl.textContent = 'Actualisation en cours…';
