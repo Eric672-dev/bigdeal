@@ -761,6 +761,8 @@
         <div style="flex:1 1 130px;"><label>Du</label><input type="date" id="bilanDu"></div>
         <div style="flex:1 1 130px;"><label>Au</label><input type="date" id="bilanAu"></div>
       </div>
+      <label style="margin-top:10px;">Capital investi de mes comptes (€)</label>
+      <input type="text" inputmode="decimal" data-decimal="1" id="bilanCapital" placeholder="ex : 50000">
       <div id="bilanSyntheseBody" style="margin-top:10px;"></div>
     </div>
     <div class="card">
@@ -827,7 +829,8 @@ document.addEventListener('input', (e)=>{
   const el = e.target;
   if(el && el.dataset && el.dataset.decimal==='1') sanitizeDecimalInput(el);
 }, true);
-const fmt=(n)=> (n===null||n===undefined||isNaN(n)) ? '—' : n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+const nf2=(n)=> n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false});   // 12345,67 : pas d'espace entre les chiffres
+const fmt=(n)=> (n===null||n===undefined||isNaN(n)) ? '—' : nf2(n)+' €';
 const fmtPct=(n)=> (n===null||n===undefined||isNaN(n)) ? '—' : (n>=0?'+':'')+n.toFixed(2)+' %';
 // Horodatage complet (date + heure) pour les événements enregistrés (achat, cours, protection)
 const nowDateTime=()=>{
@@ -849,7 +852,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-11-01T17:55:00Z';
+const BUILD_TIME_UTC = '2026-11-01T18:15:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -2315,13 +2318,18 @@ function bilanPeriodeDefaut(all){
   const t = nowDateTime().slice(0,10);
   return {du: dates.length ? dates[0] : t, au: t};
 }
+const BILAN_CAPITAL_KEY = 'bigdeal-capital-v1';
+function bilanCapital(){ try{ const v = parseFloat(String(localStorage.getItem(BILAN_CAPITAL_KEY)||'').replace(/\s/g,'').replace(',','.')); return v > 0 ? v : 0; }catch(e){ return 0; } }
 function renderBilanSynthese(all){
   const body = $('bilanSyntheseBody'), du = $('bilanDu'), au = $('bilanAu');
   if(!body || !du || !au) return;
+  const capEl = $('bilanCapital');
+  if(capEl && document.activeElement !== capEl){ const c = bilanCapital(); capEl.value = c ? String(c).replace('.',',') : ''; }
+  const capital = bilanCapital();
   if(!du.value || !au.value){ const d = bilanPeriodeDefaut(all); if(!du.value) du.value = d.du; if(!au.value) au.value = d.au; }
   let a = du.value, b = au.value;
   if(a > b){ const x = a; a = b; b = x; }
-  const eur = (n)=>(n>=0?'+':'−') + Math.abs(n).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const eur = (n)=>(n>=0?'+':'−') + Math.abs(n).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false}) + ' €';
   const col = (n)=> n>0 ? 'var(--green)' : n<0 ? 'var(--red)' : 'var(--dim)';
   const closes = all.filter(p=>p.cloturee && p.dateVente && bilanIso(p.dateVente) >= a && bilanIso(p.dateVente) <= b);
   const gains = closes.map(p=>({p, g: positionGainNet(p)}));
@@ -2329,7 +2337,7 @@ function renderBilanSynthese(all){
   const nbG = gains.filter(x=>x.g>0).length, nbP = gains.filter(x=>x.g<0).length;
   const investi = (p)=> { const CA = p.CA||0, CR = p.CR||CA; return (CA + Math.max(0,(CR-CA)/2)) * (p.qte||1); };   // somme engagée à l'achat, frais d'achat compris
   const sommeInv = closes.reduce((x,p)=>x+investi(p), 0);
-  const pct = (n, d)=> d > 0 ? ' (' + (n>=0?'+':'−') + Math.abs(n/d*100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' %)' : '';
+  const pct = (n, d)=> d > 0 ? ' (' + (n>=0?'+':'−') + Math.abs(n/d*100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false}) + ' %)' : '';
   const ouvertes = all.filter(p=>!p.cloturee);
   const latent = ouvertes.reduce((x,p)=>x+positionGainNet(p), 0);
   const invOuv = ouvertes.reduce((x,p)=>x+investi(p), 0);
@@ -2338,13 +2346,15 @@ function renderBilanSynthese(all){
   gains.forEach(x=>{ const k = x.p.personne || '—'; parPers[k] = (parPers[k]||0) + x.g; });
   const fr = (d)=> d.split('-').reverse().join('/');
   body.innerHTML = `<div style="font-weight:800;font-size:16px;margin-bottom:6px;">Période du ${fr(a)} au ${fr(b)}</div>`
-    + `<div class="kpi"><span><b>Gain / perte réalisé</b></span><span class="v" style="font-size:19px;font-weight:800;color:${col(total)};">${eur(total)}${pct(total, sommeInv)}</span></div>`
-    + `<div class="kpi"><span>Somme investie (positions clôturées)</span><span class="v">${sommeInv.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} €</span></div>`
+    + `<div class="kpi"><span><b>Gain / perte réalisé</b></span><span class="v" style="font-size:19px;font-weight:800;color:${col(total)};">${eur(total)}${pct(total, capital)}</span></div>`
+    + (capital ? `<div class="kpi"><span>Capital de mes comptes</span><span class="v">${capital.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false})} €</span></div>` : `<p class="small" style="margin:0 0 6px;color:var(--amber);">Renseigne le capital investi de tes comptes ci-dessus pour obtenir le pourcentage.</p>`)
+    + `<div class="kpi"><span>Somme engagée sur les positions clôturées (rendement sur cette somme)</span><span class="v">${sommeInv.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false})} €${pct(total, sommeInv)}</span></div>`
     + `<div class="kpi"><span>Positions clôturées</span><span class="v">${closes.length} (${nbG} gagnante${nbG>1?'s':''} · ${nbP} perdante${nbP>1?'s':''})</span></div>`
     + (Object.keys(parPers).length > 1 ? Object.keys(parPers).sort().map(k=>`<div class="kpi"><span>${k}</span><span class="v" style="color:${col(parPers[k])};">${eur(parPers[k])}</span></div>`).join('') : '')
-    + `<div class="kpi"><span>Gain latent (${nbOuv} position${nbOuv>1?'s':''} en cours, à ce jour)</span><span class="v" style="color:${col(latent)};">${eur(latent)}${pct(latent, invOuv)}</span></div>`
-    + `<p class="small" style="margin:8px 0 0;opacity:.8;">Gains nets après frais de courtage aller-retour (achat + vente, 0,22 % chacun) ; le pourcentage est rapporté à la somme investie à l'achat (cours d'achat × quantité + frais d'achat). Le réalisé compte les positions vendues pendant la période ; le latent est calculé au dernier cours enregistré.</p>`;
+    + `<div class="kpi"><span>Gain latent (${nbOuv} position${nbOuv>1?'s':''} en cours, à ce jour)</span><span class="v" style="color:${col(latent)};">${eur(latent)}${pct(latent, capital)}</span></div>`
+    + `<p class="small" style="margin:8px 0 0;opacity:.8;">Gains nets après frais de courtage aller-retour (achat + vente, 0,22 % chacun) ; le pourcentage en tête est rapporté au capital de tes comptes (gain ÷ capital) ; le rendement sur la somme engagée est donné à titre indicatif. Le réalisé compte les positions vendues pendant la période ; le latent est calculé au dernier cours enregistré.</p>`;
 }
+if($('bilanCapital')) $('bilanCapital').addEventListener('input', async ()=>{ try{ localStorage.setItem(BILAN_CAPITAL_KEY, $('bilanCapital').value.trim()); renderBilanSynthese(await loadPositions()); }catch(e){} });
 if($('bilanDu')) ['bilanDu','bilanAu'].forEach(id=>$(id).addEventListener('change', async ()=>{ try{ renderBilanSynthese(await loadPositions()); }catch(e){} }));
 async function renderBilan(){
   const wrap = $('bilanLogWrap');
