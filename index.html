@@ -755,6 +755,14 @@
   </section>
   <!-- ================= BILAN (journal des opérations) ================= -->
   <section id="view-bilan" class="view">
+    <div class="card" id="bilanSynthese">
+      <h3>Gains / pertes</h3>
+      <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:1 1 130px;"><label>Du</label><input type="date" id="bilanDu"></div>
+        <div style="flex:1 1 130px;"><label>Au</label><input type="date" id="bilanAu"></div>
+      </div>
+      <div id="bilanSyntheseBody" style="margin-top:10px;"></div>
+    </div>
     <div class="card">
       <h3>Journal des opérations</h3>
       <p class="small">Historique complet de tout ce qui a été enregistré — achats, cours renseignés, ajustements de protection, ventes — toutes personnes et valeurs confondues, du plus récent au plus ancien.</p>
@@ -841,7 +849,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-10-18T17:50:00Z';
+const BUILD_TIME_UTC = '2026-11-01T17:35:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -2153,8 +2161,6 @@ async function renderSuivi(){
       pos.cloturee = true;
       await savePositions(positions, `${pos.nom} — Position vendue à ${fmt(prixVente)}`);
       await renderSuivi();
-      await exportCSV(pos.personne);
-      await renderSuivi();
     });
   });
   }catch(e){
@@ -2296,9 +2302,45 @@ function buildOperationsLog(allPositions){
   events.sort((a,b)=> String(b.date||'').localeCompare(String(a.date||'')));
   return events;
 }
+
+// ---- Synthèse des gains / pertes du Bilan, sur une période choisie (du … au …) ----
+function bilanIso(d){ return d ? String(d).slice(0,10) : ''; }
+function bilanPeriodeDefaut(all){
+  const dates = [];
+  all.forEach(p=>{ if(p.dateAchat) dates.push(bilanIso(p.dateAchat)); if(p.dateVente) dates.push(bilanIso(p.dateVente)); });
+  dates.sort();
+  const t = nowDateTime().slice(0,10);
+  return {du: dates.length ? dates[0] : t, au: t};
+}
+function renderBilanSynthese(all){
+  const body = $('bilanSyntheseBody'), du = $('bilanDu'), au = $('bilanAu');
+  if(!body || !du || !au) return;
+  if(!du.value || !au.value){ const d = bilanPeriodeDefaut(all); if(!du.value) du.value = d.du; if(!au.value) au.value = d.au; }
+  let a = du.value, b = au.value;
+  if(a > b){ const x = a; a = b; b = x; }
+  const eur = (n)=>(n>=0?'+':'−') + Math.abs(n).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const col = (n)=> n>0 ? 'var(--green)' : n<0 ? 'var(--red)' : 'var(--dim)';
+  const closes = all.filter(p=>p.cloturee && p.dateVente && bilanIso(p.dateVente) >= a && bilanIso(p.dateVente) <= b);
+  const gains = closes.map(p=>({p, g: positionGainNet(p)}));
+  const total = gains.reduce((x,y)=>x+y.g, 0);
+  const nbG = gains.filter(x=>x.g>0).length, nbP = gains.filter(x=>x.g<0).length;
+  const latent = all.filter(p=>!p.cloturee).reduce((x,p)=>x+positionGainNet(p), 0);
+  const nbOuv = all.filter(p=>!p.cloturee).length;
+  const parPers = {};
+  gains.forEach(x=>{ const k = x.p.personne || '—'; parPers[k] = (parPers[k]||0) + x.g; });
+  const fr = (d)=> d.split('-').reverse().join('/');
+  body.innerHTML = `<div style="font-weight:800;font-size:16px;margin-bottom:6px;">Période du ${fr(a)} au ${fr(b)}</div>`
+    + `<div class="kpi"><span><b>Gain / perte réalisé</b></span><span class="v" style="font-size:19px;font-weight:800;color:${col(total)};">${eur(total)}</span></div>`
+    + `<div class="kpi"><span>Positions clôturées</span><span class="v">${closes.length} (${nbG} gagnante${nbG>1?'s':''} · ${nbP} perdante${nbP>1?'s':''})</span></div>`
+    + (Object.keys(parPers).length > 1 ? Object.keys(parPers).sort().map(k=>`<div class="kpi"><span>${k}</span><span class="v" style="color:${col(parPers[k])};">${eur(parPers[k])}</span></div>`).join('') : '')
+    + `<div class="kpi"><span>Gain latent (${nbOuv} position${nbOuv>1?'s':''} en cours, à ce jour)</span><span class="v" style="color:${col(latent)};">${eur(latent)}</span></div>`
+    + `<p class="small" style="margin:8px 0 0;opacity:.8;">Gains nets après frais d'achat et de vente. Le réalisé compte les positions vendues pendant la période ; le latent est calculé au dernier cours enregistré.</p>`;
+}
+if($('bilanDu')) ['bilanDu','bilanAu'].forEach(id=>$(id).addEventListener('change', async ()=>{ try{ renderBilanSynthese(await loadPositions()); }catch(e){} }));
 async function renderBilan(){
   const wrap = $('bilanLogWrap');
   let all;
+  try{ renderBilanSynthese(await loadPositions()); }catch(e){}
   try{
     all = await loadPositions();
   }catch(e){
