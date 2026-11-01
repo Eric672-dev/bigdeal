@@ -849,7 +849,7 @@ function toast(msg){
 // ---------- Repère de version (heure de Paris, calculée automatiquement à partir de l'heure UTC
 // de livraison ci-dessous — pas besoin de convertir à la main à chaque envoi, ni de se soucier
 // de l'heure d'été/hiver, Intl s'en charge). Mettre à jour BUILD_TIME_UTC à chaque livraison.
-const BUILD_TIME_UTC = '2026-11-01T17:35:00Z';
+const BUILD_TIME_UTC = '2026-11-01T17:55:00Z';
 (function(){
   try{
     const d = new Date(BUILD_TIME_UTC);
@@ -1974,7 +1974,7 @@ async function renderSuivi(){
     p.CR = p.CR || p.CA || 0;
     p.stop = p.stop || 0;
     const lastCV = p.historique.length ? p.historique[p.historique.length-1].cv : p.CA;
-    const gainNetUnit = lastCV*(1-p.fraisV/100) - p.CR;
+    const gainNetUnit = gainNetUnitaire(p, lastCV);
     const gainNetTotal = gainNetUnit * p.qte;
     const gainPct = p.CR ? (gainNetUnit/p.CR)*100 : 0;
     // Le process n'est décidé qu'APRÈS « Enregistrer » : on compare le cours valeur enregistré aujourd'hui à la clôture de la veille (EODHD).
@@ -2178,14 +2178,17 @@ async function renderSuivi(){
 // une position clôturée, le dernier point d'historique EST le cours de vente (poussé par
 // btnVendue), donc ce calcul donne directement le gain réalisé ; pour une position en cours,
 // il donne le gain latent au dernier cours valeur saisi (ou au cours d'achat si aucun encore).
+// Gain net par titre, frais de courtage ALLER-RETOUR compris (forfait Trader 0,22 % à l'achat et à la vente) :
+// frais d'achat réels = la moitié de l'écart CR − CA (le CR contient déjà achat + vente estimés) ; frais de vente recalculés sur le cours de sortie.
+function gainNetUnitaire(p, cv){
+  const CA = p.CA || p.CR || 0, CR = p.CR || CA;
+  const fraisAchatUnit = Math.max(0, (CR - CA) / 2);
+  return cv - cv*0.0022 - CA - fraisAchatUnit;
+}
 function positionGainNet(p){
   const historique = Array.isArray(p.historique) ? p.historique : [];
   const lastCV = historique.length ? historique[historique.length-1].cv : p.CA;
-  const fraisV = (p.fraisV===undefined||p.fraisV===null) ? 0.5 : p.fraisV;
-  const qte = p.qte || 1;
-  const CR = p.CR || p.CA || 0;
-  const gainNetUnit = lastCV*(1-fraisV/100) - CR;
-  return gainNetUnit * qte;
+  return gainNetUnitaire(p, lastCV) * (p.qte || 1);
 }
 // Protection "mise" = le stop protège au moins le coût de revient (CR) : si le stop est
 // déclenché, la position ne peut plus finir en perte nette. C'est exactement ce que le
@@ -2324,17 +2327,23 @@ function renderBilanSynthese(all){
   const gains = closes.map(p=>({p, g: positionGainNet(p)}));
   const total = gains.reduce((x,y)=>x+y.g, 0);
   const nbG = gains.filter(x=>x.g>0).length, nbP = gains.filter(x=>x.g<0).length;
-  const latent = all.filter(p=>!p.cloturee).reduce((x,p)=>x+positionGainNet(p), 0);
+  const investi = (p)=> { const CA = p.CA||0, CR = p.CR||CA; return (CA + Math.max(0,(CR-CA)/2)) * (p.qte||1); };   // somme engagée à l'achat, frais d'achat compris
+  const sommeInv = closes.reduce((x,p)=>x+investi(p), 0);
+  const pct = (n, d)=> d > 0 ? ' (' + (n>=0?'+':'−') + Math.abs(n/d*100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' %)' : '';
+  const ouvertes = all.filter(p=>!p.cloturee);
+  const latent = ouvertes.reduce((x,p)=>x+positionGainNet(p), 0);
+  const invOuv = ouvertes.reduce((x,p)=>x+investi(p), 0);
   const nbOuv = all.filter(p=>!p.cloturee).length;
   const parPers = {};
   gains.forEach(x=>{ const k = x.p.personne || '—'; parPers[k] = (parPers[k]||0) + x.g; });
   const fr = (d)=> d.split('-').reverse().join('/');
   body.innerHTML = `<div style="font-weight:800;font-size:16px;margin-bottom:6px;">Période du ${fr(a)} au ${fr(b)}</div>`
-    + `<div class="kpi"><span><b>Gain / perte réalisé</b></span><span class="v" style="font-size:19px;font-weight:800;color:${col(total)};">${eur(total)}</span></div>`
+    + `<div class="kpi"><span><b>Gain / perte réalisé</b></span><span class="v" style="font-size:19px;font-weight:800;color:${col(total)};">${eur(total)}${pct(total, sommeInv)}</span></div>`
+    + `<div class="kpi"><span>Somme investie (positions clôturées)</span><span class="v">${sommeInv.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} €</span></div>`
     + `<div class="kpi"><span>Positions clôturées</span><span class="v">${closes.length} (${nbG} gagnante${nbG>1?'s':''} · ${nbP} perdante${nbP>1?'s':''})</span></div>`
     + (Object.keys(parPers).length > 1 ? Object.keys(parPers).sort().map(k=>`<div class="kpi"><span>${k}</span><span class="v" style="color:${col(parPers[k])};">${eur(parPers[k])}</span></div>`).join('') : '')
-    + `<div class="kpi"><span>Gain latent (${nbOuv} position${nbOuv>1?'s':''} en cours, à ce jour)</span><span class="v" style="color:${col(latent)};">${eur(latent)}</span></div>`
-    + `<p class="small" style="margin:8px 0 0;opacity:.8;">Gains nets après frais d'achat et de vente. Le réalisé compte les positions vendues pendant la période ; le latent est calculé au dernier cours enregistré.</p>`;
+    + `<div class="kpi"><span>Gain latent (${nbOuv} position${nbOuv>1?'s':''} en cours, à ce jour)</span><span class="v" style="color:${col(latent)};">${eur(latent)}${pct(latent, invOuv)}</span></div>`
+    + `<p class="small" style="margin:8px 0 0;opacity:.8;">Gains nets après frais de courtage aller-retour (achat + vente, 0,22 % chacun) ; le pourcentage est rapporté à la somme investie à l'achat (cours d'achat × quantité + frais d'achat). Le réalisé compte les positions vendues pendant la période ; le latent est calculé au dernier cours enregistré.</p>`;
 }
 if($('bilanDu')) ['bilanDu','bilanAu'].forEach(id=>$(id).addEventListener('change', async ()=>{ try{ renderBilanSynthese(await loadPositions()); }catch(e){} }));
 async function renderBilan(){
